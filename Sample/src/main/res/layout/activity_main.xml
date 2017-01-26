@@ -41,6 +41,14 @@
             android:layout_toEndOf="@id/btn_subscribe"
             android:layout_below="@id/text_status"
             android:text="Fetch next items"/>
+
+        <Button
+            android:id="@+id/btn_append"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/btn_fetchNext"
+            android:layout_below="@id/text_status"
+            android:text="Append item to feed"/>
     </RelativeLayout>
 
     <android.support.v7.widget.RecyclerView

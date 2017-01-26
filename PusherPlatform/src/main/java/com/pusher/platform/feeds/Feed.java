@@ -1,5 +1,7 @@
 package com.pusher.platform.feeds;
 
+import android.util.Log;
+
 import com.google.gson.Gson;
 import com.pusher.platform.App;
 import com.pusher.platform.BaseClient;
@@ -13,6 +15,7 @@ import com.pusher.platform.subscription.event.Event;
 import com.pusher.platform.subscription.event.MessageEvent;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -117,23 +120,33 @@ public class Feed {
      * Appends the item to the current feed.
      *
      * */
-    public void append(Item item){
+    public void append(List<Item> items){
 
         Headers headers = new Headers.Builder()
                 .add("Content-type", "application/json")
                 .build();
 
-        baseClient.request("POST", url(), headers, gson.toJson(item), new Callback() {
+        AppendRequestBody requestBody = new AppendRequestBody(items);
+
+        //TODO: this is a DISGRACE too
+        baseClient.request("POST", url(), headers, gson.toJson(requestBody), new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-
+                e.printStackTrace();
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-
+                Log.d("FEED", "Append status "+ response.code());
             }
         });
+    }
+
+    public void append(Item item){
+
+        List<Item> items = new ArrayList<>();
+        items.add(item);
+        append(items);
     }
 
     /**

@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private FeedItemsAdapter adapter;
     private Button subscribe;
     private Button fetch;
+    private Button append;
     private TextView status;
     private Feed feed;
     private App app;
@@ -44,14 +45,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         subscribe = (Button) findViewById(R.id.btn_subscribe);
         fetch = (Button) findViewById(R.id.btn_fetchNext);
+        append = (Button) findViewById(R.id.btn_append);
         status = (TextView) findViewById(R.id.text_status);
         recyclerView = (RecyclerView) findViewById(R.id.recyclerview);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new FeedItemsAdapter();
         recyclerView.setAdapter(adapter);
-
-
 
         Authorizer authorizer = new SharedPreferencesAuthorizer.Builder()
                 .endpoint("YOUR_AUTHORIZER_ENDPOINT_HERE")
@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
                 .name("FEED_NAME")
                 .build();
 
-        app.setUserId("YOUR_APP_USERS_NAME");
+        app.setUserId("USER_ID");
 
         subscribe.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,6 +92,19 @@ public class MainActivity extends AppCompatActivity {
                 performFetch();
             }
         });
+
+        append.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                performAppend();
+            }
+        });
+    }
+
+    private int appends = 0;
+    private void performAppend() {
+        appends++;
+        feed.append(new Item("New item: " + appends));
     }
 
     private void performFetch() {

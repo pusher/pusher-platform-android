@@ -110,9 +110,9 @@ public class App {
             return new App(
                     id,
                     cluster != null ? cluster: "beta",
-                    baseClient != null ? baseClient : new BaseClient.Builder().logger(logger).build(),
+                    baseClient,
                     logger != null ? logger: new EmptyLogger(),
-                    authorizer != null ? authorizer: new AnonymousAuthorizer(null));
+                    authorizer);
         }
     }
 }
