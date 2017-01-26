@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="horizontal" android:layout_width="match_parent"
+    android:layout_height="60dp">
+
+    <TextView
+        android:id="@+id/text_item_id"
+        android:layout_width="60dp"
+        android:layout_height="match_parent"
+        tools:text="12345667"
+        />
+
+    <TextView
+        android:id="@+id/text_item_data"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:typeface="monospace"
+        tools:text="Some random shit data"/>
+
+
+</LinearLayout>
