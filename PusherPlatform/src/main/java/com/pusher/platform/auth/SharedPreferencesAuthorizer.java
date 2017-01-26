@@ -32,12 +32,8 @@ public class SharedPreferencesAuthorizer implements Authorizer {
     private OkHttpClient httpClient; //TODO find a way for this sucker to be final
     private final TimeUtil timeUtil;
     private final Context applicationContext;
-    private Gson gson;
+    private static Gson gson = new Gson();
     private SharedPreferences sharedPreferences;
-
-    private String accessToken;
-    private String refreshToken;
-    private Date accessTokenExpires;
 
     private int numberOfTries = 0;
     private final static int MAX_NUMBER_OF_TRIES = 3;
@@ -125,7 +121,8 @@ public class SharedPreferencesAuthorizer implements Authorizer {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.code() == HTTP_OK) {
-                    AuthResponse authResponse = gson.fromJson(response.body().charStream(), AuthResponse.class);
+                    String body = response.body().string();
+                    AuthResponse authResponse = gson.fromJson(body, AuthResponse.class);
 
                     storeTokens(authResponse);
                     performRequest(request, callback);
@@ -136,7 +133,7 @@ public class SharedPreferencesAuthorizer implements Authorizer {
 
     private void requestTokenPairWithRefreshToken(final Request request, final Callback callback) {
         RequestBody body = new FormBody.Builder()
-                .add("grant-type", "refresh-token")
+                .add("grant_type", "refresh_token")
                 .add("refresh_token", refreshToken())
                 .build();
 
@@ -145,8 +142,8 @@ public class SharedPreferencesAuthorizer implements Authorizer {
 
    private void requestTokenPairWithCredentials(final Request request, final Callback callback){
         RequestBody body = new FormBody.Builder()
-                .add("grant-type", "client_credentials")
-                .add("user-id", userId()) //TODO: this is gonna be fun.
+                .add("grant_type", "client_credentials")
+                .add("user_id", userId()) //TODO: this is gonna be fun.
                 .build();
         requestTokenPair(body, request, callback);
     }
