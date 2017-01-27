@@ -1,0 +1,9 @@
+com.pusher.platform
+com.pusher.platform.auth
+com.pusher.platform.feeds
+com.pusher.platform.logger
+com.pusher.platform.retrying
+com.pusher.platform.subscription
+com.pusher.platform.subscription.event
+com.pusher.platform.util
+pusher.com.pusherplatform
