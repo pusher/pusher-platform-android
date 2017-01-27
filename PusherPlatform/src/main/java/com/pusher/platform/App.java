@@ -2,13 +2,21 @@ package com.pusher.platform;
 
 import com.pusher.platform.auth.AnonymousAuthorizer;
 import com.pusher.platform.auth.Authorizer;
+import com.pusher.platform.auth.SharedPreferencesAuthorizer;
 import com.pusher.platform.logger.EmptyLogger;
 import com.pusher.platform.logger.Logger;
+import com.pusher.platform.logger.SystemLogger;
 
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
 
+/**
+ * This is the main point for configuration and interacting with services built on top of Pusher Platform.
+ * It encapsulates the connection, requests via {@link BaseClient}, authentication logic via {@link Authorizer}, and logging via {@link Logger}.
+ * To use it, pass it to the services you use.
+ *
+ * */
 public class App {
 
     public final String cluster;
@@ -34,13 +42,16 @@ public class App {
         return String.format("https://api.private-beta-1.pusherplatform.com:443/apps/%s", id);
     }
 
+    /**
+     * When authenticated by your backend of choice, pass your user ID in order to make authenticated requests as this user.
+     * This relays the user ID to the underlying authorizer
+     * */
     public void setUserId(String userId) {
         this.userId = userId;
         authorizer.setUserId(userId);
     }
 
     public static class Builder {
-
         private String id;
         private String cluster;
         private OkHttpClient okHttpClient;
@@ -71,12 +82,17 @@ public class App {
             return this;
         }
 
-
+        /**
+         * Sets the logger. Provided implementations are {@link SystemLogger} or {@link EmptyLogger} (default) for no logging.
+         * */
         public Builder logger(Logger logger){
             this.logger = logger;
             return this;
         }
 
+        /**
+         * Sets the Authorizer. Use this in order to make non-anonymous requests. Provided implementations are {@link SharedPreferencesAuthorizer} or {@link AnonymousAuthorizer} (default).
+         * */
         public Builder authorizer(Authorizer authorizer){
             this.authorizer = authorizer;
             return this;

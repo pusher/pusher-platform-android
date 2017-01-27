@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.pusher.platform.App;
 import com.pusher.platform.BaseClient;
 import com.pusher.platform.retrying.DefaultRetryStrategy;
+import com.pusher.platform.retrying.NoRetryStrategy;
 import com.pusher.platform.retrying.RetryStrategy;
 import com.pusher.platform.subscription.OnErrorListener;
 import com.pusher.platform.subscription.OnEventListener;
@@ -27,6 +28,7 @@ import okhttp3.Response;
 
 /**
  * A single feed. Can be subscribed to, unsubscribed from, or used to fetch a number of items in it.
+ * It can also append items. What more could you wish fore?
  * */
 public class Feed {
 
@@ -92,21 +94,6 @@ public class Feed {
         }
     }
 
-    private class EventToItemTransformer implements OnEventListener {
-
-        private final OnItemListener onItemListener;
-
-        EventToItemTransformer(OnItemListener onItemListener){
-            this.onItemListener = onItemListener;
-        }
-
-        @Override
-        public void onEvent(Event event) {
-            MessageEvent message = (MessageEvent) event;
-            onItemListener.onItem(new Item(message.getId(), message.getBody()));
-        }
-    }
-
     /**
      * Unsubscribe from the current subscription
      * @throws IllegalStateException if it's not subscribed.
@@ -117,11 +104,12 @@ public class Feed {
     }
 
     /**
-     * Appends the item to the current feed.
+     * Appends the list of items to the current feed.
+     * @param items the list of items to append.
      *
      * */
     public void append(List<Item> items){
-
+        //TODO: this should have an error callback
         Headers headers = new Headers.Builder()
                 .add("Content-type", "application/json")
                 .build();
@@ -142,8 +130,12 @@ public class Feed {
         });
     }
 
+    /**
+     * Appends the item to the current feed.
+     * @param item the item to append.
+     * */
     public void append(Item item){
-
+        //TODO: this should have an error callback
         List<Item> items = new ArrayList<>();
         items.add(item);
         append(items);
@@ -154,6 +146,7 @@ public class Feed {
      * @param listener the callback that triggers on each retrieved item
      * */
     public void fetchOlderItems(final OnItemsListener listener){
+        //TODO: this should have an error callback
         fetchItems(oldestReceivedItemID, 0, listener);
     }
 
@@ -162,6 +155,7 @@ public class Feed {
      * @param limit number of items to fetch. If a feed has less than that items it will fetch as many as it can
      * @param listener the callback that triggers on each retrieved item */
     public void fetchOlderItems(int limit, final OnItemsListener listener){
+        //TODO: this should have an error callback
         fetchItems(oldestReceivedItemID, limit, listener);
     }
 
@@ -171,6 +165,7 @@ public class Feed {
      * @param limit number of items to fetch. If a feed has less than that items it will fetch as many as it can. If this value is negative or zero it will use server-default value.
      * @param listener the callback that triggers on each retrieved item  */
     public void fetchItems(final String oldestItemId, int limit, final OnItemsListener listener){
+        //TODO: this should have an error callback
         Headers headers = new Headers.Builder()
                 .add("Content-Type", "application/json")
                 .build();
@@ -211,6 +206,21 @@ public class Feed {
         return String.format("%s/feeds/%s", app.baseUrl(), name);
     }
 
+    private class EventToItemTransformer implements OnEventListener {
+
+        private final OnItemListener onItemListener;
+
+        EventToItemTransformer(OnItemListener onItemListener){
+            this.onItemListener = onItemListener;
+        }
+
+        @Override
+        public void onEvent(Event event) {
+            MessageEvent message = (MessageEvent) event;
+            onItemListener.onItem(new Item(message.getId(), message.getBody()));
+        }
+    }
+
     public static class Builder {
         private App app;
         private String name;
@@ -218,14 +228,22 @@ public class Feed {
 
         public Feed build(){
             if(retryStrategy == null) retryStrategy = new DefaultRetryStrategy();
+            if(app == null) throw new IllegalStateException("App must not be null");
+            if(name == null) throw new IllegalStateException("Feed name must not be null");
             return new Feed(app, name, retryStrategy);
         }
 
+        /**
+         * Sets the Pusher Platform {@link App} to use. This is mandatory.
+         * */
         public Builder app(App app){
             this.app = app;
             return this;
         }
 
+        /**
+         * Sets the name of the current Feed. This is mandatory.
+         * */
         public Builder name(String name){
             this.name = name;
             return this;
@@ -233,6 +251,7 @@ public class Feed {
 
         /**
          * The {@link RetryStrategy} that ensures reconnections happen when subscribing to this feed. If no strategy provided the {@link DefaultRetryStrategy} is used.
+         * You can disable retrying by passing it an instance of {@link NoRetryStrategy}.
          * */
         public Builder retryStrategy(RetryStrategy retryStrategy){
             this.retryStrategy = retryStrategy;

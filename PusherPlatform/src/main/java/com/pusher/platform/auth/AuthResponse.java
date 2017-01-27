@@ -2,7 +2,7 @@ package com.pusher.platform.auth;
 
 import com.google.gson.annotations.SerializedName;
 
-public class AuthResponse {
+class AuthResponse {
     @SerializedName("access_token")
     private String accessToken;
 
@@ -15,15 +15,15 @@ public class AuthResponse {
     @SerializedName("token_type")
     private String tokenType; //TODO: not sure we need this, it's always Bearer
 
-    public String getAccessToken() {
+    String getAccessToken() {
         return accessToken;
     }
 
-    public long getExpiresIn() {
+    long getExpiresIn() {
         return expiresIn;
     }
 
-    public String getRefreshToken() {
+    String getRefreshToken() {
         return refreshToken;
     }
 }

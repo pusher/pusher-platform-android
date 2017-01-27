@@ -1,5 +1,6 @@
 package com.pusher.platform.auth;
 
+import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -12,8 +13,11 @@ public class AnonymousAuthorizer implements Authorizer {
     }
 
     @Override
-    public void performRequest(Request request, Callback callback) {
-        httpClient.newCall(request).enqueue(callback);
+    public Call performRequest(Request request, Callback callback) {
+
+        Call call = httpClient.newCall(request);
+        call.enqueue(callback);
+        return call;
     }
 
     @Override

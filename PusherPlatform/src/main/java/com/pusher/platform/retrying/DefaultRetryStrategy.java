@@ -4,6 +4,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Default Retry Strategy implementation. Naive retryer that keeps trying until {@value MAX_RECONNECTION_ATTEMPTS} doubling the wait each time.
+ * (Or until it waits for {@value MAX_RECONNECTION_ATTEMPTS} seconds.
+ * */
 public class DefaultRetryStrategy implements RetryStrategy {
 
     private static final int MAX_RECONNECTION_ATTEMPTS = 12;

@@ -1,10 +1,7 @@
 package com.pusher.platform;
 
 import com.google.gson.Gson;
-import com.pusher.platform.auth.AuthTokenCallback;
 import com.pusher.platform.auth.Authorizer;
-import com.pusher.platform.auth.SharedPreferencesAuthorizer;
-import com.pusher.platform.auth.TokenError;
 import com.pusher.platform.logger.EmptyLogger;
 import com.pusher.platform.logger.Logger;
 import com.pusher.platform.retrying.RetryStrategy;
@@ -15,21 +12,19 @@ import com.pusher.platform.subscription.ResumableSubscription;
 import com.pusher.platform.subscription.SubscriptionException;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.CacheControl;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Headers;
 import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
-import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
-
+/**
+ * Creates requests and relays to the {@link Authorizer} to be executed. Relays any responses or errors back to the caller.
+ * */
 public class BaseClient {
 
     private Logger logger;
@@ -158,6 +153,9 @@ public class BaseClient {
             return this;
         }
 
+        /**
+         * Sets the authorizer. This call is mandatory.
+         * */
         public Builder authorizer(Authorizer authorizer){
             this.authorizer = authorizer;
             return this;
@@ -168,6 +166,7 @@ public class BaseClient {
             if(null == logger){
                 logger = new EmptyLogger();
             }
+            if(null == authorizer) throw new IllegalStateException("Authorizer must not be null");
             BaseClient client = new BaseClient(authorizer, logger);
 
             return client;

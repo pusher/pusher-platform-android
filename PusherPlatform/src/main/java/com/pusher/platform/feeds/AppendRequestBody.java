@@ -2,10 +2,10 @@ package com.pusher.platform.feeds;
 
 import java.util.List;
 
-public class AppendRequestBody {
+class AppendRequestBody {
     private List<Item> items;
 
-    public AppendRequestBody(List<Item> items){
+    AppendRequestBody(List<Item> items){
         this.items = items;
     }
 }

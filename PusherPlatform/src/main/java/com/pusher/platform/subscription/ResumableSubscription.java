@@ -3,6 +3,7 @@ package com.pusher.platform.subscription;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.pusher.platform.auth.Authorizer;
+import com.pusher.platform.logger.EmptyLogger;
 import com.pusher.platform.logger.Logger;
 import com.pusher.platform.subscription.event.MessageEvent;
 
@@ -37,6 +38,13 @@ public class ResumableSubscription {
         this.request = request;
     }
 
+    /**
+     * Subscribe to events in this Resumable resource.
+     * @param onOpenListener
+     * @param onEventListener
+     * @param onErrorListener
+     * @param lastEventId
+     * */
     public void subscribe(OnOpenListener onOpenListener, OnEventListener onEventListener, OnErrorListener onErrorListener, String lastEventId){
 
         this.onOpenListener = onOpenListener;
@@ -68,7 +76,7 @@ public class ResumableSubscription {
             builder.header("Last-Event-ID", lastEventId);
         }
 
-        authorizer.performRequest(builder.build(), new Callback() {
+        subscribeCall = authorizer.performRequest(builder.build(), new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 onErrorListener.onError(new SubscriptionException(e, SubscriptionException.Type.CONNECTION_LOST));
@@ -82,22 +90,6 @@ public class ResumableSubscription {
                 else onErrorListener.onError(new SubscriptionException(new Throwable("REsponse to the subscription was not 200"), SubscriptionException.Type.NOT_200));
             }
         });
-
-//        subscribeCall = okHttpClient.newCall(builder.build());
-//        subscribeCall.enqueue(new Callback() {
-//            @Override
-//            public void onFailure(Call call, IOException e) {
-//                onErrorListener.onError(new SubscriptionException(e, SubscriptionException.Type.CONNECTION_LOST));
-//            }
-//
-//            @Override
-//            public void onResponse(Call call, Response response) throws IOException {
-//                if(response.code() == 200){
-//                    handleOpenSubscription(response);
-//                }
-//                else onErrorListener.onError(new SubscriptionException(new Throwable("REsponse to the subscription was not 200"), SubscriptionException.Type.NOT_200));
-//            }
-//        });
     }
 
     private void handleOpenSubscription(Response response) throws IOException {
@@ -142,10 +134,16 @@ public class ResumableSubscription {
         lastEventId = message[1].getAsString();
     }
 
+    /**
+     * Utility method to check whether the subscription is active.
+     * */
     public boolean isSubscribed() {
         return (null != subscribeCall && subscribeCall.isExecuted() && !subscribeCall.isCanceled());
     }
 
+    /**
+     * Closes the currenct subscription, if it exists.
+     * */
     public void close() {
         if(null != subscribeCall){
             subscribeCall.cancel();
@@ -158,15 +156,22 @@ public class ResumableSubscription {
         private Logger logger;
         private Authorizer authorizer;
 
+        /**
+         * An OkHTTP Request to subscribe with. Must not be null.
+         * */
         public Builder request(Request request){
             this.request = request;
             return this;
         }
+
         public Builder logger(Logger logger){
             this.logger = logger;
             return this;
         }
 
+        /**
+         * The authorizer to authenticate the requests. Must not be null.
+         * */
         public Builder authorizer(Authorizer authorizer){
             this.authorizer = authorizer;
             return this;
@@ -178,6 +183,9 @@ public class ResumableSubscription {
             }
             if(null == authorizer){
                 throw new IllegalStateException("Authorizer must not be null");
+            }
+            if(null == logger){
+                logger = new EmptyLogger();
             }
 
             return new ResumableSubscription(authorizer, logger, request);

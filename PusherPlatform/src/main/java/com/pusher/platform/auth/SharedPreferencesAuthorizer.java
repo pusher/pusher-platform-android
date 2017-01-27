@@ -48,12 +48,14 @@ public class SharedPreferencesAuthorizer implements Authorizer {
     }
 
     @Override
-    public void performRequest(final Request request, final Callback callback) {
+    public Call performRequest(final Request request, final Callback callback) {
 
         //This shouldn't JUST take a callback - not the right way to terminate requests otherwise.
         if(numberOfTries >= MAX_NUMBER_OF_TRIES){
             //TODO: terminate
         }
+
+        Call call;
 
         //Check if we have the token
         if(accessToken().length() > 0) {
@@ -64,7 +66,8 @@ public class SharedPreferencesAuthorizer implements Authorizer {
                         .build();
 
                 numberOfTries++;
-                httpClient.newCall(authenticatedRequest).enqueue(new Callback() {
+                call = httpClient.newCall(authenticatedRequest);
+                call.enqueue(new Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
                         numberOfTries = 0;
@@ -75,7 +78,7 @@ public class SharedPreferencesAuthorizer implements Authorizer {
                     public void onResponse(Call call, Response response) throws IOException {
                         if(response.code() == HTTP_UNAUTHORIZED){
 
-                            requestTokenPairWithRefreshToken(request, callback);
+                            call = requestTokenPairWithRefreshToken(request, callback);
                         }
                         else {
                             numberOfTries = 0;
@@ -86,13 +89,14 @@ public class SharedPreferencesAuthorizer implements Authorizer {
             }
             //Token we have has expired. Try to refresh
             else {
-                requestTokenPairWithRefreshToken(request, callback);
+                call = requestTokenPairWithRefreshToken(request, callback);
             }
         }
         //No token, we assume we can somehow get credentials. Terminate otherwise? //TODO: decide on this
         else {
-            requestTokenPairWithCredentials(request, callback);
+            call = requestTokenPairWithCredentials(request, callback);
         }
+        return call;
     }
 
     @Override
@@ -105,13 +109,14 @@ public class SharedPreferencesAuthorizer implements Authorizer {
         sharedPreferences.edit().putString(USER_ID, userId).apply();
     }
 
-    private void requestTokenPair(final RequestBody requestbody, final Request request, final Callback callback){
+    private Call requestTokenPair(final RequestBody requestbody, final Request request, final Callback callback){
         Request authRequest = new Request.Builder()
                 .url(endpoint)
                 .post(requestbody)
                 .build();
 
-        httpClient.newCall(authRequest).enqueue(new Callback() {
+        Call call = httpClient.newCall(authRequest);
+        call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 callback.onFailure(call, e);
@@ -129,26 +134,27 @@ public class SharedPreferencesAuthorizer implements Authorizer {
                 }
             }
         });
+        return call;
     }
 
-    private void requestTokenPairWithRefreshToken(final Request request, final Callback callback) {
+    private Call requestTokenPairWithRefreshToken(final Request request, final Callback callback) {
         RequestBody body = new FormBody.Builder()
                 .add("grant_type", "refresh_token")
                 .add("refresh_token", refreshToken())
                 .build();
 
-        requestTokenPair(body, request, callback);
+        return requestTokenPair(body, request, callback);
     }
 
-   private void requestTokenPairWithCredentials(final Request request, final Callback callback){
+   private Call requestTokenPairWithCredentials(final Request request, final Callback callback){
         RequestBody body = new FormBody.Builder()
                 .add("grant_type", "client_credentials")
                 .add("user_id", userId()) //TODO: this is gonna be fun.
                 .build();
-        requestTokenPair(body, request, callback);
+        return requestTokenPair(body, request, callback);
     }
 
-    //TODO: this SHOULD be more secure. (Although if some1 steals your device then access to feeds refresh tokens is likely not your biggest concern.
+    //TODO: this SHOULD be more secure.
     private void storeTokens(AuthResponse authResponse) {
         sharedPreferences.edit()
                 .putString(ACCESS_TOKEN, authResponse.getAccessToken())
@@ -201,7 +207,6 @@ public class SharedPreferencesAuthorizer implements Authorizer {
 
         public SharedPreferencesAuthorizer build(){
             if(null == endpoint || endpoint.length() <= 0) throw new IllegalStateException("Endpoint must be specified");
-//            if(null == httpClient) throw new IllegalStateException("OKHttpClientmust not be null");
             if(null == context) throw new IllegalStateException("Context must not be null");
             if(null == timeUtil){
                 timeUtil = new TimeUtil(); //this is just so we can mock time in tests
