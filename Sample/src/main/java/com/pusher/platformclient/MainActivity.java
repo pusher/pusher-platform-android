@@ -53,16 +53,8 @@ public class MainActivity extends AppCompatActivity {
         adapter = new FeedItemsAdapter();
         recyclerView.setAdapter(adapter);
 
-        Authorizer authorizer = new SharedPreferencesAuthorizer.Builder()
-                .endpoint("YOUR_AUTHORIZER_ENDPOINT_HERE")
-                .context(getApplicationContext())
-                .build();
-
-        Authorizer anonAuthorizer = new AnonymousAuthorizer(null);
-
         app = new App.Builder()
                 .id("YOUR_APP_ID")
-                .authorizer(anonAuthorizer)
                 .logger(new SystemLogger())
                 .build();
 
