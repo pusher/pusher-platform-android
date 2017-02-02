@@ -1,11 +1,15 @@
 package com.pusher.platform;
 
+import android.content.Context;
+import android.os.Build;
+
 import com.pusher.platform.auth.AnonymousAuthorizer;
 import com.pusher.platform.auth.Authorizer;
 import com.pusher.platform.auth.SharedPreferencesAuthorizer;
 import com.pusher.platform.logger.EmptyLogger;
 import com.pusher.platform.logger.Logger;
 import com.pusher.platform.logger.SystemLogger;
+import com.pusher.platform.metrics.ClientHeaderInjectingInterceptor;
 
 import java.util.concurrent.TimeUnit;
 
@@ -104,14 +108,25 @@ public class App {
                 throw new IllegalStateException("App ID not Set");
             }
 
-            //TODO: due to very high timeouts we shouldn't reuse users OkHttpClients. We should instead clone them and reuse then.
+            String libraryName = "pusher-platform-android";
+            String libraryVersion = "0.2.0";
+            String os = Build.VERSION.RELEASE;
+            String device = Build.DEVICE;
+            ClientHeaderInjectingInterceptor interceptor = new ClientHeaderInjectingInterceptor(libraryName, libraryVersion, os, device);
+
+            OkHttpClient.Builder httpClientBuilder;
             if(null == okHttpClient ) {
-                okHttpClient = new OkHttpClient.Builder()
-                        .connectTimeout(10000, TimeUnit.MINUTES)
-                        .writeTimeout(10000, TimeUnit.MINUTES)
-                        .readTimeout(10000, TimeUnit.MINUTES)
-                        .build();
+                httpClientBuilder = new OkHttpClient.Builder();
+
+            }else{
+                httpClientBuilder = okHttpClient.newBuilder();
             }
+            okHttpClient = httpClientBuilder
+                    .connectTimeout(10000, TimeUnit.MINUTES)
+                    .writeTimeout(10000, TimeUnit.MINUTES)
+                    .readTimeout(10000, TimeUnit.MINUTES)
+                    .addNetworkInterceptor(interceptor)
+                    .build();
 
             if(authorizer == null) authorizer = new AnonymousAuthorizer(okHttpClient);
             else{
