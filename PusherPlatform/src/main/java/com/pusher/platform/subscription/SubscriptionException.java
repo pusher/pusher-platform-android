@@ -11,7 +11,7 @@ public class SubscriptionException  extends Error {
     public final Type type;
 
     public SubscriptionException(Throwable throwable, Type type ){
-        super(throwable);
+        super(throwable, null);
         this.type = type;
     }
 

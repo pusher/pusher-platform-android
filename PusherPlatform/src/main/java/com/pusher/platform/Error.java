@@ -4,13 +4,18 @@ package com.pusher.platform;
  * The base class for all Pusher Platform errors, including the ones for services built on top of it.
  * Currently this encapsulates the underlying exception, using its message and stack trace. It also allows specifying additional URL supporting the error.
  * */
-public class Error extends Throwable {
+public class Error extends RuntimeException {
     private final String url;
 
-    public Error(Throwable throwable){
-        this(throwable, null);
+    public static Error fromThrowable(Throwable t){
+        return fromThrowableAndUrl(t, null);
     }
-    public Error(Throwable throwable, String url){
+
+    public static Error fromThrowableAndUrl(Throwable t, String url){
+        return new Error(t, url);
+    }
+
+    protected Error(Throwable throwable, String url){
         super(throwable);
         this.url = url;
     }

@@ -10,7 +10,6 @@ import com.pusher.platform.ErrorListener;
 import com.pusher.platform.retrying.DefaultRetryStrategy;
 import com.pusher.platform.retrying.NoRetryStrategy;
 import com.pusher.platform.retrying.RetryStrategy;
-import com.pusher.platform.subscription.SubscriptionErrorListener;
 import com.pusher.platform.subscription.OnEventListener;
 import com.pusher.platform.subscription.OnOpenListener;
 import com.pusher.platform.subscription.ResumableSubscription;
@@ -58,20 +57,20 @@ public class Feed {
      * @param onItemListener The callback that triggers for each new item in a feed.
      * @param onErrorListener Error callback
      * */
-    public void subscribe(OnItemListener onItemListener, SubscriptionErrorListener onErrorListener){
+    public void subscribe(OnItemListener onItemListener, ErrorListener onErrorListener){
         subscribe(null, onItemListener, onErrorListener, null);
     }
 
     /**
      * Subscribe to a feed, from the last item specified with ID
      * @param onItemListener The callback that triggers for each new item in a feed.
-     * @param subscriptionErrorListener Error callback
+     * @param errorListener Error callback
      * @param onOpenListener Callback that triggers when the subscription is opened
      * @param lastItemId the ID of the last item we are subscribing from
      * */
-    public void subscribe(final OnOpenListener onOpenListener, final OnItemListener onItemListener, final SubscriptionErrorListener subscriptionErrorListener, final String lastItemId){
+    public void subscribe(final OnOpenListener onOpenListener, final OnItemListener onItemListener, final ErrorListener errorListener, final String lastItemId){
 
-        if(lastItemId == null && mostRecentReceivedItemId == null){
+        if(lastItemId == null && mostRecentReceivedItemId == null) {
             fetchOlderItems(new OnItemsListener() {
                 @Override
                 public void onItems(List<Item> items) {
@@ -84,18 +83,14 @@ public class Feed {
                             onItemListener.onItem(items.get(i));
                         }
                     }
-                    subscription = baseClient.subscribe(url(), onOpenListener, new EventToItemTransformer(onItemListener), subscriptionErrorListener, lastItemId, retryStrategy);
+                    subscription = baseClient.subscribe(url(), onOpenListener, new EventToItemTransformer(onItemListener), errorListener, lastItemId, retryStrategy);
                 }
-            }, subscriptionErrorListener);
-
+            }, errorListener);
         }
-
-
-        else{
-            subscription = baseClient.subscribe(url(), onOpenListener, new EventToItemTransformer(onItemListener), subscriptionErrorListener, lastItemId, retryStrategy);
+        else {
+                subscription = baseClient.subscribe(url(), onOpenListener, new EventToItemTransformer(onItemListener), errorListener, lastItemId, retryStrategy);
         }
     }
-
 
     /**
      * Unsubscribe from the current subscription
@@ -111,7 +106,7 @@ public class Feed {
      * @param items the list of items to append.
      *
      * */
-    public void append(List<Item> items){
+    public void append(List<Item> items, final ErrorListener errorListener){
         //TODO: this should have an error callback
         Headers headers = new Headers.Builder()
                 .add("Content-type", "application/json")
@@ -124,6 +119,7 @@ public class Feed {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
+                errorListener.onError(Error.fromThrowable(e));
             }
 
             @Override
@@ -137,11 +133,10 @@ public class Feed {
      * Appends the item to the current feed.
      * @param item the item to append.
      * */
-    public void append(Item item){
-        //TODO: this should have an error callback
+    public void append(Item item, ErrorListener errorListener){
         List<Item> items = new ArrayList<>();
         items.add(item);
-        append(items);
+        append(items, errorListener);
     }
 
     /**
@@ -182,7 +177,7 @@ public class Feed {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     app.logger.log(e, "onFailure getting items!");
-                    errorListener.onError(new Error(e));
+                    errorListener.onError(Error.fromThrowable(e));
                 }
 
                 @Override

@@ -2,6 +2,7 @@ package com.pusher.platform.subscription;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.pusher.platform.ErrorListener;
 import com.pusher.platform.auth.Authorizer;
 import com.pusher.platform.logger.EmptyLogger;
 import com.pusher.platform.logger.Logger;
@@ -24,7 +25,7 @@ public class ResumableSubscription {
     private Request request;
     private OnOpenListener onOpenListener;
     private OnEventListener onEventListener;
-    private SubscriptionErrorListener onErrorListener;
+    private ErrorListener onErrorListener;
     private Authorizer authorizer;
 
     private Call subscribeCall;
@@ -43,7 +44,7 @@ public class ResumableSubscription {
      * @param onErrorListener
      * @param lastEventId
      * */
-    public void subscribe(OnOpenListener onOpenListener, OnEventListener onEventListener, SubscriptionErrorListener onErrorListener, String lastEventId){
+    public void subscribe(OnOpenListener onOpenListener, OnEventListener onEventListener, ErrorListener onErrorListener, String lastEventId){
 
         this.onOpenListener = onOpenListener;
 

@@ -10,14 +10,14 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.pusher.platform.App;
+import com.pusher.platform.Error;
+import com.pusher.platform.ErrorListener;
 import com.pusher.platform.feeds.Feed;
 import com.pusher.platform.feeds.Item;
 import com.pusher.platform.feeds.OnItemListener;
 import com.pusher.platform.feeds.OnItemsListener;
 import com.pusher.platform.logger.SystemLogger;
-import com.pusher.platform.subscription.SubscriptionErrorListener;
 import com.pusher.platform.subscription.OnOpenListener;
-import com.pusher.platform.subscription.SubscriptionException;
 
 import java.util.List;
 
@@ -91,7 +91,12 @@ public class MainActivity extends AppCompatActivity {
     private int appends = 0;
     private void performAppend() {
         appends++;
-        feed.append(new Item("New item: " + appends));
+        feed.append(new Item("New item: " + appends), new ErrorListener() {
+            @Override
+            public void onError(Error error) {
+                error.printStackTrace();
+            }
+        });
     }
 
     private void performFetch() {
@@ -109,6 +114,11 @@ public class MainActivity extends AppCompatActivity {
                     });
                     updateStatus("Added " + items.size() + " items!");
                 }
+            }
+        }, new ErrorListener() {
+            @Override
+            public void onError(Error error) {
+                error.printStackTrace();
             }
         });
     }
@@ -136,10 +146,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
             }
-        }, new SubscriptionErrorListener() {
+        }, new ErrorListener() {
             @Override
-            public void onError(SubscriptionException exception) {
-                updateStatus("onError! " + exception.type + " " + exception.getMessage());
+            public void onError(Error exception) {
+                updateStatus("onError! " + exception.getMessage());
                 exception.printStackTrace();
             }
         }, null);
