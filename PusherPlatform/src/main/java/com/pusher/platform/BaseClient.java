@@ -5,7 +5,7 @@ import com.pusher.platform.auth.Authorizer;
 import com.pusher.platform.logger.EmptyLogger;
 import com.pusher.platform.logger.Logger;
 import com.pusher.platform.retrying.RetryStrategy;
-import com.pusher.platform.subscription.OnErrorListener;
+import com.pusher.platform.subscription.SubscriptionErrorListener;
 import com.pusher.platform.subscription.OnEventListener;
 import com.pusher.platform.subscription.OnOpenListener;
 import com.pusher.platform.subscription.ResumableSubscription;
@@ -75,15 +75,15 @@ public class BaseClient {
         request(method, url, headers, null, callback);
     }
 
-    class RetryingErrorHandler implements OnErrorListener {
+    class RetryingErrorHandler implements SubscriptionErrorListener {
 
         private final RetryStrategy retryStrategy;
         private final ResumableSubscription subscription;
         private final OnOpenListener onOpen;
         private final OnEventListener onEventListener;
-        private final OnErrorListener onError;
+        private final SubscriptionErrorListener onError;
 
-        RetryingErrorHandler(RetryStrategy retryStrategy, ResumableSubscription subscription, OnOpenListener onOpen, OnEventListener onEventListener, OnErrorListener onError){
+        RetryingErrorHandler(RetryStrategy retryStrategy, ResumableSubscription subscription, OnOpenListener onOpen, OnEventListener onEventListener, SubscriptionErrorListener onError){
             this.retryStrategy = retryStrategy;
             this.subscription = subscription;
             this.onOpen = onOpen;
@@ -109,11 +109,11 @@ public class BaseClient {
         }
     }
 
-    public ResumableSubscription subscribe(String url, final OnOpenListener onOpen, final OnEventListener onEventListener, final OnErrorListener onError, final String lastItemId, final RetryStrategy retryStrategy) {
+    public ResumableSubscription subscribe(String url, final OnOpenListener onOpen, final OnEventListener onEventListener, final SubscriptionErrorListener onError, final String lastItemId, final RetryStrategy retryStrategy) {
 
         final ResumableSubscription subscription = createSubscription(url);
 
-        OnErrorListener retryingErrorHandler = new RetryingErrorHandler(
+        SubscriptionErrorListener retryingErrorHandler = new RetryingErrorHandler(
                 retryStrategy, subscription, onOpen, onEventListener, onError
         );
 

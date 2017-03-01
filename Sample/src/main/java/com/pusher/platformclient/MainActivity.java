@@ -8,20 +8,15 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.pusher.platform.App;
-import com.pusher.platform.auth.AnonymousAuthorizer;
-import com.pusher.platform.auth.Authorizer;
-import com.pusher.platform.auth.SharedPreferencesAuthorizer;
 import com.pusher.platform.feeds.Feed;
 import com.pusher.platform.feeds.Item;
 import com.pusher.platform.feeds.OnItemListener;
 import com.pusher.platform.feeds.OnItemsListener;
 import com.pusher.platform.logger.SystemLogger;
-import com.pusher.platform.subscription.OnErrorListener;
+import com.pusher.platform.subscription.SubscriptionErrorListener;
 import com.pusher.platform.subscription.OnOpenListener;
-import com.pusher.platform.subscription.ResumableSubscription;
 import com.pusher.platform.subscription.SubscriptionException;
 
 import java.util.List;
@@ -141,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
             }
-        }, new OnErrorListener() {
+        }, new SubscriptionErrorListener() {
             @Override
             public void onError(SubscriptionException exception) {
                 updateStatus("onError! " + exception.type + " " + exception.getMessage());

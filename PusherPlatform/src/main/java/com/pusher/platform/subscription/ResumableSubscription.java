@@ -9,11 +9,9 @@ import com.pusher.platform.subscription.event.MessageEvent;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.internal.http2.StreamResetException;
@@ -26,7 +24,7 @@ public class ResumableSubscription {
     private Request request;
     private OnOpenListener onOpenListener;
     private OnEventListener onEventListener;
-    private OnErrorListener onErrorListener;
+    private SubscriptionErrorListener onErrorListener;
     private Authorizer authorizer;
 
     private Call subscribeCall;
@@ -45,7 +43,7 @@ public class ResumableSubscription {
      * @param onErrorListener
      * @param lastEventId
      * */
-    public void subscribe(OnOpenListener onOpenListener, OnEventListener onEventListener, OnErrorListener onErrorListener, String lastEventId){
+    public void subscribe(OnOpenListener onOpenListener, OnEventListener onEventListener, SubscriptionErrorListener onErrorListener, String lastEventId){
 
         this.onOpenListener = onOpenListener;
 

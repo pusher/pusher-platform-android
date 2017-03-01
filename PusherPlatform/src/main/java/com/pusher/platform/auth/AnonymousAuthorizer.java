@@ -26,9 +26,7 @@ public class AnonymousAuthorizer implements Authorizer {
     }
 
     @Override
-    public void setUserId(String userId) {
-        //empty implementation
-    }
+    public void setUserId(String userId) { /* empty implementation */ }
 
     public static class Builder {
         private OkHttpClient httpClient;
