@@ -1,5 +1,8 @@
 package com.pusher.platform;
 
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+
 /**
  * The base class for all Pusher Platform errors, including the ones for services built on top of it.
  * Currently this encapsulates the underlying exception, using its message and stack trace. It also allows specifying additional URL supporting the error.

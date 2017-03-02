@@ -49,16 +49,16 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         app = new App.Builder()
-                .id("YOUR_APP_ID")
+                .id("050e311d-9da9-4260-ad15-75d8c1d2b5a9")
                 .logger(new SystemLogger())
                 .build();
 
         feed = new Feed.Builder()
                 .app(app)
-                .name("FEED_NAME")
+                .name("zans_feed")
                 .build();
 
-        app.setUserId("USER_ID");
+//        app.setUserId("USER_ID");
 
         subscribe.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -17,6 +17,9 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.internal.http2.StreamResetException;
 
+/**
+ * A subscription that allows resuming from the last known element ID (or any element ID). Currently the only available subscription implementation, used for Feeds.
+ * */
 public class ResumableSubscription {
 
     private final Logger logger;
@@ -39,10 +42,10 @@ public class ResumableSubscription {
 
     /**
      * Subscribe to events in this Resumable resource.
-     * @param onOpenListener
-     * @param onEventListener
-     * @param onErrorListener
-     * @param lastEventId
+     * @param onOpenListener called when the subscription is opened
+     * @param onEventListener called when an event is received
+     * @param onErrorListener called when something bad happens
+     * @param lastEventId the last event ID from which to subscribe (receive newer IDs), or nothing
      * */
     public void subscribe(OnOpenListener onOpenListener, OnEventListener onEventListener, ErrorListener onErrorListener, String lastEventId){
 

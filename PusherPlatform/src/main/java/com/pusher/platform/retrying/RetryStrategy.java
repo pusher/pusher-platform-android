@@ -10,7 +10,7 @@ public interface RetryStrategy {
     void tryAgain(Callback callback);
 
     /**
-     * Give up and stop trying.
+     * Give up and stop trying. Wuss.
      * */
     void cancel();
 

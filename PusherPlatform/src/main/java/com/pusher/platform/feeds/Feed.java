@@ -1,5 +1,7 @@
 package com.pusher.platform.feeds;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -17,7 +19,6 @@ import com.pusher.platform.subscription.event.Event;
 import com.pusher.platform.subscription.event.MessageEvent;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,6 +32,7 @@ import okhttp3.Response;
  * A single feed. Can be subscribed to, unsubscribed from, or used to fetch a number of items in it.
  * It can also append items. What more could you wish fore?
  * */
+@SuppressWarnings("WeakerAccess")
 public class Feed {
 
     static Gson gson = new Gson();
@@ -68,7 +70,11 @@ public class Feed {
      * @param onOpenListener Callback that triggers when the subscription is opened
      * @param lastItemId the ID of the last item we are subscribing from
      * */
-    public void subscribe(final OnOpenListener onOpenListener, final OnItemListener onItemListener, final ErrorListener errorListener, final String lastItemId){
+    public void subscribe(
+            @NonNull final OnOpenListener onOpenListener,
+            @NonNull final OnItemListener onItemListener,
+            @NonNull final ErrorListener errorListener,
+            @Nullable final String lastItemId){
 
         if(lastItemId == null && mostRecentReceivedItemId == null) {
             fetchOlderItems(new OnItemsListener() {
@@ -93,21 +99,25 @@ public class Feed {
     }
 
     /**
-     * Unsubscribe from the current subscription
-     * @throws IllegalStateException if it's not subscribed.
+     * Unsubscribe from the current subscription, or throw an {@link Error} if currently not subscribed
+     * @throws Error if it's not subscribed.
      * */
     public void unsubscribe(){
         if(null != subscription && subscription.isSubscribed()) subscription.close();
-        else throw new IllegalStateException("Subscription doesn't exist or is not subscribed!");
+        else throw Error.fromThrowable(new IllegalStateException("Subscription doesn't exist or is not subscribed!"));
     }
 
     /**
      * Appends the list of items to the current feed.
      * @param items the list of items to append.
+     * @param errorListener error callback
+     * @param doneListener listener to be called when request is successful
      *
      * */
-    public void append(List<Item> items, final ErrorListener errorListener){
-        //TODO: this should have an error callback
+    public void append(
+            @NonNull  List<Item> items,
+            @NonNull final ErrorListener errorListener,
+            @NonNull final DoneListener<AppendResponse> doneListener) {
         Headers headers = new Headers.Builder()
                 .add("Content-type", "application/json")
                 .build();
@@ -125,18 +135,31 @@ public class Feed {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 Log.d("FEED", "Append status "+ response.code());
+                if(response.code() == 200){
+                    doneListener.onDone(gson.fromJson(response.body().charStream(), AppendResponse.class));
+                }
+                else {
+                    errorListener.onError(Error.fromThrowable(new Throwable("Append unsuccessful. Response code:" + response.code())));
+                }
             }
         });
     }
 
     /**
-     * Appends the item to the current feed.
-     * @param item the item to append.
+     * Appends the list of items to the current feed.
+     * @param items the list of items to append.
+     * @param errorListener error callback
+     *
      * */
-    public void append(Item item, ErrorListener errorListener){
-        List<Item> items = new ArrayList<>();
-        items.add(item);
-        append(items, errorListener);
+    public void append(
+            @NonNull List<Item> items,
+            @NonNull final ErrorListener errorListener) {
+
+        append(
+                items,
+                errorListener,
+                new DoneListener<AppendResponse>() { @Override public void onDone(AppendResponse response) {} }
+        );
     }
 
     /**
