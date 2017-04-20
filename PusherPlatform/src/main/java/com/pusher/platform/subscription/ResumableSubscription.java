@@ -2,6 +2,7 @@ package com.pusher.platform.subscription;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.pusher.platform.ErrorListener;
 import com.pusher.platform.auth.Authorizer;
 import com.pusher.platform.logger.EmptyLogger;
 import com.pusher.platform.logger.Logger;
@@ -9,15 +10,16 @@ import com.pusher.platform.subscription.event.MessageEvent;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.internal.http2.StreamResetException;
 
+/**
+ * A subscription that allows resuming from the last known element ID (or any element ID). Currently the only available subscription implementation, used for Feeds.
+ * */
 public class ResumableSubscription {
 
     private final Logger logger;
@@ -26,7 +28,7 @@ public class ResumableSubscription {
     private Request request;
     private OnOpenListener onOpenListener;
     private OnEventListener onEventListener;
-    private OnErrorListener onErrorListener;
+    private ErrorListener onErrorListener;
     private Authorizer authorizer;
 
     private Call subscribeCall;
@@ -40,12 +42,12 @@ public class ResumableSubscription {
 
     /**
      * Subscribe to events in this Resumable resource.
-     * @param onOpenListener
-     * @param onEventListener
-     * @param onErrorListener
-     * @param lastEventId
+     * @param onOpenListener called when the subscription is opened
+     * @param onEventListener called when an event is received
+     * @param onErrorListener called when something bad happens
+     * @param lastEventId the last event ID from which to subscribe (receive newer IDs), or nothing
      * */
-    public void subscribe(OnOpenListener onOpenListener, OnEventListener onEventListener, OnErrorListener onErrorListener, String lastEventId){
+    public void subscribe(OnOpenListener onOpenListener, OnEventListener onEventListener, ErrorListener onErrorListener, String lastEventId){
 
         this.onOpenListener = onOpenListener;
 

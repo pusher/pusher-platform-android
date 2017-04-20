@@ -1,14 +1,17 @@
 package com.pusher.platform.feeds;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.gson.Gson;
 import com.pusher.platform.App;
 import com.pusher.platform.BaseClient;
+import com.pusher.platform.Error;
+import com.pusher.platform.ErrorListener;
 import com.pusher.platform.retrying.DefaultRetryStrategy;
 import com.pusher.platform.retrying.NoRetryStrategy;
 import com.pusher.platform.retrying.RetryStrategy;
-import com.pusher.platform.subscription.OnErrorListener;
 import com.pusher.platform.subscription.OnEventListener;
 import com.pusher.platform.subscription.OnOpenListener;
 import com.pusher.platform.subscription.ResumableSubscription;
@@ -16,7 +19,6 @@ import com.pusher.platform.subscription.event.Event;
 import com.pusher.platform.subscription.event.MessageEvent;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -30,24 +32,23 @@ import okhttp3.Response;
  * A single feed. Can be subscribed to, unsubscribed from, or used to fetch a number of items in it.
  * It can also append items. What more could you wish fore?
  * */
+@SuppressWarnings("WeakerAccess")
 public class Feed {
 
-    private static Gson gson = new Gson();
+    static Gson gson = new Gson();
+    final App app;
+    final String name;
+    final RetryStrategy retryStrategy;
+    final BaseClient baseClient;
 
-    private final App app;
-    private final String name;
-    private final RetryStrategy retryStrategy;
-    private BaseClient baseClient;
-    private String lastReceivedItemId = null;
-    private String oldestReceivedItemID = null;
-    private boolean hasNext = true;
-
+    String mostRecentReceivedItemId = null;
+    String oldestReceivedItemID = null;
+    boolean hasNext = true;
 
     private Feed(App app, String name, RetryStrategy retryStratregy) {
         this.name = name;
         this.app = app;
         this.retryStrategy  = retryStratregy;
-
         this.baseClient = app.client;
     }
 
@@ -58,58 +59,65 @@ public class Feed {
      * @param onItemListener The callback that triggers for each new item in a feed.
      * @param onErrorListener Error callback
      * */
-    public void subscribe(OnItemListener onItemListener, OnErrorListener onErrorListener){
+    public void subscribe(OnItemListener onItemListener, ErrorListener onErrorListener){
         subscribe(null, onItemListener, onErrorListener, null);
     }
 
     /**
      * Subscribe to a feed, from the last item specified with ID
      * @param onItemListener The callback that triggers for each new item in a feed.
-     * @param onErrorListener Error callback
+     * @param errorListener Error callback
      * @param onOpenListener Callback that triggers when the subscription is opened
      * @param lastItemId the ID of the last item we are subscribing from
      * */
-    public void subscribe(final OnOpenListener onOpenListener, final OnItemListener onItemListener, final OnErrorListener onErrorListener, final String lastItemId){
+    public void subscribe(
+            @NonNull final OnOpenListener onOpenListener,
+            @NonNull final OnItemListener onItemListener,
+            @NonNull final ErrorListener errorListener,
+            @Nullable final String lastItemId){
 
-        if(lastItemId == null && lastReceivedItemId == null){
+        if(lastItemId == null && mostRecentReceivedItemId == null) {
             fetchOlderItems(new OnItemsListener() {
                 @Override
                 public void onItems(List<Item> items) {
                     int numberOfItems = null != items ? items.size() : 0;
                     String mostRecentItemId = null;
 
-                    if(numberOfItems > 0){
+                    if (numberOfItems > 0) {
                         mostRecentItemId = items.get(0).getId();
-                        for(int i = numberOfItems-1; i >= 0; i--){
+                        for (int i = numberOfItems - 1; i >= 0; i--) {
                             onItemListener.onItem(items.get(i));
                         }
                     }
-                    subscription = baseClient.subscribe(url(), onOpenListener, new EventToItemTransformer(onItemListener), onErrorListener, lastItemId, retryStrategy);
+                    subscription = baseClient.subscribe(url(), onOpenListener, new EventToItemTransformer(onItemListener), errorListener, lastItemId, retryStrategy);
                 }
-            });
+            }, errorListener);
         }
-
-        else{
-            subscription = baseClient.subscribe(url(), onOpenListener, new EventToItemTransformer(onItemListener), onErrorListener, lastItemId, retryStrategy);
+        else {
+                subscription = baseClient.subscribe(url(), onOpenListener, new EventToItemTransformer(onItemListener), errorListener, lastItemId, retryStrategy);
         }
     }
 
     /**
-     * Unsubscribe from the current subscription
-     * @throws IllegalStateException if it's not subscribed.
+     * Unsubscribe from the current subscription, or throw an {@link Error} if currently not subscribed
+     * @throws Error if it's not subscribed.
      * */
     public void unsubscribe(){
         if(null != subscription && subscription.isSubscribed()) subscription.close();
-        else throw new IllegalStateException("Subscription doesn't exist or is not subscribed!");
+        else throw Error.fromThrowable(new IllegalStateException("Subscription doesn't exist or is not subscribed!"));
     }
 
     /**
      * Appends the list of items to the current feed.
      * @param items the list of items to append.
+     * @param errorListener error callback
+     * @param doneListener listener to be called when request is successful
      *
      * */
-    public void append(List<Item> items){
-        //TODO: this should have an error callback
+    public void append(
+            @NonNull  List<Item> items,
+            @NonNull final ErrorListener errorListener,
+            @NonNull final DoneListener<AppendResponse> doneListener) {
         Headers headers = new Headers.Builder()
                 .add("Content-type", "application/json")
                 .build();
@@ -121,42 +129,55 @@ public class Feed {
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
+                errorListener.onError(Error.fromThrowable(e));
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 Log.d("FEED", "Append status "+ response.code());
+                if(response.code() == 200){
+                    doneListener.onDone(gson.fromJson(response.body().charStream(), AppendResponse.class));
+                }
+                else {
+                    errorListener.onError(Error.fromThrowable(new Throwable("Append unsuccessful. Response code:" + response.code())));
+                }
             }
         });
     }
 
     /**
-     * Appends the item to the current feed.
-     * @param item the item to append.
+     * Appends the list of items to the current feed.
+     * @param items the list of items to append.
+     * @param errorListener error callback
+     *
      * */
-    public void append(Item item){
-        //TODO: this should have an error callback
-        List<Item> items = new ArrayList<>();
-        items.add(item);
-        append(items);
+    public void append(
+            @NonNull List<Item> items,
+            @NonNull final ErrorListener errorListener) {
+
+        append(
+                items,
+                errorListener,
+                new DoneListener<AppendResponse>() { @Override public void onDone(AppendResponse response) {} }
+        );
     }
 
     /**
      * Utility method to fetch the last _n_ items from the last currently known item in the feed.
      * @param listener the callback that triggers on each retrieved item
      * */
-    public void fetchOlderItems(final OnItemsListener listener){
+    public void fetchOlderItems(final OnItemsListener listener, final ErrorListener errorListener){
         //TODO: this should have an error callback
-        fetchItems(oldestReceivedItemID, 0, listener);
+        fetchItems(oldestReceivedItemID, 0, listener, errorListener);
     }
 
     /**
      * Utility method to fetch the previous _limit_ items from the last currently known item in the feed
      * @param limit number of items to fetch. If a feed has less than that items it will fetch as many as it can
      * @param listener the callback that triggers on each retrieved item */
-    public void fetchOlderItems(int limit, final OnItemsListener listener){
+    public void fetchOlderItems(int limit, final OnItemsListener listener, final ErrorListener errorListener){
         //TODO: this should have an error callback
-        fetchItems(oldestReceivedItemID, limit, listener);
+        fetchItems(oldestReceivedItemID, limit, listener, errorListener);
     }
 
     /**
@@ -164,7 +185,7 @@ public class Feed {
      * @param oldestItemId the oldest retrieved item in this feed
      * @param limit number of items to fetch. If a feed has less than that items it will fetch as many as it can. If this value is negative or zero it will use server-default value.
      * @param listener the callback that triggers on each retrieved item  */
-    public void fetchItems(final String oldestItemId, int limit, final OnItemsListener listener){
+    public void fetchItems(final String oldestItemId, int limit, final OnItemsListener listener, final ErrorListener errorListener){
         //TODO: this should have an error callback
         Headers headers = new Headers.Builder()
                 .add("Content-Type", "application/json")
@@ -179,6 +200,7 @@ public class Feed {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     app.logger.log(e, "onFailure getting items!");
+                    errorListener.onError(Error.fromThrowable(e));
                 }
 
                 @Override
@@ -220,6 +242,7 @@ public class Feed {
             onItemListener.onItem(new Item(message.getId(), message.getBody()));
         }
     }
+
 
     public static class Builder {
         private App app;
