@@ -11,4 +11,5 @@
 ...
 
 ----
-CC @pl @zmarkan @hamchapman
+
+CC @pusher/sigsdk 
