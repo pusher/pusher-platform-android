@@ -32,17 +32,15 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:26.1.0'
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    compile 'com.squareup.okhttp3:okhttp:3.9.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation 'com.squareup.okhttp3:okhttp:3.9.0'
+    implementation'com.google.code.gson:gson:2.8.2'
 
     testImplementation 'junit:junit:4.12'
-    testCompile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
-    testCompile 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0'
+    testImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    testImplementation 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0'
 
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
-}
-repositories {
-    mavenCentral()
 }
