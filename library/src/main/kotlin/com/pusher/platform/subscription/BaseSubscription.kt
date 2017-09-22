@@ -2,10 +2,8 @@ package com.pusher.platform.subscription
 
 import com.google.gson.Gson
 import elements.*
-import okhttp3.Call
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
+import elements.Headers
+import okhttp3.*
 import java.io.IOException
 
 
@@ -38,13 +36,28 @@ class BaseSubscription(
 
         call = client.newCall(request)
         try{
-            response = call.execute()
+            call.enqueue(object: Callback {
+                override fun onFailure(call: Call?, e: IOException?) {
+                    onError(NetworkError("Connection failed"))
+                }
 
-            when (response.code()){
-                in 200..299 -> handleConnectionOpened(response)
-                in 400..599 -> handleConnectionFailed(response)
-                else -> onError(NetworkError("Connection failed"))
-            }
+                override fun onResponse(call: Call?, response: Response?) {
+                    if (response != null) {
+                        this@BaseSubscription.response = response
+
+                        when (response.code()){
+                            in 200..299 -> handleConnectionOpened(response)
+                            in 400..599 -> handleConnectionFailed(response)
+                            else -> onError(NetworkError("Connection failed"))
+                        }
+                    }
+                    else {
+                        onError(NetworkError("Connection failed"))
+                    }
+                }
+            })
+
+
         }
         catch (e: IOException){
             onError(NetworkError("Connection failed"))

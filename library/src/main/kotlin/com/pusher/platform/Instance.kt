@@ -31,15 +31,15 @@ class Instance(
 
     fun justFuckingSubscribe(path: String, listeners: SubscriptionListeners, headers: Headers?): Subscription {
 
-//        headers ?: headers
-//
-//        val subscription = baseClient.
-//                path = path,
-//                listeners = listeners,
-//                headers = headers!!
-//        )
+        val existingHeaders = headers ?: TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER)
 
-        return null!!
+        val subscription = baseClient.justFuckingSubscribe(
+                path = absPath(path),
+                listeners = listeners,
+                headers = existingHeaders
+        )
+
+        return subscription
     }
 
 
@@ -72,6 +72,9 @@ class Instance(
         throw NotImplementedError("Not yet implemented")
     }
 
+    fun absPath(relativePath: String): String {
+        return "services/${this.serviceName}/${this.serviceVersion}/${this.id}/${relativePath}"
+    }
 
 }
 

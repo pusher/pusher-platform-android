@@ -41,20 +41,23 @@ class BaseClient(
 
         return subscribeStrategy(listeners, headers)
     }
+
+    fun justFuckingSubscribe(
+            path: String,
+            listeners: SubscriptionListeners,
+            headers: Headers
+    ) : Subscription {
+
+
+
+        return BaseSubscription(path = absolutePath(path), headers = headers, onOpen = listeners.onOpen, onError =  listeners.onError, onEvent = listeners.onEvent, onEnd = listeners.onEnd)
+    }
+    fun absolutePath(path: String): String  = "$baseUrl/$path"
+
 }
 
-fun justFuckingSubscribe(
-        path: String,
-        listeners: SubscriptionListeners,
-        headers: Headers
-) : Subscription {
 
 
-
-    return BaseSubscription(path = absolutePath(path), headers = headers, onOpen = listeners.onOpen, onError =  listeners.onError, onEvent = listeners.onEvent, onEnd = listeners.onEnd)
-}
-
-fun absolutePath(path: String): String  = "$/$path"
 
 fun createResumingStrategy(
         retryOptions: RetryStrategyOptions?,
