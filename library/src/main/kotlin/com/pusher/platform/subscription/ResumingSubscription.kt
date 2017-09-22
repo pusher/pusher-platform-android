@@ -71,6 +71,9 @@ fun createResumingStrategy(
             }
 
             class ResumingSubscriptionState(error: elements.Error, lastEventId: String?, onTransition: (SubscriptionState) -> Unit) : SubscriptionState {
+
+
+
                 override fun unsubscribe() {
 
                 }
@@ -122,11 +125,11 @@ fun createResumingStrategy(
         override fun unsubscribe() {
             this.state.unsubscribe()
         }
-
-
     }
 
-    return nextSubscribeStrategy
+    return {
+        listeners, headers -> ResumingSubscription(listeners, headers)
+    }
 }
 
 

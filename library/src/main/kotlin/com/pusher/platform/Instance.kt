@@ -29,7 +29,7 @@ class Instance(
 
     val baseClient: BaseClient = BaseClient(host = this.host, logger = logger)
 
-    fun justFuckingSubscribe(path: String, listeners: SubscriptionListeners, headers: Headers? = TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER)): Subscription {
+    fun justFuckingSubscribe(path: String, listeners: SubscriptionListeners, headers: Headers = TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER)): Subscription {
 
         val subscription = baseClient.justFuckingSubscribe(
                 path = absPath(path),

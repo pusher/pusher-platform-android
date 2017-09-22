@@ -16,7 +16,7 @@ class SampleActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
         val pusherPlatform = Instance(instanceId = "v1:us1:bb53a31e-bab3-4dfa-a52b-adaa44f14119", serviceName = "feeds", serviceVersion = "v1", logger = AndroidLogger(threshold = LogLevel.VERBOSE))
-        val listeners = SubscriptionListeners(¯
+        val listeners = SubscriptionListeners(
                 onOpen = { headers -> Log.d("PP", headers.toString()) },
                 onSubscribe = { Log.d("PP", "onSubscribe") },
                 onRetrying = { Log.d("PP", "onRetrying") },
@@ -24,6 +24,6 @@ class SampleActivity : AppCompatActivity() {
                 onEnd = { eosEvent -> Log.d("PP", eosEvent.toString())},
                 onError = { error -> Log.d("PP", error.toString())}
         )
-        pusherPlatform.justFuckingSubscribe(path = "feeds/my-feed/items", listeners = listeners, headers = null)
+        pusherPlatform.justFuckingSubscribe(path = "feeds/my-feed/items", listeners = listeners)
     }
 }
