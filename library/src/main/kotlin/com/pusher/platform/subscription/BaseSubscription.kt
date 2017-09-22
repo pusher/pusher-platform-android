@@ -5,6 +5,7 @@ import elements.*
 import elements.Headers
 import okhttp3.*
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 
 class BaseSubscription(
@@ -17,7 +18,7 @@ class BaseSubscription(
         val onEnd: (EOSEvent?) -> Unit
 ): Subscription {
 
-    private val client= OkHttpClient()
+    private val client= OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
     private val call: Call
     private lateinit var response: Response
 
