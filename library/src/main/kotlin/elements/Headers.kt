@@ -1,3 +1,3 @@
 package elements
 
-typealias Headers = Map<String, List<String>>
+typealias Headers = MutableMap<String, List<String>>

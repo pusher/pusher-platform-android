@@ -4,6 +4,7 @@ import com.pusher.platform.logger.Logger
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.BaseSubscription
 import com.pusher.platform.subscription.SubscribeStrategy
+import com.pusher.platform.subscription.createResumingStrategy
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.Headers
 import elements.Subscription
@@ -35,7 +36,7 @@ class BaseClient(
                 nextSubscribeStrategy = createTokenProvidingStrategy(
                         tokenProvider = tokenProvider,
                         logger = logger,
-                        nextSubscribeStrategy = createHTTP2TransportStrategy(path = path))
+                        nextSubscribeStrategy = createBaseSubscription(path = path))
         )
 
 
@@ -57,21 +58,25 @@ class BaseClient(
 }
 
 
-
-
-fun createResumingStrategy(
-        retryOptions: RetryStrategyOptions?,
-        initialEventId: String? = null,
-        nextSubscribeStrategy: SubscribeStrategy,
-        logger: Logger): SubscribeStrategy {
-
-    return nextSubscribeStrategy
-}
-
 fun createTokenProvidingStrategy(tokenProvider: TokenProvider?, logger: Logger, nextSubscribeStrategy: SubscribeStrategy): SubscribeStrategy {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    //TODO
+    return { listeners, headers ->
+        nextSubscribeStrategy(
+                listeners,
+                headers
+        )
+    }
 }
 
-fun createHTTP2TransportStrategy(path: String): SubscribeStrategy {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+fun createBaseSubscription(path: String): SubscribeStrategy {
+    return { listeners, headers ->
+        BaseSubscription(
+                path = path,
+                headers = headers,
+                onOpen = listeners.onOpen,
+                onError = listeners.onError,
+                onEvent = listeners.onEvent,
+                onEnd = listeners.onEnd
+        )
+    }
 }

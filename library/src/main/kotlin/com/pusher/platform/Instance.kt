@@ -29,14 +29,12 @@ class Instance(
 
     val baseClient: BaseClient = BaseClient(host = this.host, logger = logger)
 
-    fun justFuckingSubscribe(path: String, listeners: SubscriptionListeners, headers: Headers?): Subscription {
-
-        val existingHeaders = headers ?: TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER)
+    fun justFuckingSubscribe(path: String, listeners: SubscriptionListeners, headers: Headers? = TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER)): Subscription {
 
         val subscription = baseClient.justFuckingSubscribe(
                 path = absPath(path),
                 listeners = listeners,
-                headers = existingHeaders
+                headers = headers
         )
 
         return subscription
@@ -46,20 +44,18 @@ class Instance(
     fun subscribeResuming(
             path: String,
             listeners: SubscriptionListeners,
-            headers: Headers = Collections.EMPTY_MAP as Headers,
+            headers: Headers = TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER),
             tokenProvider: TokenProvider? = null,
-            retryOptions: RetryStrategyOptions? = null
+            retryOptions: RetryStrategyOptions = RetryStrategyOptions()
             ): Subscription {
 
         return baseClient.subscribeResuming(
-                path = path,
+                path = absPath(path),
                 listeners = listeners,
                 headers = headers,
                 tokenProvider = tokenProvider,
                 retryOptions = retryOptions
-        );
-        //TODO("Not yet implemented")
-        throw NotImplementedError("Not yet implemented")
+        )
     }
 
     fun subscribeNonResuming(): Subscription {
