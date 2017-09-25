@@ -74,69 +74,67 @@ fun createResumingStrategy(
 
             class ResumingSubscriptionState(error: elements.Error, var lastEventId: String?, onTransition: (SubscriptionState) -> Unit) : SubscriptionState {
                 lateinit var underlyingSubscription: Subscription
+                val handler = Handler()
+
 
                 init {
                     logger.verbose("${ResumingSubscription@this}: transitioning to ResumingSubscriptionState")
-
-                    val executeSubscriptionOnce: (elements.Error, String?) -> Unit = { error, lastEventId ->
-
-                        errorResolver.resolveError(error, { resolution ->
-
-                            //TODO:
-
-                        })
-
-
-
-
-
-
-                    }
-
-                    val executeNextSubscribeStrategy: (String?) -> Unit = { eventId ->
-
-                        var lastEventId = eventId
-
-                        logger.verbose("${ResumingSubscription@this}: trying to re-establish the subscription")
-                        if(lastEventId != null){
-                            headers.put("Last-Event-Id", listOf(lastEventId!!))
-                            logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
-                        }
-
-
-                        underlyingSubscription = nextSubscribeStrategy(
-                                SubscriptionListeners(
-                                        onOpen = {
-                                            headers  -> onTransition(OpenSubscriptionState(headers, underlyingSubscription, onTransition))
-                                        },
-                                        onRetrying = listeners.onRetrying,
-                                        onError = {
-                                            error -> executeSubscriptionOnce(error, lastEventId)
-                                        },
-                                        onEvent = {
-                                            event -> lastEventId = event.eventId
-                                        },
-                                        onSubscribe = listeners.onSubscribe,
-                                        onEnd = {
-                                            error -> onTransition(EndedSubscriptionState(error))
-                                        }
-                                ),
-                                headers
-                        )
-                    }
 
 
 
                     executeSubscriptionOnce(error, lastEventId)
                 }
 
-
-
-
                 override fun unsubscribe() {
 
                 }
 
+                private fun executeSubscriptionOnce(error: elements.Error, lastEventId: String?){
+
+                    errorResolver.resolveError(error, { resolution ->
+
+                        when(resolution){
+                            is DoNotRetry -> {
+
+                            }
+                            is Retry -> {
+                                handler.postDelayed({ executeNextSubscribeStrategy(lastEventId) }, resolution.waitTimeMillis)
+                            }
+                        }
+                    })
+                }
+
+                fun executeNextSubscribeStrategy(eventId: String?): Unit {
+
+                    var lastEventId = eventId
+
+                    logger.verbose("${ResumingSubscription@this}: trying to re-establish the subscription")
+                    if(lastEventId != null){
+                        headers.put("Last-Event-Id", listOf(lastEventId!!))
+                        logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
+                    }
+
+
+                    underlyingSubscription = nextSubscribeStrategy(
+                            SubscriptionListeners(
+                                    onOpen = {
+                                        headers  -> onTransition(OpenSubscriptionState(headers, underlyingSubscription, onTransition))
+                                    },
+                                    onRetrying = listeners.onRetrying,
+                                    onError = {
+                                        error -> executeSubscriptionOnce(error, lastEventId)
+                                    },
+                                    onEvent = {
+                                        event -> lastEventId = event.eventId
+                                    },
+                                    onSubscribe = listeners.onSubscribe,
+                                    onEnd = {
+                                        error -> onTransition(EndedSubscriptionState(error))
+                                    }
+                            ),
+                            headers
+                    )
+                }
             }
 
             class OpeningSubscriptionState(onTransition: (SubscriptionState) -> Unit) : SubscriptionState {
@@ -199,7 +197,7 @@ class ErrorResolver(val connectivityHelper: ConnectivityHelper) {
 
         when(error){
             is NetworkError -> {
-                retryNow = { callback(Retry() )}
+                retryNow = { callback(Retry(0) )}
                 connectivityHelper.onConnected(retryNow!!)
             }
             is ErrorResponse -> {
@@ -207,7 +205,7 @@ class ErrorResolver(val connectivityHelper: ConnectivityHelper) {
                 //Retry-After present
                 if (error.headers["Retry-After"] != null) {
                     val retryAfter = error.headers["Retry-After"]!![0].toLong() * 1000
-                    retryNow = { callback(Retry() )}
+                    retryNow = { callback(Retry(retryAfter) )}
                     handler.postDelayed(retryNow, retryAfter)
                 }
 
@@ -236,7 +234,7 @@ class ErrorResolver(val connectivityHelper: ConnectivityHelper) {
 
 sealed class RetryStrategyResult
 
-class Retry: RetryStrategyResult()
+data class Retry(val waitTimeMillis: Long): RetryStrategyResult()
 
 class DoNotRetry: RetryStrategyResult()
 
