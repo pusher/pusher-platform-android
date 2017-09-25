@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit
 
 
 class BaseSubscription(
-
         path: String,
         headers: Headers,
         val onOpen: ( Headers ) -> Unit,
@@ -57,8 +56,6 @@ class BaseSubscription(
                     }
                 }
             })
-
-
         }
         catch (e: IOException){
             onError(NetworkError("Connection failed"))

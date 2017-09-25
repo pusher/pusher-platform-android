@@ -14,8 +14,6 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
-
     }
     buildTypes {
         release {
@@ -29,13 +27,6 @@ android {
         test.java.srcDirs += 'src/test/kotlin'
 
     }
-
-//    dexOptions {
-//    }
-//    compileOptions {
-//        sourceCompatibility JavaVersion.VERSION_1_6
-//        targetCompatibility JavaVersion.VERSION_1_6
-//    }
 }
 
 dependencies {

@@ -1,5 +1,6 @@
 package com.pusher.platform
 
+import android.content.Context
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
 import com.pusher.platform.logger.Logger
@@ -17,7 +18,8 @@ class Instance(
         val serviceName: String,
         val serviceVersion: String,
         host: String? = null,
-        logger: Logger = AndroidLogger(threshold = LogLevel.DEBUG)
+        logger: Logger = AndroidLogger(threshold = LogLevel.DEBUG),
+        context: Context
         ) {
 
     val HOST_BASE = "pusherplatform.io"
@@ -27,7 +29,7 @@ class Instance(
     val host: String = host ?: "$cluster.$HOST_BASE"
 
 
-    val baseClient: BaseClient = BaseClient(host = this.host, logger = logger)
+    val baseClient: BaseClient = BaseClient(host = this.host, logger = logger, context = context)
 
     fun justFuckingSubscribe(path: String, listeners: SubscriptionListeners, headers: Headers = TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER)): Subscription {
 

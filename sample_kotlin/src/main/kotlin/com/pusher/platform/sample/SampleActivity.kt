@@ -8,6 +8,7 @@ import com.pusher.platform.R
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
+import com.pusher.platform.network.ConnectivityHelper
 import elements.EOSEvent
 
 class SampleActivity : AppCompatActivity() {
@@ -15,7 +16,7 @@ class SampleActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
-        val pusherPlatform = Instance(instanceId = "v1:us1:bb53a31e-bab3-4dfa-a52b-adaa44f14119", serviceName = "feeds", serviceVersion = "v1", logger = AndroidLogger(threshold = LogLevel.VERBOSE))
+        val pusherPlatform = Instance(instanceId = "v1:us1:bb53a31e-bab3-4dfa-a52b-adaa44f14119", serviceName = "feeds", serviceVersion = "v1", logger = AndroidLogger(threshold = LogLevel.VERBOSE), context = this)
         val listeners = SubscriptionListeners(
                 onOpen = { headers -> Log.d("PP", headers.toString()) },
                 onSubscribe = { Log.d("PP", "onSubscribe") },
@@ -25,5 +26,9 @@ class SampleActivity : AppCompatActivity() {
                 onError = { error -> Log.d("PP", error.toString())}
         )
         pusherPlatform.justFuckingSubscribe(path = "feeds/my-feed/items", listeners = listeners)
+
+        val connectivityHelper = ConnectivityHelper(this)
+        connectivityHelper.onConnected { Log.d("FOOO", "ACTION") }
     }
 }
+

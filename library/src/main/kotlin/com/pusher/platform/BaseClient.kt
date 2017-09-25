@@ -1,8 +1,11 @@
 package com.pusher.platform
 
+import android.content.Context
 import com.pusher.platform.logger.Logger
+import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.BaseSubscription
+import com.pusher.platform.subscription.ErrorResolver
 import com.pusher.platform.subscription.SubscribeStrategy
 import com.pusher.platform.subscription.createResumingStrategy
 import com.pusher.platform.tokenProvider.TokenProvider
@@ -12,7 +15,7 @@ import elements.Subscription
 class BaseClient(
         var host: String,
         val logger: Logger,
-        encrypted: Boolean = true) {
+        encrypted: Boolean = true, val context: Context) {
 
         val baseUrl: String
     init{
@@ -36,7 +39,8 @@ class BaseClient(
                 nextSubscribeStrategy = createTokenProvidingStrategy(
                         tokenProvider = tokenProvider,
                         logger = logger,
-                        nextSubscribeStrategy = createBaseSubscription(path = path))
+                        nextSubscribeStrategy = createBaseSubscription(path = path)),
+                errorResolver = ErrorResolver(ConnectivityHelper(context))
         )
 
 
@@ -50,7 +54,7 @@ class BaseClient(
     ) : Subscription {
 
 
-
+    // 🚀
         return BaseSubscription(path = absolutePath(path), headers = headers, onOpen = listeners.onOpen, onError =  listeners.onError, onEvent = listeners.onEvent, onEnd = listeners.onEnd)
     }
     fun absolutePath(path: String): String  = "$baseUrl/$path"
