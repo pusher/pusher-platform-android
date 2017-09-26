@@ -4,7 +4,7 @@ import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.retrying.RetryStrategyOptions
 import android.os.Handler
-import com.pusher.platform.network.ConnectivityHelper
+import com.pusher.platform.ErrorResolver
 import elements.*
 
 
@@ -72,21 +72,17 @@ fun createResumingStrategy(
                 }
             }
 
-            class ResumingSubscriptionState(error: elements.Error, var lastEventId: String?, onTransition: (SubscriptionState) -> Unit) : SubscriptionState {
-                lateinit var underlyingSubscription: Subscription
+            class ResumingSubscriptionState(error: elements.Error, lastEventId: String?, val onTransition: (SubscriptionState) -> Unit) : SubscriptionState {
+                var underlyingSubscription: Subscription? = null
                 val handler = Handler()
-
 
                 init {
                     logger.verbose("${ResumingSubscription@this}: transitioning to ResumingSubscriptionState")
-
-
-
                     executeSubscriptionOnce(error, lastEventId)
                 }
 
                 override fun unsubscribe() {
-
+                    underlyingSubscription?.unsubscribe()
                 }
 
                 private fun executeSubscriptionOnce(error: elements.Error, lastEventId: String?){
@@ -95,7 +91,7 @@ fun createResumingStrategy(
 
                         when(resolution){
                             is DoNotRetry -> {
-
+                                onTransition(FailedSubscriptionState(error))
                             }
                             is Retry -> {
                                 handler.postDelayed({ executeNextSubscribeStrategy(lastEventId) }, resolution.waitTimeMillis)
@@ -104,7 +100,7 @@ fun createResumingStrategy(
                     })
                 }
 
-                fun executeNextSubscribeStrategy(eventId: String?): Unit {
+                private fun executeNextSubscribeStrategy(eventId: String?): Unit {
 
                     var lastEventId = eventId
 
@@ -118,7 +114,7 @@ fun createResumingStrategy(
                     underlyingSubscription = nextSubscribeStrategy(
                             SubscriptionListeners(
                                     onOpen = {
-                                        headers  -> onTransition(OpenSubscriptionState(headers, underlyingSubscription, onTransition))
+                                        headers  -> onTransition(OpenSubscriptionState(headers, underlyingSubscription!!, onTransition))
                                     },
                                     onRetrying = listeners.onRetrying,
                                     onError = {
@@ -185,51 +181,6 @@ fun createResumingStrategy(
     return {
         listeners, headers -> ResumingSubscription(listeners, headers)
     }
-}
-
-class ErrorResolver(val connectivityHelper: ConnectivityHelper) {
-
-    var errorBeingResolved: Any = {}
-    val handler = Handler()
-    var retryNow: (() -> Unit)? = null
-
-    fun resolveError(error: elements.Error, callback: (RetryStrategyResult) -> Unit){
-
-        when(error){
-            is NetworkError -> {
-                retryNow = { callback(Retry(0) )}
-                connectivityHelper.onConnected(retryNow!!)
-            }
-            is ErrorResponse -> {
-
-                //Retry-After present
-                if (error.headers["Retry-After"] != null) {
-                    val retryAfter = error.headers["Retry-After"]!![0].toLong() * 1000
-                    retryNow = { callback(Retry(retryAfter) )}
-                    handler.postDelayed(retryNow, retryAfter)
-                }
-
-                //Retry-After NOT present
-
-            }
-        }
-
-
-        //network error - > use conn helper
-
-        //error has a Retry-After -> wait that long
-
-        //error has a generic error -> use exponential backoff
-    }
-
-
-    fun cancel() {
-        if(retryNow != null){
-            handler.removeCallbacks(retryNow)
-        }
-
-    }
-
 }
 
 sealed class RetryStrategyResult

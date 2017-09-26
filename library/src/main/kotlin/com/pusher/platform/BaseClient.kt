@@ -5,7 +5,6 @@ import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.BaseSubscription
-import com.pusher.platform.subscription.ErrorResolver
 import com.pusher.platform.subscription.SubscribeStrategy
 import com.pusher.platform.subscription.createResumingStrategy
 import com.pusher.platform.tokenProvider.TokenProvider
