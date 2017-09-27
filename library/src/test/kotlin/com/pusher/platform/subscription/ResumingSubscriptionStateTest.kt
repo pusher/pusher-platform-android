@@ -25,6 +25,13 @@ class ResumingSubscriptionStateTest {
         assertTrue { false }
     }
 
+    @Test
+    fun doNotRetry(){
+
+
+//        val state = ResumingSubscriptionState()
+    }
+
 
 
 

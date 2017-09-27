@@ -30,4 +30,6 @@ class InstanceTest {
     fun testThatFails(){
         fail("This should fail, all is good.")
     }
+
+
 }
