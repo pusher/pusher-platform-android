@@ -15,14 +15,17 @@ fun createResumingStrategy(
         nextSubscribeStrategy: SubscribeStrategy,
         logger: Logger): SubscribeStrategy {
 
-
-
     return {
         listeners, headers -> ResumingSubscription(listeners, headers, logger, errorResolver, nextSubscribeStrategy, initialEventId)
     }
 }
 
 typealias StateTransition = (SubscriptionState) -> Unit
+
+interface SubscriptionState {
+    fun unsubscribe()
+}
+
 
 class ResumingSubscription(listeners: SubscriptionListeners, val headers: Headers, val logger: Logger, val errorResolver: ErrorResolver, val nextSubscribeStrategy: SubscribeStrategy, val initialEventId: String?): Subscription{
     var state: SubscriptionState
@@ -34,7 +37,6 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
     init {
         state = OpeningSubscriptionState(listeners, onTransition)
     }
-
 
     override fun unsubscribe() {
         this.state.unsubscribe()
@@ -183,8 +185,4 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
             throw Error("Subscription has already ended")
         }
     }
-}
-
-interface SubscriptionState {
-    fun unsubscribe()
 }

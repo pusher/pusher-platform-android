@@ -14,14 +14,11 @@ import elements.Subscription
 class BaseClient(
         var host: String,
         val logger: Logger,
-        encrypted: Boolean = true, val context: Context) {
-
-        val baseUrl: String
-    init{
+        encrypted: Boolean = true,
+        val context: Context) {
 
         val prefix = if(encrypted) "https" else "http"
-        baseUrl = "$prefix://$host"
-    }
+        val baseUrl = "$prefix://$host"
 
     fun subscribeResuming(
             path: String,
