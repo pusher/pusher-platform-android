@@ -2,10 +2,10 @@ package com.pusher.platform
 
 import android.os.Handler
 import com.pusher.platform.network.ConnectivityHelper
+import com.pusher.platform.retrying.DoNotRetry
+import com.pusher.platform.retrying.Retry
 import com.pusher.platform.retrying.RetryStrategyOptions
-import com.pusher.platform.subscription.DoNotRetry
-import com.pusher.platform.subscription.Retry
-import com.pusher.platform.subscription.RetryStrategyResult
+import com.pusher.platform.retrying.RetryStrategyResult
 import elements.Error
 import elements.ErrorResponse
 import elements.NetworkError

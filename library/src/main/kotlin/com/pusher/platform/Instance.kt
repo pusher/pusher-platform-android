@@ -46,7 +46,7 @@ class Instance(
     fun subscribeResuming(
             path: String,
             listeners: SubscriptionListeners,
-            headers: Headers = TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER),
+            headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
             tokenProvider: TokenProvider? = null,
             retryOptions: RetryStrategyOptions = RetryStrategyOptions()
             ): Subscription {

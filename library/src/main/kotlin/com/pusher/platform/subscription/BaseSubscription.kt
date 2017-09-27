@@ -1,5 +1,8 @@
 package com.pusher.platform.subscription
 
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
 import com.google.gson.Gson
 import elements.*
 import elements.Headers
@@ -25,6 +28,8 @@ class BaseSubscription(
         val GSON = Gson()
     }
 
+    val mainThread = Handler(Looper.getMainLooper())
+
 
     init {
         var requestBuilder = Request.Builder()
@@ -35,44 +40,55 @@ class BaseSubscription(
         val request = requestBuilder.build()
 
         call = client.newCall(request)
-        try{
-            call.enqueue(object: Callback {
-                override fun onFailure(call: Call?, e: IOException?) {
-                    onError(NetworkError("Connection failed"))
-                }
 
-                override fun onResponse(call: Call?, response: Response?) {
-                    if (response != null) {
-                        this@BaseSubscription.response = response
+        val callThread = object : HandlerThread("BaseSubscription") {
+            override fun run() {
 
-                        when (response.code()){
-                            in 200..299 -> handleConnectionOpened(response)
-                            in 400..599 -> handleConnectionFailed(response)
-                            else -> onError(NetworkError("Connection failed"))
+                try {
+                    val response = call.execute()
+                    this@BaseSubscription.response = response
+
+                    when (response.code()) {
+                        in 200..299 -> handleConnectionOpened(response)
+                        in 400..599 -> handleConnectionFailed(response)
+                        else -> {
+                            mainThread.post {
+                                onError(NetworkError("Connection failed"))
+                            }
                         }
                     }
-                    else {
+                } catch (e: IOException) {
+                    mainThread.post {
                         onError(NetworkError("Connection failed"))
                     }
+
+                    interrupt()
                 }
-            })
+
+
+            }
         }
-        catch (e: IOException){
-            onError(NetworkError("Connection failed"))
-        }
+        callThread.start()
+//        callThread.
+//        val handler = Handler(Looper())
+
+//
     }
 
     private fun handleConnectionFailed(response: Response) {
         if(response.body() != null){
             val body = GSON.fromJson(response.body()!!.charStream(), ErrorResponseBody::class.java)
 
-            onError(ErrorResponse(
-                    statusCode = response.code(),
-                    headers = response.headers().toMultimap(),
-                    error = body.error,
-                    errorDescription = body.errorDescription,
-                    URI = body.URI
-            ))
+            mainThread.post {
+                onError(ErrorResponse(
+                        statusCode = response.code(),
+                        headers = response.headers().toMultimap(),
+                        error = body.error,
+                        errorDescription = body.errorDescription,
+                        URI = body.URI
+                ))
+            }
+
         }
     }
 
@@ -85,13 +101,24 @@ class BaseSubscription(
                 val event = SubscriptionMessage.fromRaw(messageString)
                 when (event) {
                     is ControlEvent -> {} // Ignore
-                    is SubscriptionEvent -> onEvent(event)
-                    is EOSEvent -> onEnd(event)
+                    is SubscriptionEvent -> {
+                        mainThread.post {
+                            onEvent(event)
+                        }
+                    }
+                    is EOSEvent -> {
+                        mainThread.post {
+                            onEnd(event)
+                        }
+                    }
                 }
             }
         }
         else{
-            onError(NetworkError("No response."))
+            mainThread.post {
+                onError(NetworkError("No response."))
+            }
+
         }
     }
 

@@ -24,8 +24,8 @@ class BaseClient(
             path: String,
             listeners: SubscriptionListeners,
             headers: Headers,
-            tokenProvider: TokenProvider? = null,
-            retryOptions: RetryStrategyOptions = RetryStrategyOptions()
+            tokenProvider: TokenProvider?,
+            retryOptions: RetryStrategyOptions
     ): Subscription {
 
         val subscribeStrategy: SubscribeStrategy = createResumingStrategy(
@@ -34,7 +34,7 @@ class BaseClient(
                 nextSubscribeStrategy = createTokenProvidingStrategy(
                         tokenProvider = tokenProvider,
                         logger = logger,
-                        nextSubscribeStrategy = createBaseSubscription(path = path)),
+                        nextSubscribeStrategy = createBaseSubscription(path = absolutePath(path))),
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
         )
 
@@ -50,8 +50,8 @@ class BaseClient(
 //        🚀
         return BaseSubscription(path = absolutePath(path), headers = headers, onOpen = listeners.onOpen, onError =  listeners.onError, onEvent = listeners.onEvent, onEnd = listeners.onEnd)
     }
-    fun absolutePath(path: String): String  = "$baseUrl/$path"
 
+    private  fun absolutePath(path: String): String = "$baseUrl/$path"
 }
 
 
@@ -77,3 +77,4 @@ fun createBaseSubscription(path: String): SubscribeStrategy {
         )
     }
 }
+

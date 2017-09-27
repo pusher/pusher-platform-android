@@ -25,10 +25,14 @@ class SampleActivity : AppCompatActivity() {
                 onEnd = { eosEvent -> Log.d("PP", eosEvent.toString())},
                 onError = { error -> Log.d("PP", error.toString())}
         )
-        pusherPlatform.justFuckingSubscribe(path = "feeds/my-feed/items", listeners = listeners)
+        //TODO Remove this when happy with the actual impl
+//        pusherPlatform.justFuckingSubscribe(path = "feeds/my-feed/items", listeners = listeners)
+//
+//        val connectivityHelper = ConnectivityHelper(this)
+//        connectivityHelper.onConnected { Log.d("FOOO", "ACTION") }
 
-        val connectivityHelper = ConnectivityHelper(this)
-        connectivityHelper.onConnected { Log.d("FOOO", "ACTION") }
+
+        pusherPlatform.subscribeResuming(path = "feeds/my-feed/items", listeners = listeners)
     }
 }
 

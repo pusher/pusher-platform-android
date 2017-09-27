@@ -75,7 +75,8 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
                                 listeners.onEvent(event)
                             },
                             onRetrying = listeners.onRetrying,
-                            onError = { error -> onTransition(ResumingSubscriptionState(listeners, error, lastEventId, onTransition)) },
+                            onError = {
+                                error -> onTransition(ResumingSubscriptionState(listeners, error, lastEventId, onTransition)) },
                             onEnd = { error: EOSEvent? -> onTransition(EndedSubscriptionState(listeners, error)) }
                     ), headers
             )
