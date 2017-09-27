@@ -46,7 +46,6 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         override fun unsubscribe() {
             throw Error("Subscription is already ending")
         }
-
     }
 
     inner class OpenSubscriptionState(listeners: SubscriptionListeners, headers: Headers, val underlyingSubscription: Subscription, onTransition: StateTransition) : SubscriptionState {
@@ -109,7 +108,7 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
                         onTransition(FailedSubscriptionState(listeners, error))
                     }
                     is Retry -> {
-                        handler.postDelayed({ executeNextSubscribeStrategy(lastEventId) }, resolution.waitTimeMillis)
+                        executeNextSubscribeStrategy(lastEventId)
                     }
                 }
             })
@@ -124,7 +123,6 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
                 headers.put("Last-Event-Id", listOf(lastEventId!!))
                 logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
             }
-
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
@@ -187,7 +185,7 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
 
 sealed class RetryStrategyResult
 
-data class Retry(val waitTimeMillis: Long): RetryStrategyResult()
+class Retry: RetryStrategyResult()
 
 class DoNotRetry: RetryStrategyResult()
 

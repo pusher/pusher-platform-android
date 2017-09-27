@@ -2,6 +2,8 @@ package com.pusher.platform
 
 import android.os.Handler
 import com.pusher.platform.network.ConnectivityHelper
+import com.pusher.platform.retrying.RetryStrategyOptions
+import com.pusher.platform.subscription.DoNotRetry
 import com.pusher.platform.subscription.Retry
 import com.pusher.platform.subscription.RetryStrategyResult
 import elements.Error
@@ -10,17 +12,30 @@ import elements.NetworkError
 
 typealias RetryStrategyResultCallback = (RetryStrategyResult) -> Unit
 
-class ErrorResolver(val connectivityHelper: ConnectivityHelper) {
+fun String.isSafeRequest(): Boolean = when(this.toUpperCase()){
+    "GET", "SUBSCRIBE", "HEAD", "PUT" -> true
+    else -> false
+}
+
+fun ErrorResponse.isRetryable(): Boolean =
+    this.statusCode in 500..599 &&
+            this.headers["Request-Method"]?.firstOrNull()?.isSafeRequest() ?: false
+
+
+class ErrorResolver(val connectivityHelper: ConnectivityHelper, val retryOptions: RetryStrategyOptions, val retryUnsafeRequests: Boolean = false) {
 
     var errorBeingResolved: Any = {}
     val handler = Handler()
     var retryNow: (() -> Unit)? = null
 
+    var currentRetryCount = 0
+    var currentBackoffMillis = 0L
+
     fun resolveError(error: Error, callback: RetryStrategyResultCallback){
 
         when(error){
             is NetworkError -> {
-                retryNow = { callback(Retry(0))}
+                retryNow = { callback(Retry())}
                 connectivityHelper.onConnected(retryNow!!)
             }
             is ErrorResponse -> {
@@ -28,26 +43,38 @@ class ErrorResolver(val connectivityHelper: ConnectivityHelper) {
                 //Retry-After present
                 if (error.headers["Retry-After"] != null) {
                     val retryAfter = error.headers["Retry-After"]!![0].toLong() * 1000
-                    retryNow = { callback(Retry(retryAfter))}
+                    retryNow = { callback(Retry())}
                     handler.postDelayed(retryNow, retryAfter)
                 }
 
-                //Retry-After NOT present
+                else if(error.isRetryable() || retryUnsafeRequests){
+                    if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit ){
+                        currentBackoffMillis = increaseCurrentBackoff()
+                        currentRetryCount += 1
 
-                TODO("Check error status code - 400s aren't retryable")
-                TODO("Check if a 5xx status code and if the request is safe")
+                        retryNow = { callback(Retry())}
+                        handler.postDelayed(retryNow, currentBackoffMillis)
+                    }
 
+                    else{
+                        callback(DoNotRetry())
+                    }
+                }
+
+                else {
+                    callback(DoNotRetry())
+                }
             }
         }
-
-
-        //network error - > use conn helper
-
-        //error has a Retry-After -> wait that long
-
-        //error has a generic error -> use exponential backoff
     }
 
+    private fun increaseCurrentBackoff(): Long {
+        if(currentRetryCount == 0) return retryOptions.initialTimeoutMillis
+        val newBackoff = currentBackoffMillis * 2
+
+        if(newBackoff > retryOptions.maxTimeoutMillis) return retryOptions.maxTimeoutMillis
+        else return newBackoff
+    }
 
     fun cancel() {
         if(retryNow != null){
