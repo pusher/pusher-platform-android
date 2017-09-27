@@ -32,6 +32,9 @@ class ErrorResolver(val connectivityHelper: ConnectivityHelper) {
 
                 //Retry-After NOT present
 
+                TODO("Check error status code - 400s aren't retryable")
+                TODO("Check if a 5xx status code and if the request is safe")
+
             }
         }
 

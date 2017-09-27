@@ -40,6 +40,7 @@ class BaseClient(
                         logger = logger,
                         nextSubscribeStrategy = createBaseSubscription(path = path)),
                 errorResolver = ErrorResolver(ConnectivityHelper(context))
+
         )
 
 

@@ -6,11 +6,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.NetworkInfo
 import android.net.ConnectivityManager
-import android.util.Log
-import com.pusher.platform.retrying.RetryStrategyOptions
 
 
-class ConnectivityHelper(val context: Context, retryStrategyOptions: RetryStrategyOptions) {
+class ConnectivityHelper(val context: Context) {
 
     var action: (() -> Unit )? = null
 
