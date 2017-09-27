@@ -28,7 +28,7 @@ class BaseClient(
             listeners: SubscriptionListeners,
             headers: Headers,
             tokenProvider: TokenProvider? = null,
-            retryOptions: RetryStrategyOptions? = null
+            retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription {
 
         val subscribeStrategy: SubscribeStrategy = createResumingStrategy(
@@ -38,8 +38,7 @@ class BaseClient(
                         tokenProvider = tokenProvider,
                         logger = logger,
                         nextSubscribeStrategy = createBaseSubscription(path = path)),
-                errorResolver = ErrorResolver(ConnectivityHelper(context))
-
+                errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
         )
 
 
