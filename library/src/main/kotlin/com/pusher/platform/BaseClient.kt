@@ -41,7 +41,6 @@ class BaseClient(
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
         )
 
-
         return subscribeStrategy(listeners, headers)
     }
 
@@ -51,8 +50,7 @@ class BaseClient(
             headers: Headers
     ) : Subscription {
 
-
-    // 🚀
+//        🚀
         return BaseSubscription(path = absolutePath(path), headers = headers, onOpen = listeners.onOpen, onError =  listeners.onError, onEvent = listeners.onEvent, onEnd = listeners.onEnd)
     }
     fun absolutePath(path: String): String  = "$baseUrl/$path"
