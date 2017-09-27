@@ -32,7 +32,6 @@ class BaseClient(
     ): Subscription {
 
         val subscribeStrategy: SubscribeStrategy = createResumingStrategy(
-                retryOptions = retryOptions,
                 initialEventId = "",
                 logger = logger,
                 nextSubscribeStrategy = createTokenProvidingStrategy(

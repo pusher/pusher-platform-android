@@ -8,13 +8,15 @@ import elements.Error
 import elements.ErrorResponse
 import elements.NetworkError
 
+typealias RetryStrategyResultCallback = (RetryStrategyResult) -> Unit
+
 class ErrorResolver(val connectivityHelper: ConnectivityHelper) {
 
     var errorBeingResolved: Any = {}
     val handler = Handler()
     var retryNow: (() -> Unit)? = null
 
-    fun resolveError(error: Error, callback: (RetryStrategyResult) -> Unit){
+    fun resolveError(error: Error, callback: RetryStrategyResultCallback){
 
         when(error){
             is NetworkError -> {

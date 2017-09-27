@@ -77,12 +77,13 @@ class Instance(
 }
 
 class SubscriptionListeners(
-        val onOpen: (headers: Headers) -> Unit,
-        val onSubscribe: () -> Unit,
-        val onRetrying: () -> Unit,
-        val onEvent: (event: SubscriptionEvent) -> Unit,
-        val onError: (error: elements.Error) -> Unit,
-        val onEnd: (error: EOSEvent?) -> Unit)
+        val onOpen: (headers: Headers) -> Unit = {},
+        val onSubscribe: () -> Unit = {},
+        val onRetrying: () -> Unit = {},
+        val onEvent: (event: SubscriptionEvent) -> Unit = {},
+        val onError: (error: elements.Error) -> Unit = {},
+        val onEnd: (error: EOSEvent?) -> Unit = {}
+)
 
 
 
