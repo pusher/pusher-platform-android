@@ -14,22 +14,27 @@ import java.util.concurrent.TimeUnit
 class BaseSubscription(
         path: String,
         headers: Headers,
-        val onOpen: ( Headers ) -> Unit,
-        val onError: (Error ) -> Unit,
-        val onEvent: (SubscriptionEvent) -> Unit,
-        val onEnd: (EOSEvent?) -> Unit
+        onOpen: ( Headers ) -> Unit,
+        onError: (Error) -> Unit,
+        onEvent: (SubscriptionEvent) -> Unit,
+        onEnd: (EOSEvent?) -> Unit
 ): Subscription {
 
     private val client= OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
     private val call: Call
-    private lateinit var response: Response
+    private var response: Response? = null
 
     companion object {
         val GSON = Gson()
     }
 
-    val mainThread = Handler(Looper.getMainLooper())
-
+    //Call must be executed in a background thread, otherwise stupid OKHTTP doesn't propagate connection dead events. Sad.
+    private val subscriptionThread: Thread
+    private val mainThread = Handler(Looper.getMainLooper())
+    private val onOpen: (Headers) -> Unit = { headers -> mainThread.post{ onOpen(headers) }}
+    private val onError: (Error) -> Unit = { error -> mainThread.post{ onError(error) }}
+    private val onEvent: (SubscriptionEvent) -> Unit = { event -> mainThread.post { onEvent(event) }}
+    private val onEnd: (EOSEvent?) -> Unit = { event -> mainThread.post { onEnd(event) }}
 
     init {
         var requestBuilder = Request.Builder()
@@ -41,9 +46,9 @@ class BaseSubscription(
 
         call = client.newCall(request)
 
-        val callThread = object : HandlerThread("BaseSubscription") {
-            override fun run() {
+        subscriptionThread = object : HandlerThread("BaseSubscription", android.os.Process.THREAD_PRIORITY_BACKGROUND) {
 
+            override fun run() {
                 try {
                     val response = call.execute()
                     this@BaseSubscription.response = response
@@ -58,21 +63,17 @@ class BaseSubscription(
                         }
                     }
                 } catch (e: IOException) {
-                    mainThread.post {
-                        onError(NetworkError("Connection failed"))
-                    }
-
+                    onError(NetworkError("Connection failed"))
                     interrupt()
                 }
+            }
 
-
+            override fun interrupt() {
+                super.interrupt()
+                response?.close()
             }
         }
-        callThread.start()
-//        callThread.
-//        val handler = Handler(Looper())
-
-//
+        subscriptionThread.start()
     }
 
     private fun handleConnectionFailed(response: Response) {
@@ -102,23 +103,16 @@ class BaseSubscription(
                 when (event) {
                     is ControlEvent -> {} // Ignore
                     is SubscriptionEvent -> {
-                        mainThread.post {
-                            onEvent(event)
-                        }
+                        onEvent(event)
                     }
                     is EOSEvent -> {
-                        mainThread.post {
-                            onEnd(event)
-                        }
+                        onEnd(event)
                     }
                 }
             }
         }
         else{
-            mainThread.post {
-                onError(NetworkError("No response."))
-            }
-
+            onError(NetworkError("No response."))
         }
     }
 
@@ -126,7 +120,9 @@ class BaseSubscription(
         if(!call.isCanceled){
             call.cancel()
         }
-        response.close()
+        if(subscriptionThread.isAlive){
+            subscriptionThread.interrupt()
+        }
     }
 }
 
