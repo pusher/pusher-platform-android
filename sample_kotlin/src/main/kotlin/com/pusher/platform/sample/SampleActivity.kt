@@ -32,15 +32,15 @@ class SampleActivity : AppCompatActivity() {
 //        connectivityHelper.onConnected { Log.d("FOOO", "ACTION") }
 
 
-//        pusherPlatform.subscribeResuming(path = "feeds/my-feed/items", listeners = listeners)
+        pusherPlatform.subscribeResuming(path = "feeds/my-feed/items", listeners = listeners)
 
 
-        val requestInProgress = pusherPlatform.request(
-                options = RequestOptions(path = "feeds/my-feed/items" ),
-                onSuccess = { response -> Log.d("PP", response.body()!!.string()) },
-                onFailure = { error -> Log.d("PP", error.toString())}
-
-        )
+//        val requestInProgress = pusherPlatform.request(
+//                options = RequestOptions(path = "feeds/my-feed/items" ),
+//                onSuccess = { response -> Log.d("PP", response.body()!!.string()) },
+//                onFailure = { error -> Log.d("PP", error.toString())}
+//
+//        )
 
     }
 }

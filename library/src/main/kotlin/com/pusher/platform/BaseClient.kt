@@ -8,6 +8,7 @@ import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.BaseSubscription
 import com.pusher.platform.subscription.SubscribeStrategy
 import com.pusher.platform.subscription.createResumingStrategy
+import com.pusher.platform.subscription.createTokenProvidingStrategy
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.*
 import elements.Headers
@@ -129,28 +130,10 @@ class BaseClient(
     }
 
 
-    fun justFuckingSubscribe(
-            path: String,
-            listeners: SubscriptionListeners,
-            headers: Headers
-    ) : Subscription {
-
-//        🚀
-        return BaseSubscription(path = absolutePath(path), headers = headers, onOpen = listeners.onOpen, onError =  listeners.onError, onEvent = listeners.onEvent, onEnd = listeners.onEnd, httpClient = httpClient)
-    }
-
-    private  fun absolutePath(path: String): String = "$baseUrl/$path"
+private  fun absolutePath(path: String): String = "$baseUrl/$path"
 }
 
 
-fun createTokenProvidingStrategy(tokenProvider: TokenProvider?, logger: Logger, nextSubscribeStrategy: SubscribeStrategy): SubscribeStrategy {
-    //TODO
-    return { listeners, headers ->
-        nextSubscribeStrategy(
-                listeners,
-                headers
-        )
-    }
-}
+
 
 
