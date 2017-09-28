@@ -9,18 +9,17 @@ import com.pusher.platform.retrying.Retry
 import elements.*
 
 
-fun createResumingStrategy(
-        initialEventId: String? = null,
+fun createRetryingStrategy(
         errorResolver: ErrorResolver,
         nextSubscribeStrategy: SubscribeStrategy,
         logger: Logger): SubscribeStrategy {
 
     return {
-        listeners, headers -> ResumingSubscription(listeners, headers, logger, errorResolver, nextSubscribeStrategy, initialEventId)
+        listeners, headers -> RetryingSubscription(listeners, headers, logger, errorResolver, nextSubscribeStrategy)
     }
 }
 
-class ResumingSubscription(listeners: SubscriptionListeners, val headers: Headers, val logger: Logger, val errorResolver: ErrorResolver, val nextSubscribeStrategy: SubscribeStrategy, val initialEventId: String?): Subscription{
+class RetryingSubscription(listeners: SubscriptionListeners, val headers: Headers, val logger: Logger, val errorResolver: ErrorResolver, val nextSubscribeStrategy: SubscribeStrategy): Subscription {
     var state: SubscriptionState
 
     val onTransition: StateTransition = { newState ->
@@ -37,7 +36,7 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
 
     inner class EndingSubscriptionState : SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to EndingSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to EndingSubscriptionState")
         }
 
         override fun unsubscribe() {
@@ -49,13 +48,8 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         lateinit var underlyingSubscription: Subscription
 
         init {
-            var lastEventId = initialEventId
-            logger.verbose("${ResumingSubscription@this}: transitioning to OpeningSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to OpeningSubscriptionState")
 
-            if (lastEventId != null) {
-                headers.put("Last-Event-Id", listOf(lastEventId!!))
-                logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
-            }
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
@@ -63,13 +57,10 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
                                 headers -> onTransition(OpenSubscriptionState(listeners, headers, underlyingSubscription, onTransition))
                             },
                             onSubscribe = listeners.onSubscribe,
-                            onEvent = {
-                                event -> lastEventId = event.eventId
-                                listeners.onEvent(event)
-                            },
+                            onEvent = listeners.onEvent,
                             onRetrying = listeners.onRetrying,
                             onError = {
-                                error -> onTransition(ResumingSubscriptionState(listeners, error, lastEventId, onTransition)) },
+                                error -> onTransition(RetryingSubscriptionState(listeners, error, onTransition)) },
                             onEnd = { error: EOSEvent? -> onTransition(EndedSubscriptionState(listeners, error)) }
                     ), headers
             )
@@ -82,20 +73,20 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
     }
 
-    inner class ResumingSubscriptionState(val listeners: SubscriptionListeners, error: elements.Error, lastEventId: String?, val onTransition: StateTransition) : SubscriptionState {
+    inner class RetryingSubscriptionState(val listeners: SubscriptionListeners, error: elements.Error, val onTransition: StateTransition) : SubscriptionState {
         var underlyingSubscription: Subscription? = null
         val handler = Handler()
 
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to ResumingSubscriptionState")
-            executeSubscriptionOnce(error, lastEventId)
+            logger.verbose("${RetryingSubscription@this}: transitioning to RetryingSubscriptionState")
+            executeSubscriptionOnce(error)
         }
 
         override fun unsubscribe() {
             underlyingSubscription?.unsubscribe()
         }
 
-        private fun executeSubscriptionOnce(error: elements.Error, lastEventId: String?){
+        private fun executeSubscriptionOnce(error: elements.Error){
 
             errorResolver.resolveError(error, { resolution ->
 
@@ -104,21 +95,14 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
                         onTransition(FailedSubscriptionState(listeners, error))
                     }
                     is Retry -> {
-                        executeNextSubscribeStrategy(lastEventId)
+                        executeNextSubscribeStrategy()
                     }
                 }
             })
         }
 
-        private fun executeNextSubscribeStrategy(eventId: String?): Unit {
-
-            var lastEventId = eventId
-
-            logger.verbose("${ResumingSubscription@this}: trying to re-establish the subscription")
-            if(lastEventId != null){
-                headers.put("Last-Event-Id", listOf(lastEventId!!))
-                logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
-            }
+        private fun executeNextSubscribeStrategy(): Unit {
+            logger.verbose("${RetryingSubscription@this}: trying to re-establish the subscription")
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
@@ -127,13 +111,9 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
                             },
                             onRetrying = listeners.onRetrying,
                             onError = {
-                                error -> executeSubscriptionOnce(error, lastEventId)
+                                error -> executeSubscriptionOnce(error)
                             },
-                            onEvent = {
-                                event ->
-                                lastEventId = event.eventId
-                                listeners.onEvent(event)
-                            },
+                            onEvent = listeners.onEvent,
                             onSubscribe = listeners.onSubscribe,
                             onEnd = {
                                 error -> onTransition(EndedSubscriptionState(listeners, error))
@@ -147,7 +127,7 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
     inner class OpenSubscriptionState(listeners: SubscriptionListeners, headers: Headers, val underlyingSubscription: Subscription, onTransition: StateTransition) : SubscriptionState {
 
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to OpenSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to OpenSubscriptionState")
             listeners.onOpen(headers)
         }
 
@@ -161,7 +141,7 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
     inner class EndedSubscriptionState(listeners: SubscriptionListeners, error: EOSEvent?) : SubscriptionState {
 
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to EndedSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to EndedSubscriptionState")
             listeners.onEnd(error)
         }
 
@@ -173,7 +153,7 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
 
     inner class FailedSubscriptionState(listeners: SubscriptionListeners, error: elements.Error): SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to FailedSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to FailedSubscriptionState")
             listeners.onError(error)
         }
 
