@@ -1,6 +1,10 @@
 package com.pusher.platform
+import java.util.TreeMap
 
-class RequestOptions {
+data class RequestOptions(
+        val method: String = "GET",
+        val path: String,
+        val headers: elements.Headers = TreeMap(),
+        val body: String? = null
 
-
-}
+)

@@ -22,7 +22,6 @@ class ConnectivityHelper(val context: Context) {
         }
     }
 
-
     fun isConnected(): Boolean {
         val connectivityManager= context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val activeNetwork: NetworkInfo? = connectivityManager.activeNetworkInfo
