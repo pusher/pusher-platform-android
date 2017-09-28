@@ -8,15 +8,12 @@ import elements.*
 
 fun createTokenProvidingStrategy(tokenProvider: TokenProvider? = null, tokenParams: Any? =  null, logger: Logger, nextSubscribeStrategy: SubscribeStrategy): SubscribeStrategy {
 
-
-
-
-
-    return { listeners, headers ->
+    if(tokenProvider != null) {
+        return { listeners, headers -> TokenProvidingSubscription(listeners, headers, tokenProvider, tokenParams, logger, nextSubscribeStrategy) }
+    }
+    else return { listeners, headers ->
         nextSubscribeStrategy(listeners, headers)
     }
-
-
 }
 
 class TokenProvidingSubscription(listeners: SubscriptionListeners, val headers: Headers, val tokenProvider: TokenProvider, val tokenParams: Any? = null, val logger: Logger, val nextSubscribeStrategy: SubscribeStrategy): Subscription {
@@ -56,7 +53,7 @@ class TokenProvidingSubscription(listeners: SubscriptionListeners, val headers: 
                         logger.verbose("${TokenProvidingSubscription@this}: token fetched: $token")
                         underlyingSubscription = nextSubscribeStrategy(
                                 SubscriptionListeners(
-                                        onOpen = { headers -> onTransition(OpenSubscriptionState(listeners, headers, underlyingSubscription, onTransition))},
+                                        onOpen = { headers -> onTransition(OpenSubscriptionState(headers, listeners, underlyingSubscription, onTransition))},
                                         onRetrying = listeners.onRetrying,
                                         onError = {
                                             error ->
@@ -65,13 +62,13 @@ class TokenProvidingSubscription(listeners: SubscriptionListeners, val headers: 
                                                     fetchTokenAndExecuteSubscription()
                                                 }
                                                 else{
-                                                    onTransition(FailedSubscriptionState(error))
+                                                    onTransition(FailedSubscriptionState(listeners, error))
                                                 }
                                         },
                                         onEvent = listeners.onEvent,
                                         onSubscribe = listeners.onSubscribe,
                                         onEnd = {
-                                            error -> onTransition(EndedSubscriptionState(error))
+                                            error -> onTransition(EndedSubscriptionState(listeners, error))
                                         }
                                 ),
                                 headers
@@ -79,30 +76,40 @@ class TokenProvidingSubscription(listeners: SubscriptionListeners, val headers: 
 
 
                     },
-                    onFailure = { error -> onTransition(FailedSubscriptionState(error)) }
+                    onFailure = { error -> onTransition(FailedSubscriptionState(listeners, error)) }
             )
         }
     }
 
-    inner class OpenSubscriptionState(listeners: SubscriptionListeners, headers: Headers, subscription: Subscription, onTransition: StateTransition): SubscriptionState {
-        override fun unsubscribe() {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    inner class OpenSubscriptionState(headers: Headers, val listeners: SubscriptionListeners, val underlyingSubscription: Subscription, val onTransition: StateTransition): SubscriptionState {
+        init {
+            logger.verbose("${TokenProvidingSubscription@this}: Transitioning to OpenSubscriptionState")
+            listeners.onOpen(headers)
         }
-
+        override fun unsubscribe() {
+            underlyingSubscription.unsubscribe()
+            onTransition(EndedSubscriptionState(listeners))
+        }
     }
 
-    inner class FailedSubscriptionState(error: Error): SubscriptionState {
-        override fun unsubscribe() {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    inner class FailedSubscriptionState(listeners: SubscriptionListeners, error: Error): SubscriptionState {
+        init {
+            logger.verbose("${TokenProvidingSubscription@this}: Transitioning to FailedSubscriptionState")
+            listeners.onError(error)
         }
-
+        override fun unsubscribe() {
+            throw Error("Subscription has already ended")
+        }
     }
 
-    inner class EndedSubscriptionState(error: EOSEvent?): SubscriptionState {
-        override fun unsubscribe() {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    inner class EndedSubscriptionState(listeners: SubscriptionListeners, error: EOSEvent? = null): SubscriptionState {
+        init {
+            logger.verbose("${TokenProvidingSubscription@this}: Transitioning to EndedSubscriptionState")
+            listeners.onEnd(error)
         }
-
+        override fun unsubscribe() {
+            throw Error("Subscription has already ended")
+        }
     }
 }
 
