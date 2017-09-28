@@ -5,11 +5,11 @@ import android.os.Bundle
 import android.util.Log
 import com.pusher.platform.Instance
 import com.pusher.platform.R
+import com.pusher.platform.RequestOptions
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
-import com.pusher.platform.network.ConnectivityHelper
-import elements.EOSEvent
+//import okhttp3.Response
 
 class SampleActivity : AppCompatActivity() {
 
@@ -32,7 +32,16 @@ class SampleActivity : AppCompatActivity() {
 //        connectivityHelper.onConnected { Log.d("FOOO", "ACTION") }
 
 
-        pusherPlatform.subscribeResuming(path = "feeds/my-feed/items", listeners = listeners)
+//        pusherPlatform.subscribeResuming(path = "feeds/my-feed/items", listeners = listeners)
+
+
+        val requestInProgress = pusherPlatform.request(
+                options = RequestOptions(path = "feeds/my-feed/items" ),
+                onSuccess = { response -> Log.d("PP", response.body()!!.string()) },
+                onFailure = { error -> Log.d("PP", error.toString())}
+
+        )
+
     }
 }
 

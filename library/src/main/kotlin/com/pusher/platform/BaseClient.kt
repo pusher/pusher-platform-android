@@ -55,14 +55,25 @@ class BaseClient(
         TODO()
     }
 
-    fun request(requestOptions: RequestOptions, tokenProvider: TokenProvider? = null, tokenParams: Any? = null, onSuccess: (Response) -> Unit, onFailure: (elements.Error) -> Unit): Cancelable {
+    fun request(
+            path: String,
+            headers: elements.Headers,
+            method: String,
+            body: String? = null,
+            tokenProvider: TokenProvider? = null,
+            tokenParams: Any? = null,
+            onSuccess: (Response) -> Unit,
+            onFailure: (elements.Error) -> Unit): Cancelable {
 
-        val body = if (requestOptions.body != null) {
-            RequestBody.create(MediaType.parse("application/json"), requestOptions.body)
+        val requestBody = if (body != null) {
+            RequestBody.create(MediaType.parse("application/json"), body)
         } else null
 
-        val requestBuilder = Request.Builder().method(requestOptions.method, body)
-        requestOptions.headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
+        val requestBuilder = Request.Builder()
+                .method(method, requestBody)
+                .url("$baseUrl/$path")
+
+        headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
 
 
         return object: Cancelable {
@@ -101,10 +112,6 @@ class BaseClient(
                 })
             }
         }
-    }
-
-    interface Cancelable {
-        fun cancel()
     }
 
     fun createBaseSubscription(path: String): SubscribeStrategy {

@@ -1,8 +1,8 @@
 package com.pusher.platform.tokenProvider
 
-import com.pusher.platform.CancelableRequest
+import com.pusher.platform.Cancelable
 
 interface TokenProvider {
-    fun fetchToken(tokenParams: Any?): CancelableRequest
+    fun fetchToken(tokenParams: Any?): Cancelable
     fun clearToken(token: String?)
 }

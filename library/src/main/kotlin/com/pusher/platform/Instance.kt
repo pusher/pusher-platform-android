@@ -10,6 +10,7 @@ import elements.EOSEvent
 import elements.Headers
 import elements.Subscription
 import elements.SubscriptionEvent
+import okhttp3.Response
 import java.util.*
 
 
@@ -65,12 +66,19 @@ class Instance(
         throw NotImplementedError("Not yet implemented")
     }
 
-    fun request(options: RequestOptions): CancelableRequest {
-        //TODO("Not yet implemented")
-        throw NotImplementedError("Not yet implemented")
-    }
+    fun request(options: RequestOptions, tokenProvider: TokenProvider? = null, onSuccess: (Response) -> Unit, onFailure: (elements.Error) -> Unit ): Cancelable =
+         baseClient.request(
+                 path = absPath(options.path),
+                 headers = options.headers,
+                 method = options.method,
+                 body = options.body,
+                 tokenProvider = tokenProvider,
+                 onSuccess = onSuccess,
+                 onFailure = onFailure
+         )
 
-    fun absPath(relativePath: String): String {
+
+    private fun absPath(relativePath: String): String {
         return "services/${this.serviceName}/${this.serviceVersion}/${this.id}/${relativePath}"
     }
 
