@@ -20,18 +20,11 @@ fun createResumingStrategy(
     }
 }
 
-typealias StateTransition = (SubscriptionState) -> Unit
-
-interface SubscriptionState {
-    fun unsubscribe()
-}
-
-
 class ResumingSubscription(listeners: SubscriptionListeners, val headers: Headers, val logger: Logger, val errorResolver: ErrorResolver, val nextSubscribeStrategy: SubscribeStrategy, val initialEventId: String?): Subscription{
     var state: SubscriptionState
 
     val onTransition: StateTransition = { newState ->
-        this.state = newState
+        state = newState
     }
 
     init {
