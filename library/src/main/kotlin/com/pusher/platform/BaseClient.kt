@@ -5,10 +5,7 @@ import com.google.gson.Gson
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.retrying.RetryStrategyOptions
-import com.pusher.platform.subscription.BaseSubscription
-import com.pusher.platform.subscription.SubscribeStrategy
-import com.pusher.platform.subscription.createResumingStrategy
-import com.pusher.platform.subscription.createTokenProvidingStrategy
+import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.*
 import elements.Headers
@@ -52,8 +49,22 @@ class BaseClient(
         return subscribeStrategy(listeners, headers)
     }
 
-    fun subscribeNonResuming(): Subscription {
-        TODO()
+    fun subscribeNonResuming(
+            path: String,
+            listeners: SubscriptionListeners,
+            headers: Headers,
+            tokenProvider: TokenProvider?,
+            retryOptions: RetryStrategyOptions): Subscription {
+
+        val subscribeStrategy: SubscribeStrategy = createRetryingStrategy(
+                logger = logger,
+                nextSubscribeStrategy = createTokenProvidingStrategy(
+                        tokenProvider = tokenProvider,
+                        logger = logger,
+                        nextSubscribeStrategy = createBaseSubscription(path = absolutePath(path))),
+                errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
+        )
+        return subscribeStrategy(listeners, headers)
     }
 
     fun request(

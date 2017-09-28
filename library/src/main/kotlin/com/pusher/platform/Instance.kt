@@ -31,7 +31,7 @@ class Instance(
 
 
     val baseClient: BaseClient = BaseClient(host = this.host, logger = logger, context = context)
-    
+
     fun subscribeResuming(
             path: String,
             listeners: SubscriptionListeners,
@@ -49,9 +49,21 @@ class Instance(
         )
     }
 
-    fun subscribeNonResuming(): Subscription {
-        //TODO("Not yet implemented")
-        throw NotImplementedError("Not yet implemented")
+    fun subscribeNonResuming(
+            path: String,
+            listeners: SubscriptionListeners,
+            headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+            tokenProvider: TokenProvider? = null,
+            retryOptions: RetryStrategyOptions = RetryStrategyOptions()
+    ): Subscription {
+
+        return baseClient.subscribeNonResuming(
+                path = absPath(path),
+                listeners = listeners,
+                headers = headers,
+                tokenProvider = tokenProvider,
+                retryOptions = retryOptions
+        )
     }
 
     fun request(options: RequestOptions, tokenProvider: TokenProvider? = null, onSuccess: (Response) -> Unit, onFailure: (elements.Error) -> Unit ): Cancelable =
