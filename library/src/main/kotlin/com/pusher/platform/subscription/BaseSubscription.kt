@@ -7,6 +7,8 @@ import com.pusher.platform.BaseClient.Companion.GSON
 import elements.*
 import elements.Headers
 import okhttp3.*
+import okhttp3.internal.http2.ErrorCode
+import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
 
 
@@ -52,13 +54,17 @@ class BaseSubscription(
                         in 200..299 -> handleConnectionOpened(response)
                         in 400..599 -> handleConnectionFailed(response)
                         else -> {
-                            mainThread.post {
-                                onError(NetworkError("Connection failed"))
-                            }
+                            onError(NetworkError("Connection failed"))
                         }
                     }
                 } catch (e: IOException) {
-                    onError(NetworkError("Connection failed"))
+                    if(e is StreamResetException && e.errorCode == ErrorCode.CANCEL){
+                        onEnd(null)
+                    }
+                    else{
+                        onError(NetworkError("Connection failed"))
+                    }
+
                     interrupt()
                 }
             }

@@ -83,8 +83,8 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
     }
 
     inner class ResumingSubscriptionState(val listeners: SubscriptionListeners, error: elements.Error, lastEventId: String?, val onTransition: StateTransition) : SubscriptionState {
+
         var underlyingSubscription: Subscription? = null
-        val handler = Handler()
 
         init {
             logger.verbose("${ResumingSubscription@this}: transitioning to ResumingSubscriptionState")
