@@ -3,15 +3,19 @@ package com.pusher.platform.sample
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import com.pusher.platform.Instance
-import com.pusher.platform.R
-import com.pusher.platform.RequestOptions
-import com.pusher.platform.SubscriptionListeners
+import com.pusher.platform.*
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
+import com.pusher.platform.tokenProvider.TokenProvider
+import elements.Error
 import elements.Subscription
 //import okhttp3.Response
 import kotlinx.android.synthetic.main.activity_sample.*
+import okhttp3.MediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import retrofit2.Retrofit
 
 class SampleActivity : AppCompatActivity() {
 
@@ -39,6 +43,27 @@ class SampleActivity : AppCompatActivity() {
                 onFailure = { error -> Log.d("PP", error.toString())}
 
             )
+        }
+
+        val client = OkHttpClient()
+
+        val tokenProvider: TokenProvider = object: TokenProvider {
+
+            override fun fetchToken(tokenParams: Any?, onSuccess: (String) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+
+                val requestBody = RequestBody.create(
+                        MediaType.parse("application/x-www-form-urlencoded"),
+                )
+                val request = Request.Builder()
+                        .url("http://localhost:3000/feeds/tokens")
+                        .post(RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), ))
+
+            }
+
+
+            override fun clearToken(token: String?) {
+                //We ain't gonna cache anything because caching is for losers
+            }
         }
 
         this.get_request_authorized_btn.setOnClickListener{
