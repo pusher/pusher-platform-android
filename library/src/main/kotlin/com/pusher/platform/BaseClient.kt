@@ -34,11 +34,12 @@ class BaseClient(
             headers: Headers,
             tokenProvider: TokenProvider?,
             tokenParams: Any?,
-            retryOptions: RetryStrategyOptions
+            retryOptions: RetryStrategyOptions,
+            initialEventId: String? = null
     ): Subscription {
 
         val subscribeStrategy: SubscribeStrategy = createResumingStrategy(
-                initialEventId = "",
+                initialEventId = initialEventId,
                 logger = logger,
                 nextSubscribeStrategy = createTokenProvidingStrategy(
                         tokenProvider = tokenProvider,

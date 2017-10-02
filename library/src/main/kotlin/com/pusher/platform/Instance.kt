@@ -38,7 +38,8 @@ class Instance(
             headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
             tokenProvider: TokenProvider? = null,
             tokenParams: Any? = null,
-            retryOptions: RetryStrategyOptions = RetryStrategyOptions()
+            retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
+            initialEventId: String? = null
             ): Subscription {
 
         return baseClient.subscribeResuming(
@@ -47,7 +48,8 @@ class Instance(
                 headers = headers,
                 tokenProvider = tokenProvider,
                 tokenParams = tokenParams,
-                retryOptions = retryOptions
+                retryOptions = retryOptions,
+                initialEventId = initialEventId
         )
     }
 
