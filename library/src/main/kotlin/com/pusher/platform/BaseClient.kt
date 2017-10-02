@@ -33,6 +33,7 @@ class BaseClient(
             listeners: SubscriptionListeners,
             headers: Headers,
             tokenProvider: TokenProvider?,
+            tokenParams: Any?,
             retryOptions: RetryStrategyOptions
     ): Subscription {
 
@@ -41,6 +42,7 @@ class BaseClient(
                 logger = logger,
                 nextSubscribeStrategy = createTokenProvidingStrategy(
                         tokenProvider = tokenProvider,
+                        tokenParams = tokenParams,
                         logger = logger,
                         nextSubscribeStrategy = createBaseSubscription(path = absolutePath(path))),
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
@@ -54,12 +56,14 @@ class BaseClient(
             listeners: SubscriptionListeners,
             headers: Headers,
             tokenProvider: TokenProvider?,
+            tokenParams: Any?,
             retryOptions: RetryStrategyOptions): Subscription {
 
         val subscribeStrategy: SubscribeStrategy = createRetryingStrategy(
                 logger = logger,
                 nextSubscribeStrategy = createTokenProvidingStrategy(
                         tokenProvider = tokenProvider,
+                        tokenParams = tokenParams,
                         logger = logger,
                         nextSubscribeStrategy = createBaseSubscription(path = absolutePath(path))),
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)

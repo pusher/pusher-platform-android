@@ -6,7 +6,11 @@ import com.pusher.platform.tokenProvider.TokenProvider
 import elements.*
 
 
-fun createTokenProvidingStrategy(tokenProvider: TokenProvider? = null, tokenParams: Any? =  null, logger: Logger, nextSubscribeStrategy: SubscribeStrategy): SubscribeStrategy {
+fun createTokenProvidingStrategy(
+        tokenProvider: TokenProvider? = null,
+        tokenParams: Any? =  null,
+        logger: Logger,
+        nextSubscribeStrategy: SubscribeStrategy): SubscribeStrategy {
 
     if(tokenProvider != null) {
         return { listeners, headers -> TokenProvidingSubscription(listeners, headers, tokenProvider, tokenParams, logger, nextSubscribeStrategy) }

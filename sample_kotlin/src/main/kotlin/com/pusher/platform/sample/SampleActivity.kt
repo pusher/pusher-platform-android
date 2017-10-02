@@ -3,19 +3,20 @@ package com.pusher.platform.sample
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import com.google.gson.FieldNamingPolicy
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.annotations.SerializedName
 import com.pusher.platform.*
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.Error
+import elements.NetworkError
 import elements.Subscription
-//import okhttp3.Response
 import kotlinx.android.synthetic.main.activity_sample.*
-import okhttp3.MediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody
-import retrofit2.Retrofit
+import okhttp3.*
+import java.io.IOException
 
 class SampleActivity : AppCompatActivity() {
 
@@ -45,27 +46,6 @@ class SampleActivity : AppCompatActivity() {
             )
         }
 
-        val client = OkHttpClient()
-
-        val tokenProvider: TokenProvider = object: TokenProvider {
-
-            override fun fetchToken(tokenParams: Any?, onSuccess: (String) -> Unit, onFailure: (Error) -> Unit): Cancelable {
-
-                val requestBody = RequestBody.create(
-                        MediaType.parse("application/x-www-form-urlencoded"),
-                )
-                val request = Request.Builder()
-                        .url("http://localhost:3000/feeds/tokens")
-                        .post(RequestBody.create(MediaType.parse("application/x-www-form-urlencoded"), ))
-
-            }
-
-
-            override fun clearToken(token: String?) {
-                //We ain't gonna cache anything because caching is for losers
-            }
-        }
-
         this.get_request_authorized_btn.setOnClickListener{
 
             TODO()
@@ -82,11 +62,93 @@ class SampleActivity : AppCompatActivity() {
         }
 
         this.subscribe_authorized_btn.setOnClickListener{
-
+            subscription = pusherPlatform.subscribeResuming(
+                    path = "feeds/private-my-feed/items",
+                    listeners = listeners,
+                    tokenProvider = MyTokenProvider(client, gson),
+                    tokenParams = SampleTokenParams(path = "feeds/private-my-feed/items")
+            )
         }
 
         this.unsubscribe.setOnClickListener {
             subscription?.unsubscribe()
+        }
+    }
+
+    val client = OkHttpClient()
+
+    val gson = GsonBuilder()
+            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .create()
+
+    data class SampleTokenParams(val path: String, val action: String = "READ")
+
+    data class FeedsTokenResponse(
+
+            val accessToken: String,
+            val tokenType: String,
+            val expiresIn: String,
+            val refreshToken: String
+    )
+
+    class MyTokenProvider(val client: OkHttpClient, val gson: Gson): TokenProvider {
+        var call: Call? = null
+        override fun fetchToken(tokenParams: Any?, onSuccess: (String) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+
+
+            if(tokenParams is SampleTokenParams){
+
+                val requestBody = FormBody.Builder()
+                        .add("path", tokenParams.path)
+                        .add("action", tokenParams.action)
+                        .add("grant_type", "client_credentials")
+                        .build()
+
+                val request = Request.Builder()
+                        .url("http://10.0.2.2git st:3000/feeds/tokens")
+                        .post(requestBody)
+                        .build()
+
+
+                call = client.newCall(request)
+                call!!.enqueue( object: Callback {
+
+                    override fun onResponse(call: Call?, response: Response?) {
+
+                        if(response != null && response.code() == 200) {
+                            val body = gson.fromJson<FeedsTokenResponse>(response.body()!!.charStream(), FeedsTokenResponse::class.java)
+                            onSuccess(body.accessToken)
+                        }
+
+                        else{
+                            onFailure(elements.ErrorResponse(
+                                    statusCode = response!!.code(),
+                                    headers = response.headers().toMultimap(),
+                                    error = response.body().toString()
+                            ))
+                        }
+                    }
+
+                    override fun onFailure(call: Call?, e: IOException?) {
+                        onFailure(NetworkError("Failed! $e"))
+                    }
+
+                })
+            }
+
+            else{
+                throw kotlin.Error("Wrong token params!")
+            }
+
+            return object: Cancelable {
+                override fun cancel() {
+                    call?.cancel()
+                }
+            }
+        }
+
+        override fun clearToken(token: String?) {
+            //We ain't gonna cache anything because caching is for losers
         }
 
     }
