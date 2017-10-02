@@ -1,5 +1,6 @@
 package com.pusher.platform.sample
 
+import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -10,6 +11,7 @@ import com.google.gson.annotations.SerializedName
 import com.pusher.platform.*
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
+import com.pusher.platform.sdk.BuildConfig
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.Error
 import elements.NetworkError
@@ -21,11 +23,19 @@ import java.io.IOException
 class SampleActivity : AppCompatActivity() {
 
     var subscription: Subscription? = null
+    val INSTANCE_ID = "v1:us1:bb53a31e-bab3-4dfa-a52b-adaa44f14119"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
-        val pusherPlatform = Instance(instanceId = "v1:us1:bb53a31e-bab3-4dfa-a52b-adaa44f14119", serviceName = "feeds", serviceVersion = "v1", logger = AndroidLogger(threshold = LogLevel.VERBOSE), context = this)
+
+        val pusherPlatform = Instance(
+                instanceId = INSTANCE_ID,
+                serviceName = "feeds",
+                serviceVersion = "v1",
+                logger = AndroidLogger(threshold = LogLevel.VERBOSE),
+                context = this)
+
         val listeners = SubscriptionListeners(
                 onOpen = { headers -> Log.d("PP", "OnOpen ${headers}") },
                 onSubscribe = { Log.d("PP", "onSubscribe") },
@@ -62,11 +72,11 @@ class SampleActivity : AppCompatActivity() {
         }
 
         this.subscribe_authorized_btn.setOnClickListener{
-            subscription = pusherPlatform.subscribeResuming(
-                    path = "feeds/private-my-feed/items",
+            subscription = pusherPlatform.subscribeNonResuming(
+                    path = "firehose/items",
                     listeners = listeners,
                     tokenProvider = MyTokenProvider(client, gson),
-                    tokenParams = SampleTokenParams(path = "feeds/private-my-feed/items")
+                    tokenParams = SampleTokenParams(path = "firehose/items", authorizePath = "path/tokens")
             )
         }
 
@@ -81,7 +91,7 @@ class SampleActivity : AppCompatActivity() {
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .create()
 
-    data class SampleTokenParams(val path: String, val action: String = "READ")
+    data class SampleTokenParams(val path: String, val action: String = "READ", val authorizePath: String)
 
     data class FeedsTokenResponse(
 
@@ -105,7 +115,7 @@ class SampleActivity : AppCompatActivity() {
                         .build()
 
                 val request = Request.Builder()
-                        .url("http://10.0.2.2git st:3000/feeds/tokens")
+                        .url("http://10.0.2.2:3000/${tokenParams.authorizePath}")
                         .post(requestBody)
                         .build()
 
