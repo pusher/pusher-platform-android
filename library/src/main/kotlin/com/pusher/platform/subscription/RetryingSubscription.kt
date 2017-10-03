@@ -75,7 +75,6 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
 
     inner class RetryingSubscriptionState(val listeners: SubscriptionListeners, error: elements.Error, val onTransition: StateTransition) : SubscriptionState {
         var underlyingSubscription: Subscription? = null
-        val handler = Handler()
 
         init {
             logger.verbose("${RetryingSubscription@this}: transitioning to RetryingSubscriptionState")

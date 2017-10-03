@@ -37,7 +37,9 @@ class Instance(
             listeners: SubscriptionListeners,
             headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
             tokenProvider: TokenProvider? = null,
-            retryOptions: RetryStrategyOptions = RetryStrategyOptions()
+            tokenParams: Any? = null,
+            retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
+            initialEventId: String? = null
             ): Subscription {
 
         return baseClient.subscribeResuming(
@@ -45,7 +47,9 @@ class Instance(
                 listeners = listeners,
                 headers = headers,
                 tokenProvider = tokenProvider,
-                retryOptions = retryOptions
+                tokenParams = tokenParams,
+                retryOptions = retryOptions,
+                initialEventId = initialEventId
         )
     }
 
@@ -54,6 +58,7 @@ class Instance(
             listeners: SubscriptionListeners,
             headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
             tokenProvider: TokenProvider? = null,
+            tokenParams: Any? = null,
             retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription {
 
@@ -62,17 +67,24 @@ class Instance(
                 listeners = listeners,
                 headers = headers,
                 tokenProvider = tokenProvider,
+                tokenParams = tokenParams,
                 retryOptions = retryOptions
         )
     }
 
-    fun request(options: RequestOptions, tokenProvider: TokenProvider? = null, onSuccess: (Response) -> Unit, onFailure: (elements.Error) -> Unit ): Cancelable =
+    fun request(
+            options: RequestOptions,
+            tokenProvider: TokenProvider? = null,
+            tokenParams: Any? = null,
+            onSuccess: (Response) -> Unit,
+            onFailure: (elements.Error) -> Unit ): Cancelable =
          baseClient.request(
                  path = absPath(options.path),
                  headers = options.headers,
                  method = options.method,
                  body = options.body,
                  tokenProvider = tokenProvider,
+                 tokenParams = tokenParams,
                  onSuccess = onSuccess,
                  onFailure = onFailure
          )

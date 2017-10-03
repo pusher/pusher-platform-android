@@ -1,12 +1,17 @@
 package com.pusher.platform.subscription
 
+import com.pusher.platform.Cancelable
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.*
 
 
-fun createTokenProvidingStrategy(tokenProvider: TokenProvider? = null, tokenParams: Any? =  null, logger: Logger, nextSubscribeStrategy: SubscribeStrategy): SubscribeStrategy {
+fun createTokenProvidingStrategy(
+        tokenProvider: TokenProvider? = null,
+        tokenParams: Any? =  null,
+        logger: Logger,
+        nextSubscribeStrategy: SubscribeStrategy): SubscribeStrategy {
 
     if(tokenProvider != null) {
         return { listeners, headers -> TokenProvidingSubscription(listeners, headers, tokenProvider, tokenParams, logger, nextSubscribeStrategy) }
@@ -35,18 +40,20 @@ class TokenProvidingSubscription(listeners: SubscriptionListeners, val headers: 
     inner class TokenProvidingState(val listeners: SubscriptionListeners, onTransition: StateTransition) : SubscriptionState {
 
         lateinit var underlyingSubscription: Subscription
+        lateinit var tokenRequestInProgress: Cancelable
+
         init {
             logger.verbose("${TokenProvidingSubscription@this}: Transitioning to TokenProvidingState")
             fetchTokenAndExecuteSubscription()
         }
 
         override fun unsubscribe() {
-            TODO()
+            tokenRequestInProgress.cancel()
         }
 
 
         fun fetchTokenAndExecuteSubscription() {
-            tokenProvider.fetchToken(
+            tokenRequestInProgress = tokenProvider.fetchToken(
                     tokenParams = tokenParams,
                     onSuccess = { token ->
                         headers.insertToken(token)
