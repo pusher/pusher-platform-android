@@ -101,6 +101,7 @@ class SampleActivity : AppCompatActivity() {
             val refreshToken: String
     )
 
+
     class MyTokenProvider(val client: OkHttpClient, val gson: Gson): TokenProvider {
         var call: Call? = null
         override fun fetchToken(tokenParams: Any?, onSuccess: (String) -> Unit, onFailure: (Error) -> Unit): Cancelable {

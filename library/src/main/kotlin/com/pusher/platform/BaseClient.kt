@@ -82,6 +82,31 @@ class BaseClient(
             onSuccess: (Response) -> Unit,
             onFailure: (elements.Error) -> Unit): Cancelable {
 
+        var requestBeingPerformed: Cancelable? = null
+
+        if(tokenProvider != null) {
+            requestBeingPerformed = tokenProvider.fetchToken(
+                    tokenParams = tokenParams,
+                    onFailure = onFailure,
+                    onSuccess = { token ->
+                        headers.put("Authorization", listOf("Bearer $token"))
+                        requestBeingPerformed = performRequest(path, headers, method, body, onSuccess, onFailure)
+                    }
+            )
+        }
+        else {
+            requestBeingPerformed = performRequest(path, headers, method, body, onSuccess, onFailure)
+        }
+
+        return object: Cancelable {
+            override fun cancel() {
+                requestBeingPerformed?.cancel()
+            }
+        }
+    }
+
+    private fun performRequest(path: String, headers: Headers, method: String, body: String?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+
         val requestBody = if (body != null) {
             RequestBody.create(MediaType.parse("application/json"), body)
         } else null
