@@ -25,11 +25,11 @@ class InstanceTest {
         val instance = Instance( instanceId = "foo:bar:baz", serviceName = "bar", serviceVersion = "baz", context = context)
         assertNotNull(instance)
     }
-
-    @Test
-    fun testThatFails(){
-        fail("This should fail, all is good.")
-    }
+//
+//    @Test
+//    fun testThatFails(){
+//        fail("This should fail, all is good.")
+//    }
 
 
 }

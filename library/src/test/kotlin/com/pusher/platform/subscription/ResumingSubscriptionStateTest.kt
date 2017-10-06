@@ -6,6 +6,7 @@ import com.pusher.platform.RetryStrategyResultCallback
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
+import com.pusher.platform.retrying.DoNotRetry
 import elements.ErrorResponse
 import elements.Subscription
 import org.junit.Before
