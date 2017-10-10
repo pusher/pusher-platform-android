@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
+import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
@@ -117,7 +118,7 @@ class BaseClient(
 
         val requestBuilder = Request.Builder()
                 .method(method, requestBody)
-                .url("$baseUrl/$path")
+                .url("$baseUrl/$path".replaceMultipleSlashesInUrl())
 
         headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
 
