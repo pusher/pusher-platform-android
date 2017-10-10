@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import com.pusher.platform.BaseClient.Companion.GSON
+import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import elements.*
 import elements.Headers
 import okhttp3.*
@@ -36,7 +37,7 @@ class BaseSubscription(
     init {
         var requestBuilder = Request.Builder()
                 .method("SUBSCRIBE", null)
-                .url(path)
+                .url(path.replaceMultipleSlashesInUrl())
 
         headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
         val request = requestBuilder.build()
