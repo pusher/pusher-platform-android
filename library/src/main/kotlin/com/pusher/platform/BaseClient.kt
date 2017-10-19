@@ -122,7 +122,6 @@ class BaseClient(
 
         headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
 
-
         return object: Cancelable {
 
             val call: Call = httpClient.newCall(requestBuilder.build())
@@ -138,6 +137,7 @@ class BaseClient(
                             when(response?.code()){
                                 in 200..299 -> onSuccess(response)
                                 else -> {
+
                                     val errorBody = GSON.fromJson(response.body()!!.string(), ErrorResponseBody::class.java)
                                     onFailure(ErrorResponse(
                                             statusCode = response.code(),
@@ -178,6 +178,7 @@ class BaseClient(
 
 private  fun absolutePath(path: String): String = "$baseUrl/$path"
 }
+
 
 
 
