@@ -44,9 +44,10 @@ class BaseSubscription(
 
         call = httpClient.newCall(request)
 
-        subscriptionThread = object : HandlerThread("BaseSubscription", android.os.Process.THREAD_PRIORITY_BACKGROUND) {
+        subscriptionThread = object : HandlerThread("BaseSubscription:$path", android.os.Process.THREAD_PRIORITY_BACKGROUND) {
 
             override fun run() {
+
                 try {
                     val response = call.execute()
                     this@BaseSubscription.response = response
@@ -76,6 +77,7 @@ class BaseSubscription(
             }
         }
         subscriptionThread.start()
+
     }
 
     private fun handleConnectionFailed(response: Response) {
