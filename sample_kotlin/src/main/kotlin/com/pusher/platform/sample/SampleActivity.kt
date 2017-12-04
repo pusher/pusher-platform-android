@@ -1,17 +1,14 @@
 package com.pusher.platform.sample
 
-import android.os.Build
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.annotations.SerializedName
 import com.pusher.platform.*
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
-import com.pusher.platform.sdk.BuildConfig
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.Error
 import elements.NetworkError
@@ -20,7 +17,7 @@ import kotlinx.android.synthetic.main.activity_sample.*
 import okhttp3.*
 import java.io.IOException
 
-class SampleActivity : AppCompatActivity() {
+class SampleActivity: AppCompatActivity() {
 
     var subscription: Subscription? = null
     val INSTANCE_ID = "v1:us1:bb53a31e-bab3-4dfa-a52b-adaa44f14119"
@@ -30,7 +27,7 @@ class SampleActivity : AppCompatActivity() {
         setContentView(R.layout.activity_sample)
 
         val pusherPlatform = Instance(
-                instanceId = INSTANCE_ID,
+                locator = INSTANCE_ID,
                 serviceName = "feeds",
                 serviceVersion = "v1",
                 logger = AndroidLogger(threshold = LogLevel.VERBOSE),

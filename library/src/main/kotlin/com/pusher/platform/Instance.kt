@@ -15,7 +15,7 @@ import java.util.*
 
 
 class Instance(
-        instanceId: String,
+        locator: String,
         val serviceName: String,
         val serviceVersion: String,
         host: String? = null,
@@ -24,13 +24,24 @@ class Instance(
         ) {
 
     val HOST_BASE = "pusherplatform.io"
-    val id: String = instanceId.split(":")[2]
-    val cluster: String = instanceId.split(":")[1]
-    val platformVersion: String = instanceId.split(":")[0]
-    val host: String = host ?: "$cluster.$HOST_BASE"
 
+    val id: String
+    val cluster: String
+    val platformVersion: String
+    val serviceHost: String
+    val baseClient: BaseClient
 
-    val baseClient: BaseClient = BaseClient(host = this.host, logger = logger, context = context)
+    init {
+        val splitInstanceLocator = locator.split(":")
+        if(splitInstanceLocator.size != 3) throw IllegalArgumentException("Expecting locator to be of the form 'v1:us1:1a234-123a-1234-12a3-1234123aa12' but got this instead: $locator'. Check the dashboard to ensure you have a properly formatted locator.")
+
+        id = splitInstanceLocator[2]
+        cluster = splitInstanceLocator[1]
+        platformVersion = splitInstanceLocator[0]
+
+        serviceHost = host ?: "$cluster.$HOST_BASE"
+        baseClient = BaseClient(host = serviceHost, logger = logger, context = context)
+    }
 
     fun subscribeResuming(
             path: String,

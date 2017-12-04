@@ -2,7 +2,6 @@ package com.pusher.platform
 
 import android.content.Context
 import com.google.gson.FieldNamingPolicy
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
