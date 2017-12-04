@@ -1,13 +1,11 @@
 package com.pusher.platform
 
-import android.app.Instrumentation
 import android.content.Context
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito
 import kotlin.test.assertNotNull
-import kotlin.test.fail
 
 class InstanceTest {
 
@@ -22,7 +20,7 @@ class InstanceTest {
     @Test
     fun instanceSetUpCorrectly(){
 
-        val instance = Instance( instanceId = "foo:bar:baz", serviceName = "bar", serviceVersion = "baz", context = context)
+        val instance = Instance( locator = "foo:bar:baz", serviceName = "bar", serviceVersion = "baz", context = context)
         assertNotNull(instance)
     }
 //
