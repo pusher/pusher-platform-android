@@ -13,6 +13,7 @@ import elements.SubscriptionEvent
 import okhttp3.Response
 import java.util.*
 
+const val HOST_BASE = "pusherplatform.io"
 
 class Instance(
         locator: String,
@@ -22,8 +23,6 @@ class Instance(
         logger: Logger = AndroidLogger(threshold = LogLevel.DEBUG),
         context: Context
         ) {
-
-    val HOST_BASE = "pusherplatform.io"
 
     val id: String
     val cluster: String
