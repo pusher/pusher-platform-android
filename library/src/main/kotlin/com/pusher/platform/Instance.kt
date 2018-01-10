@@ -23,13 +23,15 @@ class Instance(
         context: Context
         ) {
 
-    val HOST_BASE = "pusherplatform.io"
-
     val id: String
     val cluster: String
     val platformVersion: String
     val serviceHost: String
     val baseClient: BaseClient
+
+    companion object {
+        const val HOST_BASE = "pusherplatform.io"
+    }
 
     init {
         val splitInstanceLocator = locator.split(":")
