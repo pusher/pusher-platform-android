@@ -13,7 +13,6 @@ import elements.SubscriptionEvent
 import okhttp3.Response
 import java.util.*
 
-const val HOST_BASE = "pusherplatform.io"
 
 class Instance(
         locator: String,
@@ -29,6 +28,10 @@ class Instance(
     val platformVersion: String
     val serviceHost: String
     val baseClient: BaseClient
+
+    companion object {
+        const val HOST_BASE = "pusherplatform.io"
+    }
 
     init {
         val splitInstanceLocator = locator.split(":")
