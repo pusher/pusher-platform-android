@@ -18,7 +18,7 @@ class Instance(
         locator: String,
         val serviceName: String,
         val serviceVersion: String,
-        var baseClient: BaseClient?,
+        baseClient: BaseClient? = null,
         host: String? = null,
         logger: Logger = AndroidLogger(threshold = LogLevel.DEBUG),
         context: Context
@@ -28,6 +28,7 @@ class Instance(
     val cluster: String
     val platformVersion: String
     val serviceHost: String
+    val baseClient: BaseClient
 
     companion object {
         const val HOST_BASE = "pusherplatform.io"
@@ -42,7 +43,7 @@ class Instance(
         platformVersion = splitInstanceLocator[0]
 
         serviceHost = host ?: "$cluster.$HOST_BASE"
-        baseClient = baseClient ?: BaseClient(host = serviceHost, logger = logger, context = context)
+        this.baseClient = baseClient ?: BaseClient(host = serviceHost, logger = logger, context = context)
     }
 
     fun subscribeResuming(
@@ -55,7 +56,7 @@ class Instance(
             initialEventId: String? = null
             ): Subscription {
 
-        return baseClient!!.subscribeResuming(
+        return this.baseClient.subscribeResuming(
                 path = absPath(path),
                 listeners = listeners,
                 headers = headers,
@@ -75,7 +76,7 @@ class Instance(
             retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription {
 
-        return baseClient!!.subscribeNonResuming(
+        return this.baseClient.subscribeNonResuming(
                 path = absPath(path),
                 listeners = listeners,
                 headers = headers,
@@ -91,7 +92,7 @@ class Instance(
             tokenParams: Any? = null,
             onSuccess: (Response) -> Unit,
             onFailure: (elements.Error) -> Unit ): Cancelable =
-         baseClient!!.request(
+         this.baseClient.request(
                  path = absPath(options.path),
                  headers = options.headers,
                  method = options.method,
