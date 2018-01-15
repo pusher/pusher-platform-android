@@ -6,5 +6,4 @@ data class RequestOptions(
         val path: String,
         val headers: elements.Headers = TreeMap(),
         val body: String? = null
-
 )

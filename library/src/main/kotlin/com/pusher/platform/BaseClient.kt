@@ -1,6 +1,8 @@
 package com.pusher.platform
 
 import android.content.Context
+import android.net.Uri
+import android.webkit.MimeTypeMap
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.GsonBuilder
 import com.pusher.platform.logger.Logger
@@ -12,7 +14,10 @@ import com.pusher.platform.tokenProvider.TokenProvider
 import elements.*
 import elements.Headers
 import okhttp3.*
+import java.io.File
 import java.io.IOException
+import java.net.URL
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class BaseClient(
@@ -87,6 +92,9 @@ class BaseClient(
             onFailure: (elements.Error) -> Unit): Cancelable {
 
         var requestBeingPerformed: Cancelable? = null
+        val requestBody = if (body != null) {
+            RequestBody.create(MediaType.parse("application/json"), body)
+        } else null
 
         if(tokenProvider != null) {
             requestBeingPerformed = tokenProvider.fetchToken(
@@ -94,12 +102,12 @@ class BaseClient(
                     onFailure = onFailure,
                     onSuccess = { token ->
                         headers.put("Authorization", listOf("Bearer $token"))
-                        requestBeingPerformed = performRequest(path, headers, method, body, onSuccess, onFailure)
+                        requestBeingPerformed = performRequest(path, headers, method, requestBody, onSuccess, onFailure)
                     }
             )
         }
         else {
-            requestBeingPerformed = performRequest(path, headers, method, body, onSuccess, onFailure)
+            requestBeingPerformed = performRequest(path, headers, method, requestBody, onSuccess, onFailure)
         }
 
         return object: Cancelable {
@@ -109,12 +117,47 @@ class BaseClient(
         }
     }
 
-    private fun performRequest(path: String, headers: Headers, method: String, body: String?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+    fun upload(
+            path: String,
+            headers: elements.Headers = TreeMap(),
+            file: File,
+            tokenProvider: TokenProvider? = null,
+            tokenParams: Any? = null,
+            onSuccess: (Response) -> Unit,
+            onFailure: (Error) -> Unit): Cancelable {
+        var requestBeingPerformed: Cancelable? = null
+        val mediaType = MediaType.parse(
+                MimeTypeMap.getSingleton()
+                        .getMimeTypeFromExtension(
+                                MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(file).toString())
+                        )
+                )
+        val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
+                .build()
 
-        val requestBody = if (body != null) {
-            RequestBody.create(MediaType.parse("application/json"), body)
-        } else null
+        if (tokenProvider != null) {
+            requestBeingPerformed = tokenProvider.fetchToken(
+                    tokenParams = tokenParams,
+                    onFailure = onFailure,
+                    onSuccess = { token ->
+                        headers.put("Authorization", listOf("Bearer $token"))
+                        requestBeingPerformed = performRequest(path, headers, "POST", requestBody, onSuccess, onFailure)
+                    }
+            )
+        } else {
+            requestBeingPerformed = performRequest(path, headers, "POST", requestBody, onSuccess, onFailure)
+        }
 
+        return object: Cancelable {
+            override fun cancel() {
+                requestBeingPerformed?.cancel()
+            }
+        }
+    }
+
+    private fun performRequest(path: String, headers: Headers, method: String, requestBody: RequestBody?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
         val requestBuilder = Request.Builder()
                 .method(method, requestBody)
                 .url("$baseUrl/$path".replaceMultipleSlashesInUrl())
