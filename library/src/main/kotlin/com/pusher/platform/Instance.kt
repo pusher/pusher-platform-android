@@ -112,7 +112,7 @@ class Instance(
                tokenParams: Any? = null,
                onSuccess: (Response) -> Unit,
                onFailure: (Error) -> Unit): Cancelable {
-        return this.baseClient.upload(path, headers, file, tokenProvider, tokenParams, onSuccess, onFailure)
+        return this.baseClient.upload(absPath(path), headers, file, tokenProvider, tokenParams, onSuccess, onFailure)
     }
 
 

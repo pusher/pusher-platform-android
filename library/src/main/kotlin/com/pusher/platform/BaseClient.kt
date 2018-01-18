@@ -20,6 +20,8 @@ import java.net.URL
 import java.util.*
 import java.util.concurrent.TimeUnit
 
+
+
 class BaseClient(
         var host: String,
         val logger: Logger,
@@ -29,7 +31,15 @@ class BaseClient(
         val prefix = if(encrypted) "https" else "http"
         val baseUrl = "$prefix://$host"
 
-        val httpClient = OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
+        val httpClient: okhttp3.OkHttpClient
+        init {
+            val dispatcher = Dispatcher()
+            dispatcher.maxRequestsPerHost = Integer.MAX_VALUE
+            httpClient = OkHttpClient.Builder()
+                    .readTimeout(0, TimeUnit.MINUTES)
+                    .dispatcher(dispatcher)
+                    .build()
+        }
 
     companion object {
         val GSON = GsonBuilder()
@@ -136,12 +146,14 @@ class BaseClient(
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
                 .build()
+        logger.info("uploading multipart data: $requestBody")
 
         if (tokenProvider != null) {
             requestBeingPerformed = tokenProvider.fetchToken(
                     tokenParams = tokenParams,
                     onFailure = onFailure,
                     onSuccess = { token ->
+                        logger.info("got token, making request")
                         headers.put("Authorization", listOf("Bearer $token"))
                         requestBeingPerformed = performRequest(path, headers, "POST", requestBody, onSuccess, onFailure)
                     }
@@ -158,6 +170,7 @@ class BaseClient(
     }
 
     private fun performRequest(path: String, headers: Headers, method: String, requestBody: RequestBody?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+        logger.info("performing request ")
         val requestBuilder = Request.Builder()
                 .method(method, requestBody)
                 .url("$baseUrl/$path".replaceMultipleSlashesInUrl())
@@ -175,11 +188,11 @@ class BaseClient(
             init {
                 call.enqueue(object : Callback {
                     override fun onResponse(call: Call?, response: Response?) {
+                        logger.info("got response")
                         if(response != null){
                             when(response?.code()){
                                 in 200..299 -> onSuccess(response)
                                 else -> {
-
                                     val errorBody = GSON.fromJson(response.body()!!.string(), ErrorResponseBody::class.java)
                                     onFailure(ErrorResponse(
                                             statusCode = response.code(),
@@ -196,6 +209,7 @@ class BaseClient(
                     }
 
                     override fun onFailure(call: Call?, e: IOException?) {
+                        logger.info("FAILURE")
                         onFailure(NetworkError("Network error"))
                     }
                 })
