@@ -16,10 +16,10 @@ import elements.Headers
 import okhttp3.*
 import java.io.File
 import java.io.IOException
-import java.net.URL
 import java.util.*
 import java.util.concurrent.TimeUnit
-
+import okhttp3.RequestBody
+import okhttp3.MultipartBody
 
 
 class BaseClient(
@@ -33,11 +33,8 @@ class BaseClient(
 
         val httpClient: okhttp3.OkHttpClient
         init {
-            val dispatcher = Dispatcher()
-            dispatcher.maxRequestsPerHost = Integer.MAX_VALUE
             httpClient = OkHttpClient.Builder()
                     .readTimeout(0, TimeUnit.MINUTES)
-                    .dispatcher(dispatcher)
                     .build()
         }
 
@@ -134,26 +131,32 @@ class BaseClient(
             tokenProvider: TokenProvider? = null,
             tokenParams: Any? = null,
             onSuccess: (Response) -> Unit,
-            onFailure: (Error) -> Unit): Cancelable {
+            onFailure: (Error) -> Unit): Cancelable? {
+
+        if (!file.exists()) {
+            onFailure(UploadError("File does not exist at ${file.path}"))
+            return null
+        }
+
         var requestBeingPerformed: Cancelable? = null
         val mediaType = MediaType.parse(
                 MimeTypeMap.getSingleton()
                         .getMimeTypeFromExtension(
                                 MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(file).toString())
                         )
-                )
+        )
+
         val requestBody = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
                 .build()
-        logger.info("uploading multipart data: $requestBody")
+
 
         if (tokenProvider != null) {
             requestBeingPerformed = tokenProvider.fetchToken(
                     tokenParams = tokenParams,
                     onFailure = onFailure,
                     onSuccess = { token ->
-                        logger.info("got token, making request")
                         headers.put("Authorization", listOf("Bearer $token"))
                         requestBeingPerformed = performRequest(path, headers, "POST", requestBody, onSuccess, onFailure)
                     }
@@ -188,7 +191,6 @@ class BaseClient(
             init {
                 call.enqueue(object : Callback {
                     override fun onResponse(call: Call?, response: Response?) {
-                        logger.info("got response")
                         if(response != null){
                             when(response?.code()){
                                 in 200..299 -> onSuccess(response)
@@ -209,8 +211,7 @@ class BaseClient(
                     }
 
                     override fun onFailure(call: Call?, e: IOException?) {
-                        logger.info("FAILURE")
-                        onFailure(NetworkError("Network error"))
+                        onFailure(NetworkError("Request error: ${e?.toString()}"))
                     }
                 })
             }

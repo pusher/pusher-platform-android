@@ -12,7 +12,7 @@ sealed class SubscriptionMessage {
                 0 -> ControlEvent(body = message[1].asString)
                 1 -> SubscriptionEvent(eventId = message[1].asString, headers = BaseClient.GSON.fromJson(message[2], Map::class.java) as Headers, body = message[3])
                 255 -> EOSEvent(statusCode = message[1].asInt, headers = message[2] as Headers, errorBody = message[3])
-                else -> throw kotlin.Error("Fuck $messageString") //TODO
+                else -> throw kotlin.Error("Unknown message type: $messageString") // TODO: Handle more gracefully
             }
         }
     }

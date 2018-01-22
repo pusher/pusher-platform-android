@@ -111,7 +111,7 @@ class Instance(
                tokenProvider: TokenProvider? = null,
                tokenParams: Any? = null,
                onSuccess: (Response) -> Unit,
-               onFailure: (Error) -> Unit): Cancelable {
+               onFailure: (Error) -> Unit): Cancelable? {
         return this.baseClient.upload(absPath(path), headers, file, tokenProvider, tokenParams, onSuccess, onFailure)
     }
 
@@ -130,6 +130,3 @@ class SubscriptionListeners(
         val onError: (error: elements.Error) -> Unit = {},
         val onEnd: (error: EOSEvent?) -> Unit = {}
 )
-
-
-

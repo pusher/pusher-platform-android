@@ -6,6 +6,8 @@ data class ErrorResponseBody(val error: String, val errorDescription: String? = 
 
 data class NetworkError(val reason: String): Error()
 
+data class UploadError(val reason: String): Error()
+
 data class OtherError(val reason: String): Error()
 
 sealed class Error
