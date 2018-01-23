@@ -45,7 +45,7 @@ class BaseClient(
     }
 
     fun subscribeResuming(
-            path: String,
+            requestDestination: RequestDestination,
             listeners: SubscriptionListeners,
             headers: Headers,
             tokenProvider: TokenProvider?,
@@ -61,7 +61,7 @@ class BaseClient(
                         tokenProvider = tokenProvider,
                         tokenParams = tokenParams,
                         logger = logger,
-                        nextSubscribeStrategy = createBaseSubscription(path = absolutePath(path))),
+                        nextSubscribeStrategy = createBaseSubscription(path = getRequestPath(requestDestination))),
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
         )
 
@@ -69,7 +69,7 @@ class BaseClient(
     }
 
     fun subscribeNonResuming(
-            path: String,
+            requestDestination: RequestDestination,
             listeners: SubscriptionListeners,
             headers: Headers,
             tokenProvider: TokenProvider?,
@@ -82,14 +82,14 @@ class BaseClient(
                         tokenProvider = tokenProvider,
                         tokenParams = tokenParams,
                         logger = logger,
-                        nextSubscribeStrategy = createBaseSubscription(path = absolutePath(path))),
+                        nextSubscribeStrategy = createBaseSubscription(path = getRequestPath(requestDestination))),
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
         )
         return subscribeStrategy(listeners, headers)
     }
 
     fun request(
-            path: String,
+            requestDestination: RequestDestination,
             headers: elements.Headers,
             method: String,
             body: String? = null,
@@ -109,12 +109,12 @@ class BaseClient(
                     onFailure = onFailure,
                     onSuccess = { token ->
                         headers.put("Authorization", listOf("Bearer $token"))
-                        requestBeingPerformed = performRequest(path, headers, method, requestBody, onSuccess, onFailure)
+                        requestBeingPerformed = performRequest(requestDestination, headers, method, requestBody, onSuccess, onFailure)
                     }
             )
         }
         else {
-            requestBeingPerformed = performRequest(path, headers, method, requestBody, onSuccess, onFailure)
+            requestBeingPerformed = performRequest(requestDestination, headers, method, requestBody, onSuccess, onFailure)
         }
 
         return object: Cancelable {
@@ -125,7 +125,7 @@ class BaseClient(
     }
 
     fun upload(
-            path: String,
+            requestDestination: RequestDestination,
             headers: elements.Headers = TreeMap(),
             file: File,
             tokenProvider: TokenProvider? = null,
@@ -158,11 +158,11 @@ class BaseClient(
                     onFailure = onFailure,
                     onSuccess = { token ->
                         headers.put("Authorization", listOf("Bearer $token"))
-                        requestBeingPerformed = performRequest(path, headers, "POST", requestBody, onSuccess, onFailure)
+                        requestBeingPerformed = performRequest(requestDestination, headers, "POST", requestBody, onSuccess, onFailure)
                     }
             )
         } else {
-            requestBeingPerformed = performRequest(path, headers, "POST", requestBody, onSuccess, onFailure)
+            requestBeingPerformed = performRequest(requestDestination, headers, "POST", requestBody, onSuccess, onFailure)
         }
 
         return object: Cancelable {
@@ -172,10 +172,12 @@ class BaseClient(
         }
     }
 
-    private fun performRequest(path: String, headers: Headers, method: String, requestBody: RequestBody?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+    private fun performRequest(requestDestination: RequestDestination, headers: Headers, method: String, requestBody: RequestBody?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+        val requestURL = getRequestPath(requestDestination)
+
         val requestBuilder = Request.Builder()
                 .method(method, requestBody)
-                .url("$baseUrl/$path".replaceMultipleSlashesInUrl())
+                .url(requestURL)
 
         headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
 
@@ -231,12 +233,16 @@ class BaseClient(
         }
     }
 
+    private fun getRequestPath(requestDestination: RequestDestination): String {
+        return when (requestDestination) {
+            is RequestDestination.Absolute -> {
+                requestDestination.url
+            }
+            is RequestDestination.Relative -> {
+                absolutePath(requestDestination.path)
+            }
+        }
+    }
 
-private  fun absolutePath(path: String): String = "$baseUrl/$path"
+    private fun absolutePath(path: String): String = "$baseUrl/$path"
 }
-
-
-
-
-
-

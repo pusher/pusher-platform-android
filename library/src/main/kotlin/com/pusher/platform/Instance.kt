@@ -56,10 +56,31 @@ class Instance(
             tokenParams: Any? = null,
             retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
             initialEventId: String? = null
-            ): Subscription {
+    ): Subscription {
+        return subscribeResuming(
+                requestDestination = RequestDestination.Relative(path),
+                listeners = listeners,
+                headers = headers,
+                tokenProvider = tokenProvider,
+                tokenParams = tokenParams,
+                retryOptions = retryOptions,
+                initialEventId = initialEventId
+        )
+    }
+
+    fun subscribeResuming(
+            requestDestination: RequestDestination,
+            listeners: SubscriptionListeners,
+            headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+            tokenProvider: TokenProvider? = null,
+            tokenParams: Any? = null,
+            retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
+            initialEventId: String? = null
+    ): Subscription {
+        val destination = scopeDestinationIfAppropriate(requestDestination)
 
         return this.baseClient.subscribeResuming(
-                path = absPath(path),
+                requestDestination = destination,
                 listeners = listeners,
                 headers = headers,
                 tokenProvider = tokenProvider,
@@ -77,9 +98,28 @@ class Instance(
             tokenParams: Any? = null,
             retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription {
+        return subscribeNonResuming(
+                requestDestination = RequestDestination.Relative(path),
+                listeners = listeners,
+                headers = headers,
+                tokenProvider = tokenProvider,
+                tokenParams = tokenParams,
+                retryOptions = retryOptions
+        )
+    }
+
+    fun subscribeNonResuming(
+            requestDestination: RequestDestination,
+            listeners: SubscriptionListeners,
+            headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+            tokenProvider: TokenProvider? = null,
+            tokenParams: Any? = null,
+            retryOptions: RetryStrategyOptions = RetryStrategyOptions()
+    ): Subscription {
+        val destination = scopeDestinationIfAppropriate(requestDestination)
 
         return this.baseClient.subscribeNonResuming(
-                path = absPath(path),
+                requestDestination = destination,
                 listeners = listeners,
                 headers = headers,
                 tokenProvider = tokenProvider,
@@ -95,17 +135,10 @@ class Instance(
             onSuccess: (Response) -> Unit,
             onFailure: (elements.Error) -> Unit
     ): Cancelable {
-        val path = when (options.destination) {
-            is RequestDestination.Absolute -> {
-                options.destination.url
-            }
-            is RequestDestination.Relative-> {
-                absPath(options.destination.path)
-            }
-        }
+        val destination = scopeDestinationIfAppropriate(options.destination)
 
         return this.baseClient.request(
-                path = path,
+                requestDestination = destination,
                 headers = options.headers,
                 method = options.method,
                 body = options.body,
@@ -122,11 +155,43 @@ class Instance(
                tokenProvider: TokenProvider? = null,
                tokenParams: Any? = null,
                onSuccess: (Response) -> Unit,
-               onFailure: (Error) -> Unit): Cancelable? {
-        return this.baseClient.upload(absPath(path), headers, file, tokenProvider, tokenParams, onSuccess, onFailure)
+               onFailure: (Error) -> Unit
+    ): Cancelable? {
+        return upload(
+                requestDestination = RequestDestination.Relative(path),
+                headers = headers,
+                file = file,
+                tokenProvider = tokenProvider,
+                tokenParams = tokenParams,
+                onSuccess = onSuccess,
+                onFailure = onFailure
+        )
     }
 
-    private fun absPath(relativePath: String): String {
+    fun upload(requestDestination: RequestDestination,
+               headers: elements.Headers = TreeMap(),
+               file: File,
+               tokenProvider: TokenProvider? = null,
+               tokenParams: Any? = null,
+               onSuccess: (Response) -> Unit,
+               onFailure: (Error) -> Unit): Cancelable? {
+        val destination = scopeDestinationIfAppropriate(requestDestination)
+
+        return this.baseClient.upload(destination, headers, file, tokenProvider, tokenParams, onSuccess, onFailure)
+    }
+
+    private fun scopeDestinationIfAppropriate(destination: RequestDestination): RequestDestination {
+        return when (destination) {
+            is RequestDestination.Absolute -> {
+                destination
+            }
+            is RequestDestination.Relative -> {
+                RequestDestination.Relative(scopePathToService(destination.path))
+            }
+        }
+    }
+
+    private fun scopePathToService(relativePath: String): String {
         return "services/${this.serviceName}/${this.serviceVersion}/${this.id}/${relativePath}"
     }
 
