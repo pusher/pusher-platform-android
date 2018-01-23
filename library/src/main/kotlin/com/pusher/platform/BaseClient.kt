@@ -173,7 +173,6 @@ class BaseClient(
     }
 
     private fun performRequest(path: String, headers: Headers, method: String, requestBody: RequestBody?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
-        logger.info("performing request ")
         val requestBuilder = Request.Builder()
                 .method(method, requestBody)
                 .url("$baseUrl/$path".replaceMultipleSlashesInUrl())
