@@ -93,17 +93,28 @@ class Instance(
             tokenProvider: TokenProvider? = null,
             tokenParams: Any? = null,
             onSuccess: (Response) -> Unit,
-            onFailure: (elements.Error) -> Unit ): Cancelable =
-         this.baseClient.request(
-                 path = absPath(options.path),
-                 headers = options.headers,
-                 method = options.method,
-                 body = options.body,
-                 tokenProvider = tokenProvider,
-                 tokenParams = tokenParams,
-                 onSuccess = onSuccess,
-                 onFailure = onFailure
-         )
+            onFailure: (elements.Error) -> Unit
+    ): Cancelable {
+        val path = when (options.destination) {
+            is RequestDestination.Absolute -> {
+                options.destination.url
+            }
+            is RequestDestination.Relative-> {
+                absPath(options.destination.path)
+            }
+        }
+
+        return this.baseClient.request(
+                path = path,
+                headers = options.headers,
+                method = options.method,
+                body = options.body,
+                tokenProvider = tokenProvider,
+                tokenParams = tokenParams,
+                onSuccess = onSuccess,
+                onFailure = onFailure
+        )
+    }
 
     fun upload(path: String,
                headers: elements.Headers = TreeMap(),
