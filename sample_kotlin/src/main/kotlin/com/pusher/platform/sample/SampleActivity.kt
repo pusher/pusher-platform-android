@@ -20,14 +20,14 @@ import java.io.IOException
 class SampleActivity: AppCompatActivity() {
 
     var subscription: Subscription? = null
-    val INSTANCE_ID = "v1:us1:bb53a31e-bab3-4dfa-a52b-adaa44f14119"
+    val INSTANCE_LOCATOR = "YOUR_INSTANCE_LOCATOR"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
 
         val pusherPlatform = Instance(
-                locator = INSTANCE_ID,
+                locator = INSTANCE_LOCATOR,
                 serviceName = "feeds",
                 serviceVersion = "v1",
                 logger = AndroidLogger(threshold = LogLevel.VERBOSE),
