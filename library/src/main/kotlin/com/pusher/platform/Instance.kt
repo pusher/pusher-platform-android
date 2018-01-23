@@ -126,7 +126,6 @@ class Instance(
         return this.baseClient.upload(absPath(path), headers, file, tokenProvider, tokenParams, onSuccess, onFailure)
     }
 
-
     private fun absPath(relativePath: String): String {
         return "services/${this.serviceName}/${this.serviceVersion}/${this.id}/${relativePath}"
     }
