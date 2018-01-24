@@ -31,12 +31,7 @@ class BaseClient(
         val prefix = if(encrypted) "https" else "http"
         val baseUrl = "$prefix://$host"
 
-        val httpClient: okhttp3.OkHttpClient
-        init {
-            httpClient = OkHttpClient.Builder()
-                    .readTimeout(0, TimeUnit.MINUTES)
-                    .build()
-        }
+        val httpClient: okhttp3.OkHttpClient = OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
 
     companion object {
         val GSON = GsonBuilder()
