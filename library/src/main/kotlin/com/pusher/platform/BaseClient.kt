@@ -1,6 +1,8 @@
 package com.pusher.platform
 
 import android.content.Context
+import android.net.Uri
+import android.webkit.MimeTypeMap
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.GsonBuilder
 import com.pusher.platform.logger.Logger
@@ -12,8 +14,13 @@ import com.pusher.platform.tokenProvider.TokenProvider
 import elements.*
 import elements.Headers
 import okhttp3.*
+import java.io.File
 import java.io.IOException
+import java.util.*
 import java.util.concurrent.TimeUnit
+import okhttp3.RequestBody
+import okhttp3.MultipartBody
+
 
 class BaseClient(
         var host: String,
@@ -24,7 +31,7 @@ class BaseClient(
         val prefix = if(encrypted) "https" else "http"
         val baseUrl = "$prefix://$host"
 
-        val httpClient = OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
+        val httpClient: okhttp3.OkHttpClient = OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
 
     companion object {
         val GSON = GsonBuilder()
@@ -33,7 +40,7 @@ class BaseClient(
     }
 
     fun subscribeResuming(
-            path: String,
+            requestDestination: RequestDestination,
             listeners: SubscriptionListeners,
             headers: Headers,
             tokenProvider: TokenProvider?,
@@ -49,7 +56,7 @@ class BaseClient(
                         tokenProvider = tokenProvider,
                         tokenParams = tokenParams,
                         logger = logger,
-                        nextSubscribeStrategy = createBaseSubscription(path = absolutePath(path))),
+                        nextSubscribeStrategy = createBaseSubscription(path = getRequestPath(requestDestination))),
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
         )
 
@@ -57,7 +64,7 @@ class BaseClient(
     }
 
     fun subscribeNonResuming(
-            path: String,
+            requestDestination: RequestDestination,
             listeners: SubscriptionListeners,
             headers: Headers,
             tokenProvider: TokenProvider?,
@@ -70,14 +77,14 @@ class BaseClient(
                         tokenProvider = tokenProvider,
                         tokenParams = tokenParams,
                         logger = logger,
-                        nextSubscribeStrategy = createBaseSubscription(path = absolutePath(path))),
+                        nextSubscribeStrategy = createBaseSubscription(path = getRequestPath(requestDestination))),
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
         )
         return subscribeStrategy(listeners, headers)
     }
 
     fun request(
-            path: String,
+            requestDestination: RequestDestination,
             headers: elements.Headers,
             method: String,
             body: String? = null,
@@ -87,6 +94,9 @@ class BaseClient(
             onFailure: (elements.Error) -> Unit): Cancelable {
 
         var requestBeingPerformed: Cancelable? = null
+        val requestBody = if (body != null) {
+            RequestBody.create(MediaType.parse("application/json"), body)
+        } else null
 
         if(tokenProvider != null) {
             requestBeingPerformed = tokenProvider.fetchToken(
@@ -94,12 +104,12 @@ class BaseClient(
                     onFailure = onFailure,
                     onSuccess = { token ->
                         headers.put("Authorization", listOf("Bearer $token"))
-                        requestBeingPerformed = performRequest(path, headers, method, body, onSuccess, onFailure)
+                        requestBeingPerformed = performRequest(requestDestination, headers, method, requestBody, onSuccess, onFailure)
                     }
             )
         }
         else {
-            requestBeingPerformed = performRequest(path, headers, method, body, onSuccess, onFailure)
+            requestBeingPerformed = performRequest(requestDestination, headers, method, requestBody, onSuccess, onFailure)
         }
 
         return object: Cancelable {
@@ -109,15 +119,60 @@ class BaseClient(
         }
     }
 
-    private fun performRequest(path: String, headers: Headers, method: String, body: String?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+    fun upload(
+            requestDestination: RequestDestination,
+            headers: elements.Headers = TreeMap(),
+            file: File,
+            tokenProvider: TokenProvider? = null,
+            tokenParams: Any? = null,
+            onSuccess: (Response) -> Unit,
+            onFailure: (Error) -> Unit): Cancelable? {
 
-        val requestBody = if (body != null) {
-            RequestBody.create(MediaType.parse("application/json"), body)
-        } else null
+        if (!file.exists()) {
+            onFailure(UploadError("File does not exist at ${file.path}"))
+            return null
+        }
+
+        var requestBeingPerformed: Cancelable? = null
+        val mediaType = MediaType.parse(
+                MimeTypeMap.getSingleton()
+                        .getMimeTypeFromExtension(
+                                MimeTypeMap.getFileExtensionFromUrl(Uri.fromFile(file).toString())
+                        )
+        )
+
+        val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
+                .build()
+
+
+        if (tokenProvider != null) {
+            requestBeingPerformed = tokenProvider.fetchToken(
+                    tokenParams = tokenParams,
+                    onFailure = onFailure,
+                    onSuccess = { token ->
+                        headers.put("Authorization", listOf("Bearer $token"))
+                        requestBeingPerformed = performRequest(requestDestination, headers, "POST", requestBody, onSuccess, onFailure)
+                    }
+            )
+        } else {
+            requestBeingPerformed = performRequest(requestDestination, headers, "POST", requestBody, onSuccess, onFailure)
+        }
+
+        return object: Cancelable {
+            override fun cancel() {
+                requestBeingPerformed?.cancel()
+            }
+        }
+    }
+
+    private fun performRequest(requestDestination: RequestDestination, headers: Headers, method: String, requestBody: RequestBody?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+        val requestURL = getRequestPath(requestDestination)
 
         val requestBuilder = Request.Builder()
                 .method(method, requestBody)
-                .url("$baseUrl/$path".replaceMultipleSlashesInUrl())
+                .url(requestURL)
 
         headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
 
@@ -136,7 +191,6 @@ class BaseClient(
                             when(response?.code()){
                                 in 200..299 -> onSuccess(response)
                                 else -> {
-
                                     val errorBody = GSON.fromJson(response.body()!!.string(), ErrorResponseBody::class.java)
                                     onFailure(ErrorResponse(
                                             statusCode = response.code(),
@@ -153,7 +207,7 @@ class BaseClient(
                     }
 
                     override fun onFailure(call: Call?, e: IOException?) {
-                        onFailure(NetworkError("Network error"))
+                        onFailure(NetworkError("Request error: ${e?.toString()}"))
                     }
                 })
             }
@@ -174,12 +228,16 @@ class BaseClient(
         }
     }
 
+    private fun getRequestPath(requestDestination: RequestDestination): String {
+        return when (requestDestination) {
+            is RequestDestination.Absolute -> {
+                requestDestination.url
+            }
+            is RequestDestination.Relative -> {
+                absolutePath(requestDestination.path)
+            }
+        }
+    }
 
-private  fun absolutePath(path: String): String = "$baseUrl/$path"
+    private fun absolutePath(path: String): String = "$baseUrl/$path".replaceMultipleSlashesInUrl()
 }
-
-
-
-
-
-
