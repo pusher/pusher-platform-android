@@ -244,5 +244,5 @@ class BaseClient(
         }
     }
 
-    private fun absolutePath(path: String): String = "$baseUrl/$path"
+    private fun absolutePath(path: String): String = "$baseUrl/$path".replaceMultipleSlashesInUrl()
 }
