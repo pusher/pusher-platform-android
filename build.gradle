@@ -26,12 +26,3 @@ task clean(type: Delete) {
     delete rootProject.buildDir
 }
 
-repositories {
-    maven {
-        credentials {
-            username "$mavenUser"
-            password "$mavenPassword"
-        }
-        url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-    }
-}
