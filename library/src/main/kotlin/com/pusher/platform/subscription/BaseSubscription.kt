@@ -44,7 +44,7 @@ class BaseSubscription(
 
         call = httpClient.newCall(request)
 
-        subscriptionThread = object : HandlerThread("BaseSubscription:$path", android.os.Process.THREAD_PRIORITY_BACKGROUND) {
+        subscriptionThread = object: HandlerThread("BaseSubscription:$path", android.os.Process.THREAD_PRIORITY_BACKGROUND) {
 
             override fun run() {
 
@@ -128,4 +128,3 @@ class BaseSubscription(
         }
     }
 }
-

@@ -15,16 +15,27 @@ fun createRetryingStrategy(
         logger: Logger): SubscribeStrategy {
 
     return {
-        listeners, headers -> RetryingSubscription(listeners, headers, logger, errorResolver, nextSubscribeStrategy)
+        listeners,
+        headers -> RetryingSubscription(
+            listeners,
+            headers,
+            logger,
+            errorResolver,
+            nextSubscribeStrategy
+        )
     }
 }
 
-class RetryingSubscription(listeners: SubscriptionListeners, val headers: Headers, val logger: Logger, val errorResolver: ErrorResolver, val nextSubscribeStrategy: SubscribeStrategy): Subscription {
+class RetryingSubscription(
+        listeners: SubscriptionListeners,
+        val headers: Headers,
+        val logger: Logger,
+        val errorResolver: ErrorResolver,
+        val nextSubscribeStrategy: SubscribeStrategy
+): Subscription {
     var state: SubscriptionState
 
-    val onTransition: StateTransition = { newState ->
-        state = newState
-    }
+    val onTransition: StateTransition = { newState -> state = newState }
 
     init {
         state = OpeningSubscriptionState(listeners, onTransition)
@@ -44,7 +55,10 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
     }
 
-    inner class OpeningSubscriptionState(listeners: SubscriptionListeners, onTransition: StateTransition) : SubscriptionState {
+    inner class OpeningSubscriptionState(
+            listeners: SubscriptionListeners,
+            onTransition: StateTransition
+    ): SubscriptionState {
         lateinit var underlyingSubscription: Subscription
 
         init {
@@ -53,16 +67,34 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
-                            onOpen = {
-                                headers -> onTransition(OpenSubscriptionState(listeners, headers, underlyingSubscription, onTransition))
+                            onOpen = { headers ->
+                                onTransition(
+                                        OpenSubscriptionState(
+                                                listeners,
+                                                headers,
+                                                underlyingSubscription,
+                                                onTransition
+                                        )
+                                )
                             },
                             onSubscribe = listeners.onSubscribe,
-                            onEvent = listeners.onEvent,
+                            onEvent = { event ->
+                                listeners.onEvent
+                                logger.verbose(
+                                        "${RetryingSubscription@this}received event ${event}"
+                                )
+                            },
                             onRetrying = listeners.onRetrying,
-                            onError = {
-                                error -> onTransition(RetryingSubscriptionState(listeners, error, onTransition)) },
-                            onEnd = { error: EOSEvent? -> onTransition(EndedSubscriptionState(listeners, error)) }
-                    ), headers
+                            onError = { error ->
+                                onTransition(
+                                        RetryingSubscriptionState(listeners, error, onTransition)
+                                )
+                            },
+                            onEnd = { error: EOSEvent? ->
+                                onTransition(EndedSubscriptionState(listeners, error))
+                            }
+                    ),
+                    headers
             )
 
         }
@@ -73,7 +105,11 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
     }
 
-    inner class RetryingSubscriptionState(val listeners: SubscriptionListeners, error: elements.Error, val onTransition: StateTransition) : SubscriptionState {
+    inner class RetryingSubscriptionState(
+            val listeners: SubscriptionListeners,
+            error: elements.Error,
+            val onTransition: StateTransition
+    ): SubscriptionState {
         var underlyingSubscription: Subscription? = null
 
         init {
@@ -86,9 +122,7 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
 
         private fun executeSubscriptionOnce(error: elements.Error){
-
             errorResolver.resolveError(error, { resolution ->
-
                 when(resolution){
                     is DoNotRetry -> {
                         onTransition(FailedSubscriptionState(listeners, error))
@@ -105,17 +139,29 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
-                            onOpen = {
-                                headers  -> onTransition(OpenSubscriptionState(listeners, headers, underlyingSubscription!!, onTransition))
+                            onOpen = { headers ->
+                                onTransition(
+                                        OpenSubscriptionState(
+                                                listeners,
+                                                headers,
+                                                underlyingSubscription!!,
+                                                onTransition
+                                        )
+                                )
                             },
                             onRetrying = listeners.onRetrying,
                             onError = {
                                 error -> executeSubscriptionOnce(error)
                             },
-                            onEvent = listeners.onEvent,
+                            onEvent = { event ->
+                                listeners.onEvent
+                                logger.verbose(
+                                        "${RetryingSubscription@this}received event ${event}"
+                                )
+                            },
                             onSubscribe = listeners.onSubscribe,
-                            onEnd = {
-                                error -> onTransition(EndedSubscriptionState(listeners, error))
+                            onEnd = { error ->
+                                onTransition(EndedSubscriptionState(listeners, error))
                             }
                     ),
                     headers
@@ -123,8 +169,12 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
     }
 
-    inner class OpenSubscriptionState(listeners: SubscriptionListeners, headers: Headers, val underlyingSubscription: Subscription, onTransition: StateTransition) : SubscriptionState {
-
+    inner class OpenSubscriptionState(
+            listeners: SubscriptionListeners,
+            headers: Headers,
+            val underlyingSubscription: Subscription,
+            onTransition: StateTransition
+    ): SubscriptionState {
         init {
             logger.verbose("${RetryingSubscription@this}: transitioning to OpenSubscriptionState")
             listeners.onOpen(headers)
@@ -134,11 +184,12 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
             onTransition(EndingSubscriptionState())
             underlyingSubscription.unsubscribe()
         }
-
     }
 
-    inner class EndedSubscriptionState(listeners: SubscriptionListeners, error: EOSEvent?) : SubscriptionState {
-
+    inner class EndedSubscriptionState(
+            listeners: SubscriptionListeners,
+            error: EOSEvent?
+    ): SubscriptionState {
         init {
             logger.verbose("${RetryingSubscription@this}: transitioning to EndedSubscriptionState")
             listeners.onEnd(error)
@@ -147,10 +198,12 @@ class RetryingSubscription(listeners: SubscriptionListeners, val headers: Header
         override fun unsubscribe() {
             throw Error("Subscription has already ended")
         }
-
     }
 
-    inner class FailedSubscriptionState(listeners: SubscriptionListeners, error: elements.Error): SubscriptionState {
+    inner class FailedSubscriptionState(
+            listeners: SubscriptionListeners,
+            error: elements.Error
+    ): SubscriptionState {
         init {
             logger.verbose("${RetryingSubscription@this}: transitioning to FailedSubscriptionState")
             listeners.onError(error)
