@@ -21,7 +21,7 @@ In your `build.gradle` file, add this line:
 ```groovy
 dependencies {
     // ...
-    api 'com.pusher:pusher-platform-android:0.3.0'
+    api 'com.pusher:pusher-platform-android:0.3.1'
 }
 ```
 
