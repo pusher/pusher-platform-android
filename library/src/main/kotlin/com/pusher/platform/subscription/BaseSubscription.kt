@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import com.pusher.platform.BaseClient.Companion.GSON
+import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import elements.*
 import elements.Headers
@@ -20,7 +21,8 @@ class BaseSubscription(
         onOpen: ( Headers ) -> Unit,
         onError: (Error) -> Unit,
         onEvent: (SubscriptionEvent) -> Unit,
-        onEnd: (EOSEvent?) -> Unit
+        onEnd: (EOSEvent?) -> Unit,
+        val logger: Logger
 ): Subscription {
 
     private val call: Call
@@ -44,7 +46,7 @@ class BaseSubscription(
 
         call = httpClient.newCall(request)
 
-        subscriptionThread = object : HandlerThread("BaseSubscription:$path", android.os.Process.THREAD_PRIORITY_BACKGROUND) {
+        subscriptionThread = object: HandlerThread("BaseSubscription:$path", android.os.Process.THREAD_PRIORITY_BACKGROUND) {
 
             override fun run() {
 
@@ -103,6 +105,7 @@ class BaseSubscription(
             while (!response.body()!!.source().exhausted()) {
                 val messageString = response.body()!!.source().readUtf8LineStrict()
                 val event = SubscriptionMessage.fromRaw(messageString)
+                logger.verbose("${BaseSubscription@this} received event: $event")
                 when (event) {
                     is ControlEvent -> {} // Ignore
                     is SubscriptionEvent -> {
@@ -128,4 +131,3 @@ class BaseSubscription(
         }
     }
 }
-

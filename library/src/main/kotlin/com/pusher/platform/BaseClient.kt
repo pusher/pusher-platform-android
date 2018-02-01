@@ -48,7 +48,6 @@ class BaseClient(
             retryOptions: RetryStrategyOptions,
             initialEventId: String? = null
     ): Subscription {
-
         val subscribeStrategy: SubscribeStrategy = createResumingStrategy(
                 initialEventId = initialEventId,
                 logger = logger,
@@ -56,7 +55,10 @@ class BaseClient(
                         tokenProvider = tokenProvider,
                         tokenParams = tokenParams,
                         logger = logger,
-                        nextSubscribeStrategy = createBaseSubscription(path = getRequestPath(requestDestination))),
+                        nextSubscribeStrategy = createBaseSubscription(
+                                path = getRequestPath(requestDestination)
+                        )
+                ),
                 errorResolver = ErrorResolver(ConnectivityHelper(context), retryOptions)
         )
 
@@ -223,7 +225,8 @@ class BaseClient(
                     onError = listeners.onError,
                     onEvent = listeners.onEvent,
                     onEnd = listeners.onEnd,
-                    httpClient = httpClient
+                    httpClient = httpClient,
+                    logger = logger
             )
         }
     }

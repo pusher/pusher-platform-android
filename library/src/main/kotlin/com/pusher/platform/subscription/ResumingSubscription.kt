@@ -13,19 +13,31 @@ fun createResumingStrategy(
         initialEventId: String? = null,
         errorResolver: ErrorResolver,
         nextSubscribeStrategy: SubscribeStrategy,
-        logger: Logger): SubscribeStrategy {
-
-    return {
-        listeners, headers -> ResumingSubscription(listeners, headers, logger, errorResolver, nextSubscribeStrategy, initialEventId)
+        logger: Logger
+): SubscribeStrategy {
+    return { listeners, headers ->
+        ResumingSubscription(
+            listeners,
+            headers,
+            logger,
+            errorResolver,
+            nextSubscribeStrategy,
+            initialEventId
+        )
     }
 }
 
-class ResumingSubscription(listeners: SubscriptionListeners, val headers: Headers, val logger: Logger, val errorResolver: ErrorResolver, val nextSubscribeStrategy: SubscribeStrategy, val initialEventId: String?): Subscription{
+class ResumingSubscription(
+        listeners: SubscriptionListeners,
+        val headers: Headers,
+        val logger: Logger,
+        val errorResolver: ErrorResolver,
+        val nextSubscribeStrategy: SubscribeStrategy,
+        val initialEventId: String?
+): Subscription{
     var state: SubscriptionState
 
-    val onTransition: StateTransition = { newState ->
-        state = newState
-    }
+    val onTransition: StateTransition = { newState -> state = newState  }
 
     init {
         state = OpeningSubscriptionState(listeners, onTransition)
@@ -45,7 +57,10 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
     }
 
-    inner class OpeningSubscriptionState(listeners: SubscriptionListeners, onTransition: StateTransition) : SubscriptionState {
+    inner class OpeningSubscriptionState(
+            listeners: SubscriptionListeners,
+            onTransition: StateTransition
+    ): SubscriptionState {
         lateinit var underlyingSubscription: Subscription
 
         init {
@@ -59,19 +74,40 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
-                            onOpen = {
-                                headers -> onTransition(OpenSubscriptionState(listeners, headers, underlyingSubscription, onTransition))
+                            onOpen = { headers ->
+                                onTransition(
+                                        OpenSubscriptionState(
+                                                listeners,
+                                                headers,
+                                                underlyingSubscription,
+                                                onTransition
+                                        )
+                                )
                             },
                             onSubscribe = listeners.onSubscribe,
-                            onEvent = {
-                                event -> lastEventId = event.eventId
+                            onEvent = { event ->
+                                lastEventId = event.eventId
                                 listeners.onEvent(event)
+                                logger.verbose(
+                                        "${ResumingSubscription@this}received event ${event}"
+                                )
                             },
                             onRetrying = listeners.onRetrying,
-                            onError = {
-                                error -> onTransition(ResumingSubscriptionState(listeners, error, lastEventId, onTransition)) },
-                            onEnd = { error: EOSEvent? -> onTransition(EndedSubscriptionState(listeners, error)) }
-                    ), headers
+                            onError = { error ->
+                                onTransition(
+                                        ResumingSubscriptionState(
+                                                listeners,
+                                                error,
+                                                lastEventId,
+                                                onTransition
+                                        )
+                                )
+                            },
+                            onEnd = { error: EOSEvent? ->
+                                onTransition(EndedSubscriptionState(listeners, error))
+                            }
+                    ),
+                    headers
             )
 
         }
@@ -82,8 +118,12 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
     }
 
-    inner class ResumingSubscriptionState(val listeners: SubscriptionListeners, error: elements.Error, lastEventId: String?, val onTransition: StateTransition) : SubscriptionState {
-
+    inner class ResumingSubscriptionState(
+            val listeners: SubscriptionListeners,
+            error: elements.Error,
+            lastEventId: String?,
+            val onTransition: StateTransition
+    ): SubscriptionState {
         var underlyingSubscription: Subscription? = null
 
         init {
@@ -96,9 +136,7 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
 
         private fun executeSubscriptionOnce(error: elements.Error, lastEventId: String?){
-
             errorResolver.resolveError(error, { resolution ->
-
                 when(resolution){
                     is DoNotRetry -> {
                         onTransition(FailedSubscriptionState(listeners, error))
@@ -111,7 +149,6 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
 
         private fun executeNextSubscribeStrategy(eventId: String?): Unit {
-
             var lastEventId = eventId
 
             logger.verbose("${ResumingSubscription@this}: trying to re-establish the subscription")
@@ -122,21 +159,30 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
-                            onOpen = {
-                                headers  -> onTransition(OpenSubscriptionState(listeners, headers, underlyingSubscription!!, onTransition))
+                            onOpen = {  headers ->
+                                onTransition(
+                                        OpenSubscriptionState(
+                                                listeners,
+                                                headers,
+                                                underlyingSubscription!!,
+                                                onTransition
+                                        )
+                                )
                             },
                             onRetrying = listeners.onRetrying,
-                            onError = {
-                                error -> executeSubscriptionOnce(error, lastEventId)
+                            onError = { error ->
+                                executeSubscriptionOnce(error, lastEventId)
                             },
-                            onEvent = {
-                                event ->
+                            onEvent = { event ->
                                 lastEventId = event.eventId
                                 listeners.onEvent(event)
+                                logger.verbose(
+                                        "${ResumingSubscription@this}received event $event"
+                                )
                             },
                             onSubscribe = listeners.onSubscribe,
-                            onEnd = {
-                                error -> onTransition(EndedSubscriptionState(listeners, error))
+                            onEnd = { error ->
+                                onTransition(EndedSubscriptionState(listeners, error))
                             }
                     ),
                     headers
@@ -144,8 +190,12 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         }
     }
 
-    inner class OpenSubscriptionState(listeners: SubscriptionListeners, headers: Headers, val underlyingSubscription: Subscription, onTransition: StateTransition) : SubscriptionState {
-
+    inner class OpenSubscriptionState(
+            listeners: SubscriptionListeners,
+            headers: Headers,
+            val underlyingSubscription: Subscription,
+            onTransition: StateTransition
+    ) : SubscriptionState {
         init {
             logger.verbose("${ResumingSubscription@this}: transitioning to OpenSubscriptionState")
             listeners.onOpen(headers)
@@ -155,11 +205,12 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
             onTransition(EndingSubscriptionState())
             underlyingSubscription.unsubscribe()
         }
-
     }
 
-    inner class EndedSubscriptionState(listeners: SubscriptionListeners, error: EOSEvent?) : SubscriptionState {
-
+    inner class EndedSubscriptionState(
+            listeners: SubscriptionListeners,
+            error: EOSEvent?
+    ): SubscriptionState {
         init {
             logger.verbose("${ResumingSubscription@this}: transitioning to EndedSubscriptionState")
             listeners.onEnd(error)
@@ -168,10 +219,12 @@ class ResumingSubscription(listeners: SubscriptionListeners, val headers: Header
         override fun unsubscribe() {
             throw Error("Subscription has already ended")
         }
-
     }
 
-    inner class FailedSubscriptionState(listeners: SubscriptionListeners, error: elements.Error): SubscriptionState {
+    inner class FailedSubscriptionState(
+            listeners: SubscriptionListeners,
+            error: elements.Error
+    ): SubscriptionState {
         init {
             logger.verbose("${ResumingSubscription@this}: transitioning to FailedSubscriptionState")
             listeners.onError(error)
