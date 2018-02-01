@@ -178,7 +178,7 @@ class ResumingSubscription(
                                 lastEventId = event.eventId
                                 listeners.onEvent(event)
                                 logger.verbose(
-                                        "${ResumingSubscription@this}received event ${event}"
+                                        "${ResumingSubscription@this}received event $event"
                                 )
                             },
                             onSubscribe = listeners.onSubscribe,
