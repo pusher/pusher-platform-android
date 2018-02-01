@@ -22,7 +22,7 @@ class BaseSubscription(
         onError: (Error) -> Unit,
         onEvent: (SubscriptionEvent) -> Unit,
         onEnd: (EOSEvent?) -> Unit,
-        logger: Logger
+        val logger: Logger
 ): Subscription {
 
     private val call: Call
@@ -105,6 +105,7 @@ class BaseSubscription(
             while (!response.body()!!.source().exhausted()) {
                 val messageString = response.body()!!.source().readUtf8LineStrict()
                 val event = SubscriptionMessage.fromRaw(messageString)
+                logger.verbose("${BaseSubscription@this} received event: $event")
                 when (event) {
                     is ControlEvent -> {} // Ignore
                     is SubscriptionEvent -> {
