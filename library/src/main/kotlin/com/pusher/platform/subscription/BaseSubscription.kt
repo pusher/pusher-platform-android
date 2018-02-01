@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import com.pusher.platform.BaseClient.Companion.GSON
+import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import elements.*
 import elements.Headers
@@ -20,7 +21,8 @@ class BaseSubscription(
         onOpen: ( Headers ) -> Unit,
         onError: (Error) -> Unit,
         onEvent: (SubscriptionEvent) -> Unit,
-        onEnd: (EOSEvent?) -> Unit
+        onEnd: (EOSEvent?) -> Unit,
+        logger: Logger
 ): Subscription {
 
     private val call: Call

@@ -14,9 +14,8 @@ fun createRetryingStrategy(
         nextSubscribeStrategy: SubscribeStrategy,
         logger: Logger): SubscribeStrategy {
 
-    return {
-        listeners,
-        headers -> RetryingSubscription(
+    return { listeners, headers ->
+        RetryingSubscription(
             listeners,
             headers,
             logger,

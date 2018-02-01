@@ -15,9 +15,8 @@ fun createResumingStrategy(
         nextSubscribeStrategy: SubscribeStrategy,
         logger: Logger
 ): SubscribeStrategy {
-    return {
-        listeners,
-        headers -> ResumingSubscription(
+    return { listeners, headers ->
+        ResumingSubscription(
             listeners,
             headers,
             logger,
