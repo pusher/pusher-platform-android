@@ -2,42 +2,37 @@ package com.pusher.platform.subscription
 
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
-import android.os.Handler
 import com.pusher.platform.ErrorResolver
 import com.pusher.platform.retrying.DoNotRetry
 import com.pusher.platform.retrying.Retry
 import elements.*
 
-
-fun createResumingStrategy(
-        initialEventId: String? = null,
+fun createRetryingStrategy(
         errorResolver: ErrorResolver,
         nextSubscribeStrategy: SubscribeStrategy,
-        logger: Logger
-): SubscribeStrategy {
+        logger: Logger): SubscribeStrategy {
+
     return { listeners, headers ->
-        ResumingSubscription(
+        RetryingSubscription(
             listeners,
             headers,
             logger,
             errorResolver,
-            nextSubscribeStrategy,
-            initialEventId
+            nextSubscribeStrategy
         )
     }
 }
 
-class ResumingSubscription(
+class RetryingSubscription(
         listeners: SubscriptionListeners,
         val headers: Headers,
         val logger: Logger,
         val errorResolver: ErrorResolver,
-        val nextSubscribeStrategy: SubscribeStrategy,
-        val initialEventId: String?
-): Subscription{
+        val nextSubscribeStrategy: SubscribeStrategy
+): Subscription {
     var state: SubscriptionState
 
-    val onTransition: StateTransition = { newState -> state = newState  }
+    val onTransition: StateTransition = { newState -> state = newState }
 
     init {
         state = OpeningSubscriptionState(listeners, onTransition)
@@ -49,7 +44,7 @@ class ResumingSubscription(
 
     inner class EndingSubscriptionState : SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to EndingSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to EndingSubscriptionState")
         }
 
         override fun unsubscribe() {
@@ -64,13 +59,8 @@ class ResumingSubscription(
         lateinit var underlyingSubscription: Subscription
 
         init {
-            var lastEventId = initialEventId
-            logger.verbose("${ResumingSubscription@this}: transitioning to OpeningSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to OpeningSubscriptionState")
 
-            if (lastEventId != null) {
-                headers.put("Last-Event-Id", listOf(lastEventId!!))
-                logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
-            }
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
@@ -86,21 +76,15 @@ class ResumingSubscription(
                             },
                             onSubscribe = listeners.onSubscribe,
                             onEvent = { event ->
-                                lastEventId = event.eventId
-                                listeners.onEvent(event)
+                                listeners.onEvent
                                 logger.verbose(
-                                        "${ResumingSubscription@this}received event ${event}"
+                                        "${RetryingSubscription@this}received event ${event}"
                                 )
                             },
                             onRetrying = listeners.onRetrying,
                             onError = { error ->
                                 onTransition(
-                                        ResumingSubscriptionState(
-                                                listeners,
-                                                error,
-                                                lastEventId,
-                                                onTransition
-                                        )
+                                        RetryingSubscriptionState(listeners, error, onTransition)
                                 )
                             },
                             onEnd = { error: EOSEvent? ->
@@ -118,48 +102,41 @@ class ResumingSubscription(
         }
     }
 
-    inner class ResumingSubscriptionState(
+    inner class RetryingSubscriptionState(
             val listeners: SubscriptionListeners,
             error: elements.Error,
-            lastEventId: String?,
             val onTransition: StateTransition
     ): SubscriptionState {
         var underlyingSubscription: Subscription? = null
 
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to ResumingSubscriptionState")
-            executeSubscriptionOnce(error, lastEventId)
+            logger.verbose("${RetryingSubscription@this}: transitioning to RetryingSubscriptionState")
+            executeSubscriptionOnce(error)
         }
 
         override fun unsubscribe() {
             underlyingSubscription?.unsubscribe()
         }
 
-        private fun executeSubscriptionOnce(error: elements.Error, lastEventId: String?){
+        private fun executeSubscriptionOnce(error: elements.Error){
             errorResolver.resolveError(error, { resolution ->
                 when(resolution){
                     is DoNotRetry -> {
                         onTransition(FailedSubscriptionState(listeners, error))
                     }
                     is Retry -> {
-                        executeNextSubscribeStrategy(lastEventId)
+                        executeNextSubscribeStrategy()
                     }
                 }
             })
         }
 
-        private fun executeNextSubscribeStrategy(eventId: String?): Unit {
-            var lastEventId = eventId
-
-            logger.verbose("${ResumingSubscription@this}: trying to re-establish the subscription")
-            if(lastEventId != null){
-                headers.put("Last-Event-Id", listOf(lastEventId!!))
-                logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
-            }
+        private fun executeNextSubscribeStrategy(): Unit {
+            logger.verbose("${RetryingSubscription@this}: trying to re-establish the subscription")
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
-                            onOpen = {  headers ->
+                            onOpen = { headers ->
                                 onTransition(
                                         OpenSubscriptionState(
                                                 listeners,
@@ -170,14 +147,13 @@ class ResumingSubscription(
                                 )
                             },
                             onRetrying = listeners.onRetrying,
-                            onError = { error ->
-                                executeSubscriptionOnce(error, lastEventId)
+                            onError = {
+                                error -> executeSubscriptionOnce(error)
                             },
                             onEvent = { event ->
-                                lastEventId = event.eventId
-                                listeners.onEvent(event)
+                                listeners.onEvent
                                 logger.verbose(
-                                        "${ResumingSubscription@this}received event $event"
+                                        "${RetryingSubscription@this}received event ${event}"
                                 )
                             },
                             onSubscribe = listeners.onSubscribe,
@@ -195,9 +171,9 @@ class ResumingSubscription(
             headers: Headers,
             val underlyingSubscription: Subscription,
             onTransition: StateTransition
-    ) : SubscriptionState {
+    ): SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to OpenSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to OpenSubscriptionState")
             listeners.onOpen(headers)
         }
 
@@ -212,7 +188,7 @@ class ResumingSubscription(
             error: EOSEvent?
     ): SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to EndedSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to EndedSubscriptionState")
             listeners.onEnd(error)
         }
 
@@ -226,7 +202,7 @@ class ResumingSubscription(
             error: elements.Error
     ): SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to FailedSubscriptionState")
+            logger.verbose("${RetryingSubscription@this}: transitioning to FailedSubscriptionState")
             listeners.onError(error)
         }
 

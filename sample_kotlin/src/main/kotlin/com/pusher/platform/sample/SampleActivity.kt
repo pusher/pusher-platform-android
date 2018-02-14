@@ -7,8 +7,6 @@ import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.pusher.platform.*
-import com.pusher.platform.logger.AndroidLogger
-import com.pusher.platform.logger.LogLevel
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.Error
 import elements.NetworkError
@@ -17,20 +15,20 @@ import kotlinx.android.synthetic.main.activity_sample.*
 import okhttp3.*
 import java.io.IOException
 
+private const val INSTANCE_LOCATOR = "YOUR_INSTANCE_LOCATOR"
+
 class SampleActivity: AppCompatActivity() {
 
-    var subscription: Subscription? = null
-    val INSTANCE_LOCATOR = "YOUR_INSTANCE_LOCATOR"
+    private var subscription: Subscription? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
 
-        val pusherPlatform = Instance(
+        val pusherPlatform = AndroidInstance(
                 locator = INSTANCE_LOCATOR,
                 serviceName = "feeds",
                 serviceVersion = "v1",
-                logger = AndroidLogger(threshold = LogLevel.VERBOSE),
                 context = this)
 
         val listeners = SubscriptionListeners(
