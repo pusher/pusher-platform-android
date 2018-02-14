@@ -8,7 +8,7 @@ import android.net.NetworkInfo
 import android.net.ConnectivityManager
 
 
-class ConnectivityHelper(val context: Context) {
+class AndroidConnectivityHelper(val context: Context) : ConnectivityHelper {
 
     var action: (() -> Unit )? = null
 
@@ -16,20 +16,20 @@ class ConnectivityHelper(val context: Context) {
         override fun onReceive(context: Context?, intent: Intent?) {
 
             if(isConnected()){
-                this@ConnectivityHelper.context.unregisterReceiver(this)
+                this@AndroidConnectivityHelper.context.unregisterReceiver(this)
                 action?.invoke()
             }
         }
     }
 
-    fun isConnected(): Boolean {
+    override fun isConnected(): Boolean {
         val connectivityManager= context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val activeNetwork: NetworkInfo? = connectivityManager.activeNetworkInfo
 
         return activeNetwork != null && activeNetwork!!.isConnectedOrConnecting
     }
 
-    fun onConnected(retryNow: () -> Unit) {
+    override fun onConnected(retryNow: () -> Unit) {
         if(isConnected()){
             retryNow()
         } else{
@@ -38,7 +38,7 @@ class ConnectivityHelper(val context: Context) {
         }
     }
 
-    fun cancel(){
+    override fun cancel(){
         context.unregisterReceiver(receiver)
     }
 }
