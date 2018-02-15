@@ -9,6 +9,8 @@ cache:
     - $HOME/.gradle/wrapper/
     - $HOME/.android/build-cache
 
+script: ./gradlew build
+
 android:
   components:
     - tools
