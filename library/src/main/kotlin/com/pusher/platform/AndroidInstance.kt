@@ -16,14 +16,16 @@ class AndroidInstance(
     baseClient: BaseClient? = null,
     host: String? = null,
     logger: Logger = AndroidLogger(threshold = LogLevel.DEBUG),
-    mediaResolver: MediaTypeResolver = AndroidMediaTypeResolver()
+    mediaResolver: MediaTypeResolver = AndroidMediaTypeResolver(),
+    backgroundScheduler: Scheduler = BackgroundScheduler(serviceName),
+    foregroundScheduler: MainThreadScheduler = ForegroundScheduler()
 ) : Instance(
     locator,
     serviceName,
     serviceVersion,
     logger,
-    BackgroundScheduler(serviceName),
-    ForegroundScheduler(),
+    backgroundScheduler,
+    foregroundScheduler,
     mediaResolver,
     connectivityResolver,
     baseClient,
