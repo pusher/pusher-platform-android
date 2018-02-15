@@ -25,7 +25,7 @@ class SampleActivity: AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
 
-        val pusherPlatform = AndroidInstance(
+        val pusherPlatform = Instance(
                 locator = INSTANCE_LOCATOR,
                 serviceName = "feeds",
                 serviceVersion = "v1",
