@@ -9,18 +9,12 @@ import kotlin.test.assertNotNull
 
 class InstanceTest {
 
-    @Mock val context: Context = Mockito.mock(Context::class.java)
+    private val context: Context = Mockito.mock(Context::class.java)
     private val scheduler = TestScheduler()
-
-    @Before
-    fun setUp(){
-
-    }
-
 
     @Test
     fun instanceSetUpCorrectly(){
-        val instance = AndroidInstance(
+        val instance = Instance(
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
