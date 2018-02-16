@@ -1,26 +1,26 @@
 apply plugin: 'maven'
 apply plugin: 'signing'
 
+def properties = project.properties + System.properties
+
 def isReleaseBuild() {
-    return VERSION_NAME.contains("SNAPSHOT") == false
+    return !VERSION_NAME.contains("SNAPSHOT")
 }
 
 def getReleaseRepositoryUrl() {
-    return hasProperty('RELEASE_REPOSITORY_URL') ? RELEASE_REPOSITORY_URL
-            : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+    return properties.get('RELEASE_REPOSITORY_URL', "https://oss.sonatype.org/service/local/staging/deploy/maven2/")
 }
 
 def getSnapshotRepositoryUrl() {
-    return hasProperty('SNAPSHOT_REPOSITORY_URL') ? SNAPSHOT_REPOSITORY_URL
-            : "https://oss.sonatype.org/content/repositories/snapshots/"
+    return properties.get('SNAPSHOT_REPOSITORY_URL', "https://oss.sonatype.org/content/repositories/snapshots/")
 }
 
 def getRepositoryUsername() {
-    return hasProperty('NEXUS_USERNAME') ? NEXUS_USERNAME : ""
+    return properties.get('NEXUS_USERNAME', "")
 }
 
 def getRepositoryPassword() {
-    return hasProperty('NEXUS_PASSWORD') ? NEXUS_PASSWORD : ""
+    return properties.get('NEXUS_PASSWORD', "")
 }
 
 afterEvaluate { project ->

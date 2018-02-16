@@ -23,3 +23,10 @@ android:
     - 'android-sdk-preview-.+'
     - 'android-sdk-license-.+'
     - 'google-gdk-license-.+'
+
+deploy:
+  - provider: script
+    script: ./gradlew uploadArchives
+    on:
+      tags: true
+      branch: master
