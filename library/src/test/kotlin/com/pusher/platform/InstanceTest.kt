@@ -9,25 +9,42 @@ import kotlin.test.assertNotNull
 
 class InstanceTest {
 
-    @Mock val context: Context = Mockito.mock(Context::class.java)
-
-    @Before
-    fun setUp(){
-
-    }
-
+    private val context: Context = Mockito.mock(Context::class.java)
+    private val scheduler = TestScheduler()
 
     @Test
     fun instanceSetUpCorrectly(){
-
-        val instance = Instance( locator = "foo:bar:baz", serviceName = "bar", serviceVersion = "baz", context = context)
+        val instance = Instance(
+            locator = "foo:bar:baz",
+            serviceName = "bar",
+            serviceVersion = "baz",
+            context = context,
+            backgroundScheduler = scheduler,
+            foregroundScheduler = scheduler
+        )
         assertNotNull(instance)
     }
-//
-//    @Test
-//    fun testThatFails(){
-//        fail("This should fail, all is good.")
-//    }
 
+}
 
+class TestScheduler : MainThreadScheduler {
+    override fun schedule(action: () -> Unit): ScheduledJob {
+        action()
+        return TestScheduleJob()
+    }
+
+    override fun schedule(delay: Long, action: () -> Unit): ScheduledJob {
+        action() // no delay in tests
+        return TestScheduleJob()
+    }
+
+}
+
+class TestScheduleJob : ScheduledJob {
+
+    var canceled: Boolean = false
+
+    override fun cancel() {
+        canceled = true
+    }
 }

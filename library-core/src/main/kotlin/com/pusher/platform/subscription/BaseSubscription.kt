@@ -1,9 +1,9 @@
 package com.pusher.platform.subscription
 
-import android.os.Handler
-import android.os.HandlerThread
-import android.os.Looper
 import com.pusher.platform.BaseClient.Companion.GSON
+import com.pusher.platform.MainThreadScheduler
+import com.pusher.platform.ScheduledJob
+import com.pusher.platform.Scheduler
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import elements.*
@@ -22,22 +22,21 @@ class BaseSubscription(
         onError: (Error) -> Unit,
         onEvent: (SubscriptionEvent) -> Unit,
         onEnd: (EOSEvent?) -> Unit,
-        val logger: Logger
+        val logger: Logger,
+        private val mainThread: MainThreadScheduler,
+        backgroundThread: Scheduler
 ): Subscription {
 
     private val call: Call
-    private var response: Response? = null
+    private val onOpen: (Headers) -> Unit = { headers -> mainThread.schedule { onOpen(headers) }}
+    private val onError: (Error) -> Unit = { error -> mainThread.schedule { onError(error) }}
+    private val onEvent: (SubscriptionEvent) -> Unit = { event -> mainThread.schedule { onEvent(event) }}
+    private val onEnd: (EOSEvent?) -> Unit = { event -> mainThread.schedule { onEnd(event) }}
 
-    //Call must be executed in a background thread, otherwise stupid OKHTTP doesn't propagate connection dead events. Sad.
-    private val subscriptionThread: Thread
-    private val mainThread = Handler(Looper.getMainLooper())
-    private val onOpen: (Headers) -> Unit = { headers -> mainThread.post{ onOpen(headers) }}
-    private val onError: (Error) -> Unit = { error -> mainThread.post{ onError(error) }}
-    private val onEvent: (SubscriptionEvent) -> Unit = { event -> mainThread.post { onEvent(event) }}
-    private val onEnd: (EOSEvent?) -> Unit = { event -> mainThread.post { onEnd(event) }}
+    private val job: ScheduledJob
 
     init {
-        var requestBuilder = Request.Builder()
+        val requestBuilder = Request.Builder()
                 .method("SUBSCRIBE", null)
                 .url(path.replaceMultipleSlashesInUrl())
 
@@ -46,39 +45,25 @@ class BaseSubscription(
 
         call = httpClient.newCall(request)
 
-        subscriptionThread = object: HandlerThread("BaseSubscription:$path", android.os.Process.THREAD_PRIORITY_BACKGROUND) {
-
-            override fun run() {
-
-                try {
-                    val response = call.execute()
-                    this@BaseSubscription.response = response
-
-                    when (response.code()) {
-                        in 200..299 -> handleConnectionOpened(response)
-                        in 400..599 -> handleConnectionFailed(response)
-                        else -> {
-                            onError(NetworkError("Connection failed"))
-                        }
-                    }
-                } catch (e: IOException) {
-                    if(e is StreamResetException && e.errorCode == ErrorCode.CANCEL){
-                        onEnd(null)
-                    }
-                    else{
+        job = backgroundThread.schedule {
+            try {
+                val response = call.execute()
+                when (response.code()) {
+                    in 200..299 -> handleConnectionOpened(response)
+                    in 400..599 -> handleConnectionFailed(response)
+                    else -> {
                         onError(NetworkError("Connection failed"))
                     }
-
-                    interrupt()
+                }
+                response.close()
+            } catch (e: IOException) {
+                if(e is StreamResetException && e.errorCode == ErrorCode.CANCEL){
+                    onEnd(null)
+                } else{
+                    onError(NetworkError("Connection failed"))
                 }
             }
-
-            override fun interrupt() {
-                super.interrupt()
-                response?.close()
-            }
         }
-        subscriptionThread.start()
 
     }
 
@@ -86,7 +71,7 @@ class BaseSubscription(
         if(response.body() != null){
             val body = GSON.fromJson(response.body()!!.charStream(), ErrorResponseBody::class.java)
 
-            mainThread.post {
+            mainThread.schedule {
                 onError(ErrorResponse(
                         statusCode = response.code(),
                         headers = response.headers().toMultimap(),
@@ -126,8 +111,6 @@ class BaseSubscription(
         if(!call.isCanceled){
             call.cancel()
         }
-        if(subscriptionThread.isAlive){
-            subscriptionThread.interrupt()
-        }
+        job.cancel()
     }
 }

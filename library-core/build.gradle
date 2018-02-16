@@ -1,0 +1,14 @@
+plugins {
+    id 'kotlin'
+    id 'java-library'
+}
+apply from: "$rootDir/gradle/maven-push.gradle"
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    api 'com.squareup.okhttp3:okhttp:3.9.1'
+    api 'com.google.code.gson:gson:2.8.2'
+}
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"

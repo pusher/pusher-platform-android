@@ -1,6 +1,5 @@
 package com.pusher.platform
 
-import android.os.Handler
 import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.retrying.DoNotRetry
 import com.pusher.platform.retrying.Retry
@@ -9,6 +8,7 @@ import com.pusher.platform.retrying.RetryStrategyResult
 import elements.Error
 import elements.ErrorResponse
 import elements.NetworkError
+import java.util.*
 
 typealias RetryStrategyResultCallback = (RetryStrategyResult) -> Unit
 
@@ -22,46 +22,38 @@ fun ErrorResponse.isRetryable(): Boolean =
             this.headers["Request-Method"]?.firstOrNull()?.isSafeRequest() ?: false
 
 
-class ErrorResolver(val connectivityHelper: ConnectivityHelper, val retryOptions: RetryStrategyOptions, val retryUnsafeRequests: Boolean = false) {
-
-    var errorBeingResolved: Any = {}
-    val handler = Handler()
-    var retryNow: (() -> Unit)? = null
+class ErrorResolver(
+    private val connectivityHelper: ConnectivityHelper,
+    private val retryOptions: RetryStrategyOptions,
+    private val scheduler: Scheduler,
+    private val retryUnsafeRequests: Boolean = false
+) {
 
     var currentRetryCount = 0
     var currentBackoffMillis = 0L
 
-    fun resolveError(error: Error, callback: RetryStrategyResultCallback){
+    private val runningJobs = LinkedList<ScheduledJob>()
 
+    fun resolveError(error: Error, callback: RetryStrategyResultCallback){
         when(error){
             is NetworkError -> {
-                retryNow = { callback(Retry())}
-                connectivityHelper.onConnected(retryNow!!)
+                connectivityHelper.onConnected { callback(Retry())}
             }
             is ErrorResponse -> {
-
                 //Retry-After present
                 if (error.headers["Retry-After"] != null) {
                     val retryAfter = error.headers["Retry-After"]!![0].toLong() * 1000
-                    retryNow = { callback(Retry())}
-                    handler.postDelayed(retryNow, retryAfter)
-                }
-
-                else if(error.isRetryable() || retryUnsafeRequests){
+                    runningJobs + scheduler.schedule(retryAfter) { callback(Retry())}
+                } else if(error.isRetryable() || retryUnsafeRequests){
                     if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit ){
                         currentBackoffMillis = increaseCurrentBackoff()
                         currentRetryCount += 1
 
-                        retryNow = { callback(Retry())}
-                        handler.postDelayed(retryNow, currentBackoffMillis)
-                    }
-
-                    else{
+                        runningJobs += scheduler.schedule(currentBackoffMillis) { callback(Retry())}
+                    } else{
                         callback(DoNotRetry())
                     }
-                }
-
-                else {
+                } else {
                     callback(DoNotRetry())
                 }
             }
@@ -77,10 +69,9 @@ class ErrorResolver(val connectivityHelper: ConnectivityHelper, val retryOptions
     }
 
     fun cancel() {
-        if(retryNow != null){
-            handler.removeCallbacks(retryNow)
+        while (runningJobs.isNotEmpty()) {
+            runningJobs.pop().cancel()
         }
-
     }
 
 }
