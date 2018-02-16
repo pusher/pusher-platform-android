@@ -42,7 +42,10 @@ dependencies {
     testImplementation 'org.mockito:mockito-inline:2.10.0'
     testImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    testImplementation "com.google.truth:truth:0.39"
 
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+    androidTestImplementation "com.google.truth:truth:0.39"
+
 }
