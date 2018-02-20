@@ -16,6 +16,7 @@ cache:
 script: ./gradlew build codeCoverageReport
 
 after_success:
+  - cat ./library/build/reports/jacoco/report.xml
   - bash <(curl -s https://codecov.io/bash)
 
 android:
