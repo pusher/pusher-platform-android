@@ -46,37 +46,35 @@ class AndroidLogger(val threshold: LogLevel) : Logger {
             else onLog(tag, message)
         }
 
-        object Disabled : LogStrategy({ _, _ -> }, { _, _, _ -> })
+        object Disabled : LogStrategy(
+            { _, _ -> },
+            { _, _, _ -> }
+        )
 
-        object Verbose : LogStrategy({ tag, message ->
-            Log.v(tag, message)
-        }, { tag, message, error ->
-            Log.v(tag, message, error)
-        })
+        object Verbose : LogStrategy(
+            { tag, message -> Log.v(tag, message) },
+            { tag, message, error -> Log.v(tag, message, error) }
+        )
 
-        object Debug : LogStrategy({ tag, message ->
-            Log.d(tag, message)
-        }, { tag, message, error ->
-            Log.d(tag, message, error)
-        })
+        object Debug : LogStrategy(
+            { tag, message -> Log.d(tag, message) },
+            { tag, message, error -> Log.d(tag, message, error) }
+        )
 
-        object Info : LogStrategy({ tag, message ->
-            Log.i(tag, message)
-        }, { tag, message, error ->
-            Log.i(tag, message, error)
-        })
+        object Info : LogStrategy(
+            { tag, message -> Log.i(tag, message) },
+            { tag, message, error -> Log.i(tag, message, error) }
+        )
 
-        object Warning : LogStrategy({ tag, message ->
-            Log.w(tag, message)
-        }, { tag, message, error ->
-            Log.w(tag, message, error)
-        })
+        object Warning : LogStrategy(
+            { tag, message -> Log.w(tag, message) },
+            { tag, message, error -> Log.w(tag, message, error) }
+        )
 
-        object Err : LogStrategy({ tag, message ->
-            Log.d(tag, message)
-        }, { tag, message, error ->
-            Log.d(tag, message, error)
-        })
+        object Err : LogStrategy(
+            { tag, message -> Log.d(tag, message) },
+            { tag, message, error -> Log.d(tag, message, error) }
+        )
 
     }
 }
