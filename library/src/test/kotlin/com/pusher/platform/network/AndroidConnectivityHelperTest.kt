@@ -86,9 +86,7 @@ class AndroidConnectivityHelperTest {
         }
         val helper = AndroidConnectivityHelper(context)
 
-        helper.onConnected {
-            // Do nothing
-        }
+        helper.onConnected { /* Do nothing */ }
 
         helper.cancel()
 
