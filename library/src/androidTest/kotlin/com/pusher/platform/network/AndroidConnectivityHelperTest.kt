@@ -23,11 +23,7 @@ class AndroidConnectivityHelperTest {
 
     @Test
     fun shouldBe_connected() {
-        val context = stub<Context> {
-            getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
-                activeNetworkInfo returns networkInfoThat.hasActiveConnection
-            }
-        }
+        val context = stub<Context> { networkInfoReturns(networkInfoThat.hasActiveConnection) }
         val helper = AndroidConnectivityHelper(context)
 
         assertThat(helper.isConnected()).isTrue()
@@ -35,12 +31,7 @@ class AndroidConnectivityHelperTest {
 
     @Test
     fun shouldBe_notConnected_whenActiveNetworkMissing() {
-        val context = stub<Context> {
-            getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
-                activeNetworkInfo returns networkInfoThat.isAbsent
-            }
-        }
-
+        val context = stub<Context> { networkInfoReturns(networkInfoThat.isAbsent) }
         val helper = AndroidConnectivityHelper(context)
 
         assertThat(helper.isConnected()).isFalse()
@@ -48,12 +39,7 @@ class AndroidConnectivityHelperTest {
 
     @Test
     fun shouldBe_notConnected_whenActiveNetworkIsNotConnected() {
-        val context = stub<Context> {
-            getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
-                activeNetworkInfo returns networkInfoThat.hasNoConnection
-            }
-        }
-
+        val context = stub<Context> { networkInfoReturns(networkInfoThat.hasNoConnection) }
         val helper = AndroidConnectivityHelper(context)
 
         assertThat(helper.isConnected()).isFalse()
@@ -61,11 +47,7 @@ class AndroidConnectivityHelperTest {
 
     @Test
     fun shouldExecuteRetryAction_whenConnected() {
-        val context = stub<Context> {
-            getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
-                activeNetworkInfo returns networkInfoThat.hasActiveConnection
-            }
-        }
+        val context = stub<Context> { networkInfoReturns(networkInfoThat.hasActiveConnection) }
         val helper = AndroidConnectivityHelper(context)
         var result: String? = null
 
@@ -77,10 +59,7 @@ class AndroidConnectivityHelperTest {
     @Test
     fun shouldExecuteRetryAction_whenReconnected() {
         val context = stub<Context> {
-            getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
-                activeNetworkInfo returns networkInfoThat.isAbsent
-                activeNetworkInfo returns networkInfoThat.hasActiveConnection
-            }
+            networkInfoReturns(networkInfoThat.isAbsent, networkInfoThat.hasActiveConnection)
             registerReceiver(any(), eq(IntentFilter(CONNECTIVITY_ACTION))) handles { (r, c) ->
                 (r as BroadcastReceiver).onReceive(c as Context, null)
             }
@@ -99,10 +78,7 @@ class AndroidConnectivityHelperTest {
     fun should_notCallAction_afterCancel() {
         val receivers = mutableListOf<BroadcastReceiver>()
         val context = stub<Context> {
-            getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
-                activeNetworkInfo returns networkInfoThat.isAbsent
-                activeNetworkInfo returns networkInfoThat.hasActiveConnection
-            }
+            networkInfoReturns(networkInfoThat.isAbsent, networkInfoThat.hasActiveConnection)
             registerReceiver(any(), eq(IntentFilter(CONNECTIVITY_ACTION))) handles { (r, _) ->
                 receivers += r as BroadcastReceiver
             }
@@ -120,6 +96,11 @@ class AndroidConnectivityHelperTest {
     }
 
 }
+
+private fun Context.networkInfoReturns(vararg infos: NetworkInfo?) =
+    getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
+        infos.forEach { activeNetworkInfo returns it }
+    }
 
 private class NetworkInfoThat {
 
