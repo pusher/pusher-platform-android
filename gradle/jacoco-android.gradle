@@ -1,17 +1,26 @@
 apply plugin: 'jacoco'
 
+jacoco {
+    toolVersion = '0.8.0'
+}
+
 task codeCoverageReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {//, 'createDebugCoverageReport']) {
 
     reports {
         xml.enabled = true
         xml.destination file("${buildDir}/reports/jacoco/report.xml")
-        html.enabled = false
+        html.enabled = true
         csv.enabled = false
     }
 
     def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
-    def debugTree = fileTree(dir: "${buildDir}/intermediates/classes/debug", excludes: fileFilter)
-    def mainSrc = "${project.projectDir}/src/main/java"
+    def debugTree = fileTree(
+            dir: "${buildDir}/intermediates/classes/debug",
+            excludes: fileFilter
+    ) + fileTree(
+            dir: "$buildDir/tmp/kotlin-classes/debug"
+    )
+    def mainSrc = "${project.projectDir}/src/main/kotlin"
 
     sourceDirectories = files([mainSrc])
     classDirectories = files([debugTree])
