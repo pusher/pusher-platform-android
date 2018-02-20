@@ -6,7 +6,6 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.ConnectivityManager.CONNECTIVITY_ACTION
 import android.net.NetworkInfo
-import android.support.test.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.mockito.Mockito.any
@@ -24,7 +23,11 @@ class AndroidConnectivityHelperTest {
 
     @Test
     fun shouldBe_connected() {
-        val context = InstrumentationRegistry.getContext()
+        val context = stub<Context> {
+            getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
+                activeNetworkInfo returns networkInfoThat.hasActiveConnection
+            }
+        }
         val helper = AndroidConnectivityHelper(context)
 
         assertThat(helper.isConnected()).isTrue()
@@ -58,7 +61,11 @@ class AndroidConnectivityHelperTest {
 
     @Test
     fun shouldExecuteRetryAction_whenConnected() {
-        val context = InstrumentationRegistry.getContext()
+        val context = stub<Context> {
+            getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
+                activeNetworkInfo returns networkInfoThat.hasActiveConnection
+            }
+        }
         val helper = AndroidConnectivityHelper(context)
         var result: String? = null
 
@@ -69,13 +76,13 @@ class AndroidConnectivityHelperTest {
 
     @Test
     fun shouldExecuteRetryAction_whenReconnected() {
-        val context = stub<Context> { context ->
+        val context = stub<Context> {
             getSystemService(Context.CONNECTIVITY_SERVICE).returnsStubAs<ConnectivityManager> {
                 activeNetworkInfo returns networkInfoThat.isAbsent
                 activeNetworkInfo returns networkInfoThat.hasActiveConnection
             }
-            registerReceiver(any(), eq(IntentFilter(CONNECTIVITY_ACTION))) handles { (r, _) ->
-                (r as BroadcastReceiver).onReceive(context, null)
+            registerReceiver(any(), eq(IntentFilter(CONNECTIVITY_ACTION))) handles { (r, c) ->
+                (r as BroadcastReceiver).onReceive(c as Context, null)
             }
         }
         val helper = AndroidConnectivityHelper(context)
