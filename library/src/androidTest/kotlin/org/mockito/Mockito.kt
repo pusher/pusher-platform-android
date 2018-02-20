@@ -18,8 +18,21 @@ inline fun <reified T> stub(f: T.(T) -> Unit): T =
 inline fun <reified T> stub(): T =
     mock(T::class.java, withSettings().stubOnly())
 
-infix fun <T> T.returns(value: T) =
-    given(this).willReturn(value)!!
+infix fun <T> T.returns(value: T) {
+    given(this).willReturn(value)
+}
+
+inline infix fun <reified T> T.returnsStub(f: T.(T) -> Unit) {
+    val mock = mock(T::class.java, withSettings().stubOnly())//.also { it.f(it) }
+    given(this).willReturn(mock)
+    mock.f(mock)
+}
+
+inline infix fun <reified T> Any.returnsStubAs(f: T.(T) -> Unit) {
+    val mock = mock(T::class.java, withSettings().stubOnly())//.also { it.f(it) }
+    given(this).willReturn(mock)
+    mock.f(mock)
+}
 
 infix fun <T> T.answers(f: InvocationOnMock.(Array<*>) -> Any) {
     given(this).willAnswer { it.f(it.arguments) }
