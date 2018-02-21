@@ -2,7 +2,7 @@ language: android
 
 env:
   global:
-    - ROOT_DIR=$TRAVIS_BUILD_DIR
+    - ROOT_DIR="$TRAVIS_BUILD_DIR"
 
 before_install:
   - $TRAVIS_BUILD_DIR/gradle/android/sdk-setup.sh
