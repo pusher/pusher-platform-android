@@ -2,7 +2,7 @@
 
 echo "Running ${BASH_SOURCE[0]}"
 
-./gradlew assembleDebugTest
+./gradlew assembleDebug assembleDebugAndroidTest
 
 gcloud firebase test android run \
   --type instrumentation \
