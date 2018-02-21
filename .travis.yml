@@ -1,7 +1,6 @@
 language: android
 
 before_install:
-  - ./gradle/travis-variables.sh
   - ./gradle/android/sdk-setup.sh
   - ./gradle/firebase/install.sh
 
