@@ -1,9 +1,9 @@
 language: android
 
 before_install:
-  - source $TRAVIS_BUILD_DIR/gradle/travis-variables.sh
-  - $TRAVIS_BUILD_DIR/gradle/android/sdk-setup.sh
-  - $TRAVIS_BUILD_DIR/gradle/firebase/install.sh
+  - bash $TRAVIS_BUILD_DIR/gradle/travis-variables.sh
+  - bash $TRAVIS_BUILD_DIR/gradle/android/sdk-setup.sh
+  - bash $TRAVIS_BUILD_DIR/gradle/firebase/install.sh
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -20,8 +20,8 @@ cache:
 
 script:
   - ./gradlew build codeCoverageReport
-  - $TRAVIS_BUILD_DIR/gradle/firebase/auth.sh
-  - $TRAVIS_BUILD_DIR/gradle/firebase/runLibraryAndroidTests.sh
+  - bash $TRAVIS_BUILD_DIR/gradle/firebase/auth.sh
+  - bash $TRAVIS_BUILD_DIR/gradle/firebase/runLibraryAndroidTests.sh
 
 after_success:
   # report coverage
