@@ -1,10 +1,7 @@
 language: android
 
-env:
-  global:
-    - ROOT_DIR="$TRAVIS_BUILD_DIR"
-
 before_install:
+  - $TRAVIS_BUILD_DIR/gradle/travis-variables.sh
   - $TRAVIS_BUILD_DIR/gradle/android/sdk-setup.sh
   - $TRAVIS_BUILD_DIR/gradle/firebase/install.sh
 
