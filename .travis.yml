@@ -1,8 +1,6 @@
 language: android
 
 before_install:
-  - pwd
-  - ls -la
   - ./gradle/android/sdk-setup.sh
   - ./gradle/firebase/install.sh
 
