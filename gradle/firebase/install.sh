@@ -7,4 +7,4 @@ if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf $HOME/google-cloud-sdk; ex
 source $HOME/google-cloud-sdk/path.bash.inc
 gcloud version
 gcloud components update
-yes | gcloud components install firebase
+gcloud -q components install firebase
