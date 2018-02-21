@@ -4,7 +4,7 @@
 
 gcloud firebase test android run \
   --type instrumentation \
-  --app ./firebase/dummy.apk \
+  --app ./gradle/firebase/dummy.apk \
   --test ./library/build/outputs/apk/androidTest/debug/library-debug-androidTest.apk \
   --device-ids Nexus5 \
   --os-version-ids 22 \
