@@ -72,8 +72,8 @@ class AndroidLogger(val threshold: LogLevel) : Logger {
         )
 
         object Err : LogStrategy(
-            { tag, message -> Log.d(tag, message) },
-            { tag, message, error -> Log.d(tag, message, error) }
+            { tag, message -> Log.e(tag, message) },
+            { tag, message, error -> Log.e(tag, message, error) }
         )
 
     }
