@@ -1,7 +1,8 @@
 package com.pusher.platform.logger
 
+import android.util.LogCapture
+import android.util.LogSpy
 import com.google.common.truth.Truth.assertThat
-import com.pusher.platform.logger.LogCapture.*
 import com.pusher.platform.logger.LogLevel.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -9,9 +10,10 @@ import org.junit.runners.Parameterized
 
 private const val EXPECTED_TAG = "pusherPlatform"
 private const val EXPECTED_MESSAGE = "message"
+private val EXPECTED_ERROR = Error("Awesome error")
 
 @RunWith(Parameterized::class)
-class AndroidLoggerAndroidTest(
+class AndroidLoggerTest(
     private val logLevel: LogLevel,
     private val doLog: Logger.(String, Error?) -> Unit
 ) {
@@ -32,24 +34,24 @@ class AndroidLoggerAndroidTest(
 
     @Test
     fun shouldLog() {
+        val logSpy = LogSpy()
         val logger = AndroidLogger(VERBOSE)
-        val logs = LogCaptor()
 
         logger.doLog(EXPECTED_MESSAGE, null)
 
-        assertThat(logs.withTag(EXPECTED_TAG))
-            .contains(Message(logLevel, EXPECTED_TAG, "message"))
+        assertThat(logSpy.captures)
+            .contains(LogCapture(logLevel, EXPECTED_TAG, EXPECTED_MESSAGE))
     }
 
     @Test
     fun shouldLog_withError() {
+        val logSpy = LogSpy()
         val logger = AndroidLogger(VERBOSE)
-        val logs = LogCaptor()
 
-        logger.doLog(EXPECTED_MESSAGE, Error("Awesome error"))
+        logger.doLog(EXPECTED_MESSAGE, EXPECTED_ERROR)
 
-        assertThat(logs.withTag(EXPECTED_TAG))
-            .contains(Message(logLevel, EXPECTED_TAG, "message"))
+        assertThat(logSpy.captures)
+            .contains(LogCapture(logLevel, EXPECTED_TAG, EXPECTED_MESSAGE, EXPECTED_ERROR))
     }
 
 
