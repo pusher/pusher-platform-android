@@ -8,7 +8,7 @@ source $HOME/google-cloud-sdk/path.bash.inc
 gcloud version
 gcloud components list
 
-gcloud firebase test android run \
+yes | gcloud firebase test android run \
   --type instrumentation \
   --app ./gradle/firebase/dummy.apk \
   --test ./library/build/outputs/apk/androidTest/debug/library-debug-androidTest.apk \
