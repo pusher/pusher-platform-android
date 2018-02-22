@@ -4,7 +4,7 @@ echo "Running ${BASH_SOURCE[0]}"
 
 ./gradlew assembleDebug assembleDebugAndroidTest
 
-gcloud beta firebase test android run \
+gcloud firebase test android run \
   --type instrumentation \
   --app ./gradle/firebase/dummy.apk \
   --test ./library/build/outputs/apk/androidTest/debug/library-debug-androidTest.apk \
