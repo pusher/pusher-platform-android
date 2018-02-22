@@ -14,7 +14,7 @@ else
 fi
 source $HOME/google-cloud-sdk/path.bash.inc
 ./auth.sh
-gcloud --quiet init
+gcloud --console-only init
 echo "Version after install"
 gcloud version
 echo "Update gcloud components"
