@@ -7,3 +7,4 @@ if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf $HOME/google-cloud-sdk; ex
 source $HOME/google-cloud-sdk/path.bash.inc
 gcloud version
 gcloud --quiet components update
+gcloud components list
