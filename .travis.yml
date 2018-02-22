@@ -1,9 +1,5 @@
 language: android
 
-before_install:
-  - ./gradle/android/sdk-setup.sh
-  - ./gradle/firebase/install.sh
-
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
@@ -16,6 +12,10 @@ cache:
     - $HOME/android-sdk-dl
     - $HOME/android-sdk
     - $HOME/google-cloud-sdk/
+
+before_script:
+  - ./gradle/android/sdk-setup.sh
+  - ./gradle/firebase/install.sh
 
 script:
   - ./gradlew build codeCoverageReport
