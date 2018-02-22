@@ -13,6 +13,7 @@ else
   echo "Found 'gcloud' is present"
 fi
 source $HOME/google-cloud-sdk/path.bash.inc
+./gradle/firebase/auth.sh
 gcloud init --console-only
 echo "Version after install"
 gcloud version
