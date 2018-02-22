@@ -12,7 +12,7 @@ if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then
   ./gradle/firebase/auth.sh
   gcloud init --console-only
 else
-  echo "Found 'gcloud' is present"
+  echo "Found 'gcloud' installed"
 fi
 source $HOME/google-cloud-sdk/path.bash.inc
 echo "Version after install"

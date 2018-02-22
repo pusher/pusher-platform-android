@@ -6,7 +6,7 @@ echo "Running ${BASH_SOURCE[0]}"
 
 source $HOME/google-cloud-sdk/path.bash.inc
 gcloud version
-gcloud componets list
+gcloud components list
 
 gcloud firebase test android run \
   --type instrumentation \
