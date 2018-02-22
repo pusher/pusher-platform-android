@@ -13,8 +13,7 @@ else
   echo "Found 'gcloud' is present"
 fi
 source $HOME/google-cloud-sdk/path.bash.inc
-./auth.sh
-gcloud --console-only init
+gcloud init --console-only
 echo "Version after install"
 gcloud version
 echo "Update gcloud components"
