@@ -2,9 +2,11 @@
 
 echo "Running ${BASH_SOURCE[0]}"
 
-#./gradlew assembleDebug assembleDebugAndroidTest
+./gradlew assembleDebug assembleDebugAndroidTest
 
+source $HOME/google-cloud-sdk/path.bash.inc
 gcloud version
+gcloud componets list
 
 gcloud firebase test android run \
   --type instrumentation \
