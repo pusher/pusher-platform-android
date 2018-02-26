@@ -4,8 +4,7 @@ jacoco {
     toolVersion = '0.8.0'
 }
 
-task codeCoverageReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {//, 'createDebugCoverageReport']) {
-
+task codeCoverageReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
     reports {
         xml.enabled = true
         xml.destination file("${buildDir}/reports/jacoco/report.xml")
