@@ -15,13 +15,14 @@ cache:
 
 before_script:
   - ./gradle/android/sdk-setup.sh
-  - ./gradle/android/install-emulator.sh
-#  - ./gradle/firebase/install.sh
+#  - ./gradle/android/install-emulator.sh
+  - ./gradle/firebase/install.sh
 
 script:
-  - ./library/gradle/main.sh
-  - ./gradle/firebase/auth.sh
-#  - ./gradle/firebase/runLibraryAndroidTests.sh
+#  - ./library/gradle/main.sh
+ - gradlew build codeCoverageReport
+ - ./gradle/firebase/auth.sh
+ - ./gradle/firebase/runLibraryAndroidTests.sh
 
 after_success:
   # report coverage
