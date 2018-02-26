@@ -1,6 +1,6 @@
 package com.pusher.platform
 
-import com.google.common.truth.Truth
+import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -30,7 +30,7 @@ class AndroidMediaTypeResolverTest(
 
         val mediaType = resolver.fileMediaType(file)
 
-        Truth.assertThat(mediaType).isEqualTo(expectedMediaType)
+        assertThat(mediaType).isEqualTo(expectedMediaType)
     }
 
 }
