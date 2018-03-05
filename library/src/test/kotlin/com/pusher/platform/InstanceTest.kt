@@ -14,7 +14,7 @@ class InstanceTest {
 
     @Test
     fun instanceSetUpCorrectly(){
-        val instance = Instance(
+        val instance = AndroidInstance(
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
