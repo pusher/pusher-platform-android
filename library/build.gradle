@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply from: "$rootDir/gradle/maven-push.gradle"
-apply from: "$rootDir/gradle/jacoco-android.gradle"
+apply from: "$projectDir/../gradle/maven-push.gradle"
+apply from: "$projectDir/../gradle/jacoco-android.gradle"
 
 android {
     compileSdkVersion 27

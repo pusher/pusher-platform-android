@@ -4,7 +4,7 @@ import android.util.Log
 import com.pusher.platform.logger.AndroidLogger.LogStrategy.*
 import com.pusher.platform.logger.LogLevel.*
 
-class AndroidLogger(val threshold: LogLevel) : Logger {
+class AndroidLogger( val threshold: LogLevel) : Logger {
 
     private val tag = "pusherPlatform"
 
