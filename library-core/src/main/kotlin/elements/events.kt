@@ -2,7 +2,6 @@ package elements
 
 import com.google.gson.JsonElement
 import com.pusher.platform.BaseClient
-import com.pusher.platform.subscription.BaseSubscription
 
 sealed class SubscriptionMessage {
     companion object Factory {

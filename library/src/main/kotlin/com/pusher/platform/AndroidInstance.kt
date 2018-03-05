@@ -7,25 +7,12 @@ import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.AndroidConnectivityHelper
 import com.pusher.platform.network.ConnectivityHelper
 
-operator fun Instance.Companion.invoke(
-    locator: String,
-    serviceName: String,
-    serviceVersion: String,
-    context: Context,
-    connectivityResolver: ConnectivityHelper = AndroidConnectivityHelper(context),
-    baseClient: BaseClient? = null,
-    host: String? = null,
-    logger: Logger = AndroidLogger(threshold = LogLevel.DEBUG),
-    mediaResolver: MediaTypeResolver = AndroidMediaTypeResolver(),
-    backgroundScheduler: Scheduler = BackgroundScheduler(serviceName),
-    foregroundScheduler: MainThreadScheduler = ForegroundScheduler()
-) = AndroidInstance.create(locator, serviceName, serviceVersion, context, connectivityResolver, baseClient, host, logger, mediaResolver, backgroundScheduler, foregroundScheduler)
-
 object AndroidInstance {
 
     @JvmStatic
     @JvmOverloads
-    fun create(
+    @JvmName("create")
+    operator fun invoke(
         locator: String,
         serviceName: String,
         serviceVersion: String,
