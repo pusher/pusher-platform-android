@@ -10,14 +10,14 @@ typealias Action = () -> Unit
 
 class BackgroundScheduler(
     threadLimit: Int = 50,
-    theadAliveTime: Long = 60
+    threadAliveTime: Long = 5
 ) : Scheduler {
 
     private val workQueue = LinkedBlockingQueue<Runnable>()
     private val pool = ThreadPoolExecutor(
         Runtime.getRuntime().availableProcessors(),
         threadLimit,
-        theadAliveTime,
+        threadAliveTime,
         TimeUnit.SECONDS,
         workQueue
     )
