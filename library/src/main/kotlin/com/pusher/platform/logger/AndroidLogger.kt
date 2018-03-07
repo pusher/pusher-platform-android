@@ -1,76 +1,80 @@
 package com.pusher.platform.logger
 
 import android.util.Log
+import com.pusher.platform.logger.AndroidLogger.LogStrategy.*
+import com.pusher.platform.logger.LogLevel.*
 
-class AndroidLogger(val threshold: LogLevel): Logger {
+class AndroidLogger( val threshold: LogLevel) : Logger {
 
-    val tag = "pusherPlatform"
+    private val tag = "pusherPlatform"
 
-    override fun verbose(message: String, error: Error?) {
-        log(logLevel = LogLevel.VERBOSE, message = message, error = error)
-    }
+    override fun verbose(message: String, error: Error?) =
+        VERBOSE.strategy.log(tag, message, error)
 
-    override fun debug(message: String, error: Error?) {
-        log(logLevel = LogLevel.DEBUG, message = message, error = error)
-    }
+    override fun debug(message: String, error: Error?) =
+        DEBUG.strategy.log(tag, message, error)
 
-    override fun info(message: String, error: Error?) {
-        log(logLevel = LogLevel.INFO, message = message, error = error)
-    }
+    override fun info(message: String, error: Error?) =
+        INFO.strategy.log(tag, message, error)
 
-    override fun warn(message: String, error: Error?) {
-        log(logLevel = LogLevel.WARN, message = message, error = error)
-    }
+    override fun warn(message: String, error: Error?) =
+        WARN.strategy.log(tag, message, error)
 
-    override fun error(message: String, error: Error?) {
-        log(logLevel = LogLevel.ERROR, message = message, error = error)
-    }
+    override fun error(message: String, error: Error?) =
+        ERROR.strategy.log(tag, message, error)
 
-    private fun log(logLevel: LogLevel, message: String, error: Error?){
-        if(logLevel >= threshold){
-
-            when(logLevel){
-                LogLevel.VERBOSE -> {
-                    if (error != null) {
-                        Log.v(tag, message, error)
-                    }
-                    else {
-                        Log.v(tag, message)
-                    }
-                }
-                LogLevel.DEBUG -> {
-                    if (error != null) {
-                        Log.d(tag, message, error)
-                    }
-                    else {
-                        Log.d(tag, message)
-                    }
-                }
-                LogLevel.INFO -> {
-                    if (error != null) {
-                        Log.i(tag, message, error)
-                    }
-                    else {
-                        Log.i(tag, message)
-                    }
-                }
-                LogLevel.WARN -> {
-                    if (error != null) {
-                        Log.w(tag, message, error)
-                    }
-                    else {
-                        Log.w(tag, message)
-                    }
-                }
-                LogLevel.ERROR -> {
-                    if (error != null) {
-                        Log.e(tag, message, error)
-                    }
-                    else {
-                        Log.e(tag, message)
-                    }
-                }
+    private val LogLevel.strategy
+        get() = if (this >= threshold) {
+            when (this) {
+                VERBOSE -> Verbose
+                DEBUG -> Debug
+                INFO -> Info
+                WARN -> Warning
+                ERROR -> Err
             }
+        } else {
+            Disabled
         }
+
+    private sealed class LogStrategy(
+        private val onLog: (String, String) -> Unit,
+        private val onLogWithError: (String, String, Error) -> Unit
+    ) {
+
+        fun log(tag: String, message: String, error: Error?) {
+            if (error != null) onLogWithError(tag, message, error)
+            else onLog(tag, message)
+        }
+
+        object Disabled : LogStrategy(
+            { _, _ -> },
+            { _, _, _ -> }
+        )
+
+        object Verbose : LogStrategy(
+            { tag, message -> Log.v(tag, message) },
+            { tag, message, error -> Log.v(tag, message, error) }
+        )
+
+        object Debug : LogStrategy(
+            { tag, message -> Log.d(tag, message) },
+            { tag, message, error -> Log.d(tag, message, error) }
+        )
+
+        object Info : LogStrategy(
+            { tag, message -> Log.i(tag, message) },
+            { tag, message, error -> Log.i(tag, message, error) }
+        )
+
+        object Warning : LogStrategy(
+            { tag, message -> Log.w(tag, message) },
+            { tag, message, error -> Log.w(tag, message, error) }
+        )
+
+        object Err : LogStrategy(
+            { tag, message -> Log.e(tag, message) },
+            { tag, message, error -> Log.e(tag, message, error) }
+        )
+
     }
 }

@@ -3,13 +3,30 @@ language: android
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
 cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
     - $HOME/.android/build-cache
+    - $HOME/android-sdk-dl
+    - $HOME/android-sdk
+    - $HOME/google-cloud-sdk/
 
-script: ./gradlew build
+before_script:
+  - ./gradle/android/sdk-setup.sh
+#  - ./gradle/android/install-emulator.sh
+#  - ./gradle/firebase/install.sh
+
+script:
+#  - ./library/gradle/main.sh
+ - ./gradlew build codeCoverageReport
+# - ./gradle/firebase/auth.sh
+# - ./gradle/firebase/runLibraryAndroidTests.sh
+
+after_success:
+  # report coverage
+  - bash <(curl -s https://codecov.io/bash)
 
 android:
   components:

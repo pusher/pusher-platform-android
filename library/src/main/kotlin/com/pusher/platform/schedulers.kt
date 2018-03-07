@@ -21,7 +21,7 @@ private fun createBackgroundHandler(name: String): Handler {
     return Handler(handlerThread.looper)
 }
 
-class BackgroundScheduler(name: String) : AndroidScheduler(createBackgroundHandler(name))
+class BackgroundScheduler(name: String = BackgroundScheduler::class.java.simpleName) : AndroidScheduler(createBackgroundHandler(name))
 
 class ForegroundScheduler : AndroidScheduler(Handler(Looper.getMainLooper())), MainThreadScheduler
 
@@ -31,11 +31,15 @@ class HandlerScheduledJob(
     doPost: Handler.(Action) -> Unit
 ) : ScheduledJob {
 
-    init {
-        handler.doPost(action)
-    }
+    private var active = true
+    private var task = { if(active) action() }
 
-    override fun cancel() = handler.removeCallbacks(action)
+    init { handler.doPost(task) }
+
+    override fun cancel() {
+        active = false
+        handler.removeCallbacks(task)
+    }
 
 }
 

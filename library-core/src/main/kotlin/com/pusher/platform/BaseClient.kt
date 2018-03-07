@@ -19,11 +19,11 @@ import java.util.concurrent.TimeUnit
 
 class BaseClient(
     var host: String,
-    val logger: Logger,
-    private val connectivityHelper: ConnectivityHelper,
-    private val mediaTypeResolver: MediaTypeResolver,
-    private val scheduler: Scheduler,
-    private val mainScheduler: MainThreadScheduler,
+    internal val logger: Logger,
+    internal val connectivityHelper: ConnectivityHelper,
+    internal val mediaTypeResolver: MediaTypeResolver,
+    internal val scheduler: Scheduler,
+    internal val mainScheduler: MainThreadScheduler,
     encrypted: Boolean = true
 ) {
 

@@ -25,21 +25,20 @@ class SampleActivity: AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
 
-        val pusherPlatform = Instance(
+        val pusherPlatform = AndroidInstance(
                 locator = INSTANCE_LOCATOR,
                 serviceName = "feeds",
                 serviceVersion = "v1",
                 context = this)
 
         val listeners = SubscriptionListeners(
-                onOpen = { headers -> Log.d("PP", "OnOpen ${headers}") },
+                onOpen = { headers -> Log.d("PP", "OnOpen $headers") },
                 onSubscribe = { Log.d("PP", "onSubscribe") },
                 onRetrying = { Log.d("PP", "onRetrying") },
-                onEvent = { event -> Log.d("PP", "onEvent ${event}") },
-                onEnd = { eosEvent -> Log.d("PP", "onEnd ${eosEvent}")},
-                onError = { error -> Log.d("PP", "onError ${error}")}
+                onEvent = { event -> Log.d("PP", "onEvent $event") },
+                onEnd = { eosEvent -> Log.d("PP", "onEnd $eosEvent")},
+                onError = { error -> Log.d("PP", "onError $error")}
         )
-
 
         this.get_request_btn.setOnClickListener {
 

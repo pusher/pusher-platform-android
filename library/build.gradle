@@ -1,6 +1,7 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply from: "$rootDir/gradle/maven-push.gradle"
+apply from: "$projectDir/../gradle/maven-push.gradle"
+apply from: "$projectDir/../gradle/jacoco-android.gradle"
 
 android {
     compileSdkVersion 27
@@ -12,6 +13,7 @@ android {
         targetSdkVersion 27
         versionCode 1
         versionName "1.0"
+        multiDexEnabled true
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
@@ -20,6 +22,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            testCoverageEnabled true
         }
     }
     sourceSets {
@@ -42,7 +47,11 @@ dependencies {
     testImplementation 'org.mockito:mockito-inline:2.10.0'
     testImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    testImplementation "com.google.truth:truth:0.39"
 
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+    androidTestImplementation "com.google.truth:truth:0.39"
+    androidTestImplementation 'org.mockito:mockito-android:2.10.0'
+
 }
