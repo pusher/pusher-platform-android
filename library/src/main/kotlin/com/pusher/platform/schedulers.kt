@@ -1,45 +1,87 @@
 package com.pusher.platform
 
 import android.os.Handler
-import android.os.HandlerThread
 import android.os.Looper
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 typealias Action = () -> Unit
 
-sealed class AndroidScheduler(private val handler: Handler) : Scheduler {
+class BackgroundScheduler(
+    threadLimit: Int = 50,
+    threadAliveTime: Long = 5
+) : Scheduler {
 
-    override fun schedule(action: Action): ScheduledJob =
-        HandlerScheduledJob(handler, action) { post(it) }
+    private val workQueue = LinkedBlockingQueue<Runnable>()
+    private val pool = ThreadPoolExecutor(
+        Runtime.getRuntime().availableProcessors(),
+        threadLimit,
+        threadAliveTime,
+        TimeUnit.SECONDS,
+        workQueue
+    )
+
+    override fun schedule(action: () -> Unit): ScheduledJob =
+        CancellableScheduledJob(
+            doAction = action,
+            doPost = { pool.execute(task) },
+            doCancel = { pool.remove(task) }
+        )
 
     override fun schedule(delay: Long, action: () -> Unit): ScheduledJob =
-        HandlerScheduledJob(handler, action) { postDelayed(it, delay) }
+        CancellableScheduledJob(
+            doAction = action,
+            doPost = {
+                pool.execute {
+                    Thread.sleep(delay)
+                    schedule(task)
+                }
+            },
+            doCancel = { pool.remove(task) }
+        )
 
 }
 
-private fun createBackgroundHandler(name: String): Handler {
-    val handlerThread = HandlerThread(name).apply { start() }
-    return Handler(handlerThread.looper)
+class ForegroundScheduler : MainThreadScheduler {
+
+    private val handler = Handler(Looper.getMainLooper())
+
+    override fun schedule(action: () -> Unit): ScheduledJob =
+        CancellableScheduledJob(
+            doAction = action,
+            doPost = { handler.post(task) },
+            doCancel = { handler.removeCallbacks(task) }
+        )
+
+    override fun schedule(delay: Long, action: () -> Unit): ScheduledJob =
+        CancellableScheduledJob(
+            doAction = action,
+            doPost = { handler.postDelayed(task, delay) },
+            doCancel = { handler.removeCallbacksAndMessages(task) }
+        )
 }
 
-class BackgroundScheduler(name: String = BackgroundScheduler::class.java.simpleName) : AndroidScheduler(createBackgroundHandler(name))
-
-class ForegroundScheduler : AndroidScheduler(Handler(Looper.getMainLooper())), MainThreadScheduler
-
-class HandlerScheduledJob(
-    private val handler: Handler,
-    private val action: Action,
-    doPost: Handler.(Action) -> Unit
+private class CancellableScheduledJob(
+    doAction: Action,
+    doPost: CancellableScheduledJob.() -> Unit,
+    private val doCancel: CancellableScheduledJob.() -> Unit
 ) : ScheduledJob {
 
     private var active = true
-    private var task = { if(active) action() }
+    val task = {
+        if (active) {
+            doAction()
+        }
+    }
 
-    init { handler.doPost(task) }
+    init {
+        doPost()
+    }
 
     override fun cancel() {
         active = false
-        handler.removeCallbacks(task)
+        doCancel()
     }
 
 }
-

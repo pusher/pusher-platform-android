@@ -22,7 +22,7 @@ object AndroidInstance {
         host: String? = null,
         logger: Logger = AndroidLogger(threshold = LogLevel.DEBUG),
         mediaResolver: MediaTypeResolver = AndroidMediaTypeResolver(),
-        backgroundScheduler: Scheduler = BackgroundScheduler(serviceName),
+        backgroundScheduler: Scheduler = BackgroundScheduler(),
         foregroundScheduler: MainThreadScheduler = ForegroundScheduler()
     ) = Instance(
         locator,
