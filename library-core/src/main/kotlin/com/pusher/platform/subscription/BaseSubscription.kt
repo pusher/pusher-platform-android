@@ -5,6 +5,7 @@ import com.pusher.platform.MainThreadScheduler
 import com.pusher.platform.ScheduledJob
 import com.pusher.platform.Scheduler
 import com.pusher.platform.logger.Logger
+import com.pusher.platform.network.nameCurrentThread
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import elements.*
 import elements.Headers
@@ -46,6 +47,9 @@ class BaseSubscription(
         call = httpClient.newCall(request)
 
         job = backgroundThread.schedule {
+            val nomer = nameCurrentThread(
+                "${request.method()}: /${request.url().pathSegments().joinToString("/")}"
+            )
             try {
                 val response = call.execute()
                 when (response.code()) {
@@ -62,6 +66,8 @@ class BaseSubscription(
                 } else{
                     onError(NetworkError("Connection failed"))
                 }
+            } finally {
+                nomer.restore()
             }
         }
 

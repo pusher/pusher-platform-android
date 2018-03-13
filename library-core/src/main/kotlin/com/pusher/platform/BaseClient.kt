@@ -2,12 +2,18 @@ package com.pusher.platform
 
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.GsonBuilder
+import com.pusher.network.Promise
+import com.pusher.network.asPromise
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
+import com.pusher.platform.network.OkHttpResponsePromise
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
+import com.pusher.util.Result
+import com.pusher.util.asFailure
+import com.pusher.util.asSuccess
 import elements.*
 import elements.Headers
 import okhttp3.*
@@ -15,7 +21,6 @@ import java.io.File
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
-
 
 class BaseClient(
     var host: String,
@@ -90,31 +95,14 @@ class BaseClient(
         method: String,
         body: String? = null,
         tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
-        onSuccess: (Response) -> Unit,
-        onFailure: (elements.Error) -> Unit): Cancelable {
-
-        var requestBeingPerformed: Cancelable? = null
-        val requestBody = if (body != null) {
-            RequestBody.create(MediaType.parse("application/json"), body)
-        } else null
-
-        if (tokenProvider != null) {
-            requestBeingPerformed = tokenProvider.fetchToken(
-                tokenParams = tokenParams,
-                onFailure = onFailure,
-                onSuccess = { token ->
-                    headers.put("Authorization", listOf("Bearer $token"))
-                    requestBeingPerformed = performRequest(requestDestination, headers, method, requestBody, onSuccess, onFailure)
-                }
-            )
-        } else {
-            requestBeingPerformed = performRequest(requestDestination, headers, method, requestBody, onSuccess, onFailure)
-        }
-
-        return object : Cancelable {
-            override fun cancel() {
-                requestBeingPerformed?.cancel()
+        tokenParams: Any? = null
+    ): OkHttpResponsePromise {
+        val requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) }
+        return when(tokenProvider) {
+            null -> performRequest(requestDestination, headers, method, requestBody)
+            else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
+                headers["Authorization"] = listOf("Bearer $token")
+                performRequest(requestDestination, headers, method, requestBody)
             }
         }
     }
@@ -124,45 +112,40 @@ class BaseClient(
         headers: elements.Headers = TreeMap(),
         file: File,
         tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
-        onSuccess: (Response) -> Unit,
-        onFailure: (Error) -> Unit): Cancelable? {
+        tokenParams: Any? = null
+    ): OkHttpResponsePromise = when {
+        file.exists() -> {
+            val mediaType = MediaType.parse(mediaTypeResolver.fileMediaType(file) ?: "")
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
+                .build()
 
-        if (!file.exists()) {
-            onFailure(UploadError("File does not exist at ${file.path}"))
-            return null
-        }
-
-        var requestBeingPerformed: Cancelable?
-        val mediaType = MediaType.parse(mediaTypeResolver.fileMediaType(file))
-
-        val requestBody = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
-            .build()
-
-
-        if (tokenProvider != null) {
-            requestBeingPerformed = tokenProvider.fetchToken(
-                tokenParams = tokenParams,
-                onFailure = onFailure,
-                onSuccess = { token ->
-                    headers.put("Authorization", listOf("Bearer $token"))
-                    requestBeingPerformed = performRequest(requestDestination, headers, "POST", requestBody, onSuccess, onFailure)
+            when(tokenProvider) {
+                null -> performRequest(requestDestination, headers, "POST", requestBody)
+                else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
+                    headers["Authorization"] = listOf("Bearer $token")
+                    performRequest(requestDestination, headers, "POST", requestBody)
                 }
-            )
-        } else {
-            requestBeingPerformed = performRequest(requestDestination, headers, "POST", requestBody, onSuccess, onFailure)
-        }
-
-        return object : Cancelable {
-            override fun cancel() {
-                requestBeingPerformed?.cancel()
             }
         }
+        else -> UploadError("File does not exist at ${file.path}").asFailure<Response, Error>().asPromise()
     }
 
-    private fun performRequest(requestDestination: RequestDestination, headers: Headers, method: String, requestBody: RequestBody?, onSuccess: (Response) -> Unit, onFailure: (Error) -> Unit): Cancelable {
+    fun TokenProvider.fetchToken(tokenParams: Any? = null): Promise<Result<String, elements.Error>> = Promise.promise {
+        // TODO: convert tokenProvider to promises
+        fetchToken(tokenParams,
+            { report(it.asSuccess()) },
+            { report(it.asFailure()) }
+        )
+    }
+
+    private fun performRequest(
+        requestDestination: RequestDestination,
+        headers: Headers,
+        method: String,
+        requestBody: RequestBody?
+    ): OkHttpResponsePromise = Promise.promise {
         val requestURL = getRequestPath(requestDestination)
 
         val requestBuilder = Request.Builder()
@@ -171,42 +154,32 @@ class BaseClient(
 
         headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
 
-        return object : Cancelable {
+        val call: Call = httpClient.newCall(requestBuilder.build())
 
-            val call: Call = httpClient.newCall(requestBuilder.build())
+        onCancel { if (!call.isCanceled) call.cancel() }
 
-            override fun cancel() {
-                if (!call.isCanceled) call.cancel()
+        call.enqueue(object : Callback {
+            override fun onResponse(call: Call?, response: Response?) {
+                when (response?.code()) {
+                    null -> report(OtherError("Response was null").asFailure())
+                    in 200..299 -> report(response.asSuccess())
+                    else -> {
+                        val errorBody = GSON.fromJson(response.body()!!.string(), ErrorResponseBody::class.java)
+                        report(ErrorResponse(
+                            statusCode = response.code(),
+                            headers = response.headers().toMultimap(),
+                            error = errorBody.error,
+                            errorDescription = errorBody.errorDescription,
+                            URI = errorBody.URI
+                        ).asFailure())
+                    }
+                }
             }
 
-            init {
-                call.enqueue(object : Callback {
-                    override fun onResponse(call: Call?, response: Response?) {
-                        if (response != null) {
-                            when (response?.code()) {
-                                in 200..299 -> onSuccess(response)
-                                else -> {
-                                    val errorBody = GSON.fromJson(response.body()!!.string(), ErrorResponseBody::class.java)
-                                    onFailure(ErrorResponse(
-                                        statusCode = response.code(),
-                                        headers = response.headers().toMultimap(),
-                                        error = errorBody.error,
-                                        errorDescription = errorBody.errorDescription,
-                                        URI = errorBody.URI
-                                    ))
-                                }
-                            }
-
-                        }
-
-                    }
-
-                    override fun onFailure(call: Call?, e: IOException?) {
-                        onFailure(NetworkError("Request error: ${e?.toString()}"))
-                    }
-                })
+            override fun onFailure(call: Call?, e: IOException?) {
+                report(NetworkError("Request error: ${e?.toString()}").asFailure())
             }
-        }
+        })
     }
 
     fun createBaseSubscription(path: String): SubscribeStrategy {

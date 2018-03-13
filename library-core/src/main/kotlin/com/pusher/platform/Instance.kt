@@ -2,10 +2,10 @@ package com.pusher.platform
 
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
+import com.pusher.platform.network.OkHttpResponsePromise
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.tokenProvider.TokenProvider
 import elements.*
-import okhttp3.Response
 import java.io.File
 import java.util.*
 
@@ -119,69 +119,52 @@ open class Instance(
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
-    ): Subscription {
-        val destination = scopeDestinationIfAppropriate(requestDestination)
-
-        return this.baseClient.subscribeNonResuming(
-            requestDestination = destination,
-            listeners = listeners,
-            headers = headers,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            retryOptions = retryOptions
-        )
-    }
+    ): Subscription = this.baseClient.subscribeNonResuming(
+        requestDestination = scopeDestinationIfAppropriate(requestDestination),
+        listeners = listeners,
+        headers = headers,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams,
+        retryOptions = retryOptions
+    )
 
     fun request(
         options: RequestOptions,
         tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
-        onSuccess: (Response) -> Unit,
-        onFailure: (elements.Error) -> Unit
-    ): Cancelable {
-        val destination = scopeDestinationIfAppropriate(options.destination)
+        tokenParams: Any? = null
+    ): OkHttpResponsePromise = this.baseClient.request(
+        requestDestination = scopeDestinationIfAppropriate(options.destination),
+        headers = options.headers,
+        method = options.method,
+        body = options.body,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams
+    )
 
-        return this.baseClient.request(
-            requestDestination = destination,
-            headers = options.headers,
-            method = options.method,
-            body = options.body,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            onSuccess = onSuccess,
-            onFailure = onFailure
-        )
-    }
+    fun upload(
+        path: String,
+        headers: elements.Headers = TreeMap(),
+        file: File,
+        tokenProvider: TokenProvider? = null,
+        tokenParams: Any? = null
+    ): OkHttpResponsePromise = upload(
+        requestDestination = RequestDestination.Relative(path),
+        headers = headers,
+        file = file,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams
+    )
 
-    fun upload(path: String,
+    fun upload(
+        requestDestination: RequestDestination,
                headers: elements.Headers = TreeMap(),
                file: File,
                tokenProvider: TokenProvider? = null,
-               tokenParams: Any? = null,
-               onSuccess: (Response) -> Unit,
-               onFailure: (Error) -> Unit
-    ): Cancelable? {
-        return upload(
-            requestDestination = RequestDestination.Relative(path),
-            headers = headers,
-            file = file,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            onSuccess = onSuccess,
-            onFailure = onFailure
-        )
-    }
-
-    fun upload(requestDestination: RequestDestination,
-               headers: elements.Headers = TreeMap(),
-               file: File,
-               tokenProvider: TokenProvider? = null,
-               tokenParams: Any? = null,
-               onSuccess: (Response) -> Unit,
-               onFailure: (Error) -> Unit): Cancelable? {
+               tokenParams: Any? = null
+    ): OkHttpResponsePromise {
         val destination = scopeDestinationIfAppropriate(requestDestination)
 
-        return this.baseClient.upload(destination, headers, file, tokenProvider, tokenParams, onSuccess, onFailure)
+        return this.baseClient.upload(destination, headers, file, tokenProvider, tokenParams)
     }
 
     private fun scopeDestinationIfAppropriate(destination: RequestDestination): RequestDestination {
