@@ -71,20 +71,6 @@ class ResultTest {
     }
 
     @Test
-    fun `can swap success result`() {
-        val result = SUCCESS_RESULT.swap()
-
-        assertThat(result).isEqualTo(Result.Failure<Int, String>(SUCCESS_VALUE))
-    }
-
-    @Test
-    fun `can swap failure result`() {
-        val result = FAILURE_RESULT.swap()
-
-        assertThat(result).isEqualTo(Result.Success<Int, String>(FAILURE_VALUE))
-    }
-
-    @Test
     fun `recover should not change success result`() {
         val result = SUCCESS_RESULT.recover { "invalid" }
 

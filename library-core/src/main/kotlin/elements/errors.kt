@@ -10,7 +10,7 @@ data class NetworkError(override val reason: String) : Error
 
 data class UploadError(override val reason: String) : Error
 
-data class OtherError(override val reason: String) : Error
+data class OtherError(override val reason: String, val exception: Throwable? = null) : Error
 
 interface Error {
     val reason: String
@@ -39,5 +39,8 @@ object Errors {
 
     @JvmStatic
     fun other(reason: String) = OtherError(reason)
+
+    @JvmStatic
+    fun other(throwable: Throwable) = OtherError(throwable.message ?: "no message", throwable)
 
 }

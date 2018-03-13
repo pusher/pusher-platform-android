@@ -26,10 +26,12 @@ class BaseClient(
     encrypted: Boolean = true
 ) {
 
-    private val prefix = if (encrypted) "https" else "http"
-    private val baseUrl = "$prefix://$host"
+    private val schema = if (encrypted) "https" else "http"
+    private val baseUrl = "$schema://$host"
 
-    private val httpClient: okhttp3.OkHttpClient = OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
+    private val httpClient = with(OkHttpClient.Builder()) {
+        readTimeout(0, TimeUnit.MINUTES)
+    }.build()
 
     fun subscribeResuming(
         requestDestination: RequestDestination,
@@ -166,7 +168,7 @@ class BaseClient(
             }
 
             override fun onFailure(call: Call?, e: IOException?) {
-                report(NetworkError("Request error: ${e?.toString()}").asFailure())
+                report(NetworkError("Request error: $e").asFailure())
             }
         })
     }

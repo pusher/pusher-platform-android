@@ -56,14 +56,6 @@ sealed class Result<A, B> {
     )
 
     /**
-     * Inverts the result's generics with new a result instance.
-     */
-    fun swap() : Result<B, A> = fold(
-        onFailure = { it.asSuccess() },
-        onSuccess = { it.asFailure() }
-    )
-
-    /**
      * If the result is a failure it will create a new success result using the provided [block].
      */
     fun recover(block: (B) -> A) : A = fold(
@@ -99,12 +91,6 @@ fun <A, B, C> Promise<Result<A, B>>.flatMapResult(block: (A) -> Promise<Result<C
  */
 fun <A, B, C> Promise<Result<A, B>>.fold(onFailure: (B) -> C, onSuccess: (A) -> C) : Promise<C> =
     map { it.fold(onFailure, onSuccess) }
-
-/**
- * Short for `map { it.swap() }`
- */
-fun <A, B> Promise<Result<A, B>>.swap() : Promise<Result<B, A>> =
-    map { it.swap() }
 
 /**
  * Short for `map { it.recover(block) }`
