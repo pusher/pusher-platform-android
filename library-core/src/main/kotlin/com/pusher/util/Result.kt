@@ -16,42 +16,65 @@ fun <A, B> A?.orElse(block: () -> B): Result<A, B> = when (this) {
 /**
  * Slight modification of the Either monadic pattern with semantics of failure and success for
  * left and right respectively.
+ *
+ * A [Result] instance can be instantiated:
+ *  - Using one of the factory methods: `Result.success(value)` or `Result.failure(error)`
+ *  - Extension functions: `value.asSuccess()` or `error.asFailure()`
+ *  - From a nullable: `candidate.orElse { error }`
  */
 sealed class Result<A, B> {
 
     companion object {
+        @JvmStatic
         fun <A, B> success(value: A) = Success<A, B>(value)
+        @JvmStatic
         fun <A, B> failure(error: B) = Failure<A, B>(error)
     }
 
-    data class Success<A, B>(val value: A) : Result<A, B>()
-    data class Failure<A, B>(val error: B) : Result<A, B>()
+    data class Success<A, B> internal constructor(val value: A) : Result<A, B>()
+    data class Failure<A, B> internal constructor(val error: B) : Result<A, B>()
 
     inline fun <C> fold(onFailure: (B) -> C, onSuccess: (A) -> C): C = when (this) {
         is Failure -> onFailure(error)
         is Success -> onSuccess(value)
     }
 
+    /**
+     * Creates a new result using [block] to convert when it is success.
+     */
     inline fun <C> map(block: (A) -> C): Result<C, B> = fold(
         onFailure = { failure(it) },
         onSuccess = { success(block(it)) }
     )
 
+    /**
+     * Creates a new result when it is a failure or uses [block] to create a new result.
+     */
     inline fun <C> flatMap(block: (A) -> Result<C, B>): Result<C, B> = fold(
         onFailure = { failure(it) },
         onSuccess = { block(it) }
     )
 
+    /**
+     * Inverts the result's generics with new a result instance.
+     */
     fun swap() : Result<B, A> = fold(
         onFailure = { it.asSuccess() },
         onSuccess = { it.asFailure() }
     )
 
+    /**
+     * If the result is a failure it will create a new success result using the provided [block].
+     */
     fun recover(block: (B) -> A) : A = fold(
         onFailure = block,
         onSuccess = { it }
     )
 
+    /**
+     * Similar to [recover] but allows to create a new result instance with [block] instead of
+     * always recovering with a success.
+     */
     fun flatRecover(block: (B) -> Result<A, B>) : Result<A, B> = fold(
         onFailure = block,
         onSuccess = { it.asSuccess() }
@@ -101,7 +124,7 @@ fun <A, B> Result<A, B>.async(): SuspendedResult<A, B> =
     SuspendedResult(this)
 
 @UsesCoroutines
-data class SuspendedResult<A, B> internal constructor(private val result: Result<A, B>) {
+data class SuspendedResult<out A, B> internal constructor(private val result: Result<A, B>) {
 
     suspend fun <C> fold(onFailure: suspend (B) -> C, onSuccess: suspend (A) -> C): C =
         result.fold(onFailure.desuspend(), onSuccess.desuspend()).invoke()
@@ -112,6 +135,9 @@ data class SuspendedResult<A, B> internal constructor(private val result: Result
     suspend fun <C> flatMap(block: suspend (A) -> Result<C, B>): SuspendedResult<C, B> =
         result.flatMap { block(it) }.async()
 
+    /**
+     * Converts a suspending function in
+     */
     private fun <A, B> (suspend (A) -> B).desuspend(): (A) -> suspend () -> B = { suspend { this(it) } }
 
 }

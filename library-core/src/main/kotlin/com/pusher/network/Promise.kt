@@ -8,6 +8,9 @@ typealias FutureResultListener<A> = (A) -> Unit
 
 fun <A> A.asPromise(): Promise<A> = Promise.Now(this)
 
+/**
+ * Inspired by [java.util.concurrent.Future] but with better support for older versions of Android.
+ */
 sealed class Promise<out A> {
 
     companion object {
@@ -23,11 +26,17 @@ sealed class Promise<out A> {
         private val cancelListeners = ConcurrentLinkedQueue<() -> Unit>()
         private val listeners = ConcurrentLinkedQueue<FutureResultListener<A>>()
 
+        /**
+         * Used to report that a value is available
+         */
         fun report(value: A) {
             result = State.Ready(value)
             listeners.forEach { it(value) }
         }
 
+        /**
+         * Attaches a listener for when [cancel] is called
+         */
         fun onCancel(listener: () -> Unit) {
             cancelListeners += listener
             if (cancelled) {
@@ -35,12 +44,12 @@ sealed class Promise<out A> {
             }
         }
 
-        fun onReady(listener: (A) -> Unit) {
+        internal fun onReady(listener: (A) -> Unit) {
             listeners += listener
             (result as? State.Ready<A>)?.run { listener(value) }
         }
 
-        fun cancel() {
+        internal fun cancel() {
             cancelled = true
             cancelListeners.forEach { it() }
         }
@@ -55,8 +64,21 @@ sealed class Promise<out A> {
 
     }
 
+    /**
+     * Use this to register a listener that will recieve an update when the value is available,
+     * which could be at the time of invocation.
+     */
     abstract fun onReady(listener: FutureResultListener<A>)
+
+    /**
+     * @return true if the promise has a value available
+     */
     abstract fun isReady(): Boolean
+
+    /**
+     * This will signal the original creator of the promise that it needs to cancel. This has no
+     * effect on delivery as if the promise is ready it will still provide results when observed.
+     */
     abstract fun cancel()
 
     fun <B> map(block: (A) -> B): Promise<B> =
