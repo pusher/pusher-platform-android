@@ -28,7 +28,7 @@ inline infix fun <reified T> T.returnsStub(f: T.() -> Unit) {
     f(mock)
 }
 
-inline infix fun <reified T> Any.returnsStubAs(f: T.() -> Unit) {
+inline infix fun <reified T> Any?.returnsStubAs(f: T.() -> Unit) {
     val mock = mock(T::class.java, withSettings().stubOnly())
     given(this).willReturn(mock)
     f(mock)

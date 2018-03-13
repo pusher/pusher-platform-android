@@ -1,8 +1,8 @@
 package com.pusher.util
 
 import com.pusher.annotations.UsesCoroutines
-import com.pusher.network.Promise
-import com.pusher.network.asPromise
+import com.pusher.platform.network.Promise
+import com.pusher.platform.network.asPromise
 import com.pusher.util.Result.Companion.failure
 import com.pusher.util.Result.Companion.success
 
@@ -126,18 +126,15 @@ fun <A, B> Result<A, B>.async(): SuspendedResult<A, B> =
 @UsesCoroutines
 data class SuspendedResult<out A, B> internal constructor(private val result: Result<A, B>) {
 
-    suspend fun <C> fold(onFailure: suspend (B) -> C, onSuccess: suspend (A) -> C): C =
-        result.fold(onFailure.desuspend(), onSuccess.desuspend()).invoke()
+    suspend fun <C> fold(onFailure: suspend (B) -> C, onSuccess: suspend (A) -> C): C = when(result) {
+        is Result.Success -> onSuccess(result.value)
+        is Result.Failure -> onFailure(result.error)
+    }
 
     suspend fun <C> map(block: suspend (A) -> C): SuspendedResult<C, B> =
         result.map { block(it) }.async()
 
     suspend fun <C> flatMap(block: suspend (A) -> Result<C, B>): SuspendedResult<C, B> =
         result.flatMap { block(it) }.async()
-
-    /**
-     * Converts a suspending function in
-     */
-    private fun <A, B> (suspend (A) -> B).desuspend(): (A) -> suspend () -> B = { suspend { this(it) } }
 
 }

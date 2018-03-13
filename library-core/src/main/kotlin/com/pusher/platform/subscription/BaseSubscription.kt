@@ -1,11 +1,9 @@
 package com.pusher.platform.subscription
 
-import com.pusher.platform.BaseClient.Companion.GSON
-import com.pusher.platform.MainThreadScheduler
-import com.pusher.platform.ScheduledJob
-import com.pusher.platform.Scheduler
+import com.pusher.platform.*
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.nameCurrentThread
+import com.pusher.platform.network.parseOr
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import elements.*
 import elements.Headers
@@ -19,7 +17,7 @@ class BaseSubscription(
         path: String,
         headers: Headers,
         httpClient: OkHttpClient,
-        onOpen: ( Headers ) -> Unit,
+        onOpen: (Headers) -> Unit,
         onError: (Error) -> Unit,
         onEvent: (SubscriptionEvent) -> Unit,
         onEnd: (EOSEvent?) -> Unit,
@@ -75,7 +73,8 @@ class BaseSubscription(
 
     private fun handleConnectionFailed(response: Response) {
         if(response.body() != null){
-            val body = GSON.fromJson(response.body()!!.charStream(), ErrorResponseBody::class.java)
+            val body = response.body()?.charStream()
+                .parseOr { Errors.responsebody("Could not parse: $response") }
 
             mainThread.schedule {
                 onError(ErrorResponse(

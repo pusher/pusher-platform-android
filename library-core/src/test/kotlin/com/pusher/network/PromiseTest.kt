@@ -2,10 +2,8 @@ package com.pusher.network
 
 import com.google.common.truth.Truth.*
 import com.pusher.platform.FutureValue
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.channels.Channel
+import com.pusher.platform.network.Promise
 import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
 import org.junit.Test
 
 private const val EXPECTED_RESULT = "expected result"

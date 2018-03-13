@@ -1,13 +1,7 @@
 package com.pusher.platform
 
-import com.google.gson.FieldNamingPolicy
-import com.google.gson.GsonBuilder
-import com.pusher.network.Promise
-import com.pusher.network.asPromise
 import com.pusher.platform.logger.Logger
-import com.pusher.platform.network.ConnectivityHelper
-import com.pusher.platform.network.OkHttpResponsePromise
-import com.pusher.platform.network.replaceMultipleSlashesInUrl
+import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
@@ -32,16 +26,10 @@ class BaseClient(
     encrypted: Boolean = true
 ) {
 
-    val prefix = if (encrypted) "https" else "http"
-    val baseUrl = "$prefix://$host"
+    private val prefix = if (encrypted) "https" else "http"
+    private val baseUrl = "$prefix://$host"
 
-    val httpClient: okhttp3.OkHttpClient = OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
-
-    companion object {
-        val GSON = GsonBuilder()
-            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-            .create()
-    }
+    private val httpClient: okhttp3.OkHttpClient = OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
 
     fun subscribeResuming(
         requestDestination: RequestDestination,
@@ -101,8 +89,8 @@ class BaseClient(
         return when(tokenProvider) {
             null -> performRequest(requestDestination, headers, method, requestBody)
             else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
-                headers["Authorization"] = listOf("Bearer $token")
-                performRequest(requestDestination, headers, method, requestBody)
+                val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
+                performRequest(requestDestination, authHeaders, method, requestBody)
             }
         }
     }
@@ -124,15 +112,15 @@ class BaseClient(
             when(tokenProvider) {
                 null -> performRequest(requestDestination, headers, "POST", requestBody)
                 else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
-                    headers["Authorization"] = listOf("Bearer $token")
-                    performRequest(requestDestination, headers, "POST", requestBody)
+                    val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
+                    performRequest(requestDestination, authHeaders, "POST", requestBody)
                 }
             }
         }
         else -> UploadError("File does not exist at ${file.path}").asFailure<Response, Error>().asPromise()
     }
 
-    fun TokenProvider.fetchToken(tokenParams: Any? = null): Promise<Result<String, elements.Error>> = Promise.promise {
+    fun TokenProvider.fetchToken(tokenParams: Any? = null): Promise<Result<String, Error>> = Promise.promise {
         // TODO: convert tokenProvider to promises
         fetchToken(tokenParams,
             { report(it.asSuccess()) },
@@ -164,7 +152,8 @@ class BaseClient(
                     null -> report(OtherError("Response was null").asFailure())
                     in 200..299 -> report(response.asSuccess())
                     else -> {
-                        val errorBody = GSON.fromJson(response.body()!!.string(), ErrorResponseBody::class.java)
+                        val errorBody = response.body()?.charStream()
+                            .parseOr { ErrorResponseBody("could not parse $response") }
                         report(ErrorResponse(
                             statusCode = response.code(),
                             headers = response.headers().toMultimap(),

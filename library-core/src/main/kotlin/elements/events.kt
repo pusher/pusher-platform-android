@@ -1,15 +1,16 @@
 package elements
 
 import com.google.gson.JsonElement
-import com.pusher.platform.BaseClient
+import com.pusher.platform.network.parseAs
+import com.pusher.platform.network.parseOr
 
 sealed class SubscriptionMessage {
     companion object Factory {
         fun fromRaw(messageString: String): SubscriptionMessage {
-            val message = BaseClient.GSON.fromJson(messageString, Array<JsonElement>::class.java)
+            val message = messageString.parseAs<Array<JsonElement>>()
             return when (message[0].asInt) {
                 0 -> ControlEvent(body = message[1].asString)
-                1 -> SubscriptionEvent(eventId = message[1].asString, headers = BaseClient.GSON.fromJson(message[2], Map::class.java) as Headers, body = message[3])
+                1 -> SubscriptionEvent(eventId = message[1].asString, headers = message[2].parseOr { emptyMap<String, List<String>>() }, body = message[3])
                 255 -> EOSEvent(statusCode = message[1].asInt, headers = message[2] as Headers, errorBody = message[3])
                 else -> throw kotlin.Error("Unknown message type: $messageString") // TODO: Handle more gracefully
             }

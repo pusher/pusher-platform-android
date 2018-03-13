@@ -1,11 +1,8 @@
 package com.pusher.util
 
 import com.google.common.truth.Truth.assertThat
-import com.pusher.network.Promise
-import com.pusher.network.asPromise
-import com.pusher.network.await
+import com.pusher.platform.network.asPromise
 import com.pusher.platform.FutureValue
-import kotlinx.coroutines.experimental.runBlocking
 import org.junit.Test
 
 private const val SUCCESS_VALUE = "value"

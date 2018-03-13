@@ -1,7 +1,6 @@
 package com.pusher.platform.subscription
 
 import com.pusher.platform.Cancelable
-import com.pusher.platform.RequestDestination
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.tokenProvider.TokenProvider
@@ -102,7 +101,7 @@ class ActiveState(
     lateinit var underlyingSubscription: Subscription
 
     override fun subscribe(token: String, listeners: SubscriptionListeners) {
-        headers.insertToken(token)
+
         this.underlyingSubscription = this.nextSubscribeStrategy(
                 SubscriptionListeners(
                     onEnd = { error ->
@@ -122,7 +121,7 @@ class ActiveState(
                     },
                     onRetrying = listeners.onRetrying
                 ),
-                this.headers
+                headers.withToken(token)
         )
     }
 
@@ -149,9 +148,8 @@ class InactiveState(val logger: Logger): TokenProvidingSubscriptionState {
     }
 }
 
-private fun Headers.insertToken(token: String) {
-    this.put("Authorization", listOf("Bearer $token"))
-}
+private fun Headers.withToken(token: String): Headers =
+    this + ("Authorization" to listOf("Bearer $token"))
 
 private fun elements.Error.tokenExpired(): Boolean {
     return this is ErrorResponse && this.statusCode == 401 && this.error == "authentication/expired"

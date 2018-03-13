@@ -1,4 +1,4 @@
-package com.pusher.network
+package com.pusher.platform.network
 
 import com.pusher.annotations.UsesCoroutines
 import kotlinx.coroutines.experimental.channels.Channel

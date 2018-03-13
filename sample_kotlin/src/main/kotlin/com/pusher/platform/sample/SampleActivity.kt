@@ -43,11 +43,10 @@ class SampleActivity: AppCompatActivity() {
         this.get_request_btn.setOnClickListener {
 
             pusherPlatform.request(
-                options = RequestOptions(path = "feeds/my-feed/items" ),
-                onSuccess = { response -> Log.d("PP", response.body()!!.string()) },
-                onFailure = { error -> Log.d("PP", error.toString())}
-
-            )
+                options = RequestOptions(path = "feeds/my-feed/items" )
+            ).onReady {
+                Log.d("PP", "result $it")
+            }
         }
 
         this.get_request_authorized_btn.setOnClickListener{
