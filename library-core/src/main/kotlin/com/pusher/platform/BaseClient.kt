@@ -88,7 +88,7 @@ class BaseClient(
         tokenParams: Any? = null
     ): OkHttpResponsePromise {
         val requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) }
-        return when(tokenProvider) {
+        return when (tokenProvider) {
             null -> performRequest(requestDestination, headers, method, requestBody)
             else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
                 val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
@@ -111,7 +111,7 @@ class BaseClient(
                 .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
                 .build()
 
-            when(tokenProvider) {
+            when (tokenProvider) {
                 null -> performRequest(requestDestination, headers, "POST", requestBody)
                 else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
                     val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
@@ -154,21 +154,25 @@ class BaseClient(
                     null -> report(OtherError("Response was null").asFailure())
                     in 200..299 -> report(response.asSuccess())
                     else -> {
-                        val errorBody = response.body()?.charStream()
-                            .parseOr { ErrorResponseBody("could not parse $response") }
-                        report(ErrorResponse(
-                            statusCode = response.code(),
-                            headers = response.headers().toMultimap(),
-                            error = errorBody.error,
-                            errorDescription = errorBody.errorDescription,
-                            URI = errorBody.URI
-                        ).asFailure())
+                        val error = response.body()?.charStream()
+                            .parseOr { ErrorResponseBody("could not parse error response: $response") }
+                            .map { b ->
+                                Errors.response(
+                                    statusCode = response.code(),
+                                    headers = response.headers().toMultimap(),
+                                    error = b.error,
+                                    errorDescription = b.errorDescription,
+                                    URI = b.URI
+                                )
+                            }.recover { it }
+
+                        report(error.asFailure())
                     }
                 }
             }
 
             override fun onFailure(call: Call?, e: IOException?) {
-                report(NetworkError("Request error: $e").asFailure())
+                report(NetworkError("Request reason: $e").asFailure())
             }
         })
     }

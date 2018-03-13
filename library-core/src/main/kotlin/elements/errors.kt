@@ -12,6 +12,8 @@ data class UploadError(override val reason: String) : Error
 
 data class OtherError(override val reason: String, val exception: Throwable? = null) : Error
 
+data class CompositeError(override val reason: String, val errors: List<Error>) : Error
+
 interface Error {
     val reason: String
 }
@@ -28,19 +30,21 @@ object Errors {
         error: String,
         errorDescription: String? = null,
         URI: String? = null
-    ) = ErrorResponse(statusCode, headers, error, errorDescription, URI)
+    ): Error = ErrorResponse(statusCode, headers, error, errorDescription, URI)
 
     @JvmStatic
-    fun responsebody(error: String, errorDescription: String? = null, URI: String? = null) =
-        ErrorResponseBody(error, errorDescription, URI)
+    fun upload(reason: String): Error = UploadError(reason)
 
     @JvmStatic
-    fun upload(reason: String) = UploadError(reason)
+    fun other(reason: String): Error = OtherError(reason)
 
     @JvmStatic
-    fun other(reason: String) = OtherError(reason)
+    fun other(throwable: Throwable): Error = OtherError(throwable.message ?: "no message", throwable)
 
     @JvmStatic
-    fun other(throwable: Throwable) = OtherError(throwable.message ?: "no message", throwable)
+    fun compose(errors: List<Error>): Error = CompositeError(
+        "Multiple errors: \n ${errors.map { it.reason }.joinToString { "\n" }}",
+        errors.toList()
+    )
 
 }
