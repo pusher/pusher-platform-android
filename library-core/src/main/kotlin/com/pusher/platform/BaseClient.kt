@@ -90,9 +90,14 @@ class BaseClient(
         val requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) }
         return when (tokenProvider) {
             null -> performRequest(requestDestination, headers, method, requestBody)
-            else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
-                val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
-                performRequest(requestDestination, authHeaders, method, requestBody)
+            else -> tokenProvider.fetchToken(tokenParams).flatMap {
+                it.map { token ->
+                    val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
+                    performRequest(requestDestination, authHeaders, method, requestBody)
+                }.recover {
+                    it.asFailure<Response, Error>().asPromise()
+                }
+
             }
         }
     }

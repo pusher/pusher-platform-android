@@ -107,7 +107,6 @@ fun <A, B> Promise<Result<A, B>>.recover(block: (B) -> A) : Promise<A> =
 fun <A, B> Promise<Result<A, B>>.flatRecover(block: (B) -> Result<A, B>) : Promise<Result<A, B>> =
     map { it.flatRecover(block) }
 
-
 @UsesCoroutines
 fun <A, B> Result<A, B>.async(): SuspendedResult<A, B> =
     SuspendedResult(this)

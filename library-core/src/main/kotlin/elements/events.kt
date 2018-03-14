@@ -15,8 +15,8 @@ sealed class SubscriptionMessage {
             messageString.parseAs<Array<JsonElement>>().flatMap {
                 when (it.messageType) {
                     0 -> it.createControlEvent()
-                    1 -> it.createEosEvent()
-                    255 -> it.createSubscriptionEvent()
+                    1 -> it.createSubscriptionEvent()
+                    255 -> it.createEosEvent()
                     else -> Errors.other("Unknown message type: $messageString").asFailure()
                 }
             }
@@ -34,7 +34,7 @@ private fun Array<JsonElement>.createControlEvent(): Result<SubscriptionMessage,
 
 private fun Array<JsonElement>.createEosEvent(): Result<SubscriptionMessage, Error> {
     val statusCode = valueAt(1, "statusCode") { asInt }
-    val headers = valueAt(2, "headers") { asString }.flatMap { it.parseAs<Headers>() }
+    val headers = valueAt(2, "headers") { asJsonObject }.flatMap { it.parseAs<Headers>() }
     val errorBody = valueAt(3, "errorBody") { asJsonObject }
 
     return checkProperties(statusCode, errorBody)
@@ -47,7 +47,7 @@ private fun Array<JsonElement>.createEosEvent(): Result<SubscriptionMessage, Err
 
 private fun Array<JsonElement>.createSubscriptionEvent(): Result<SubscriptionMessage, Error> {
     val eventId = valueAt(1, "eventId") { asString }
-    val headers = valueAt(2, "headers") { asString }.flatMap { it.parseAs<Headers>() }
+    val headers = valueAt(2, "headers") { asJsonObject }.flatMap { it.parseAs<Headers>() }
     val body = valueAt(3, "body") { asJsonObject }
 
     return checkProperties(eventId, body)
