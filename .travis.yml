@@ -20,7 +20,7 @@ before_script:
 
 script:
 #  - ./library/gradle/main.sh
- - ./gradlew build codeCoverageReport --info --stacktrace
+ - ./gradlew clean build codeCoverageReport --stacktrace
 # - ./gradle/firebase/auth.sh
 # - ./gradle/firebase/runLibraryAndroidTests.sh
 
