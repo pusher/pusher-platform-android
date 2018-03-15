@@ -1,7 +1,7 @@
+apply plugin: 'com.novoda.bintray-release'
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'de.mannodermaus.android-junit5'
-apply from: "$projectDir/../gradle/maven-push.gradle"
 apply from: "$projectDir/../gradle/jacoco-android.gradle"
 
 android {
@@ -65,4 +65,13 @@ dependencies {
     androidTestImplementation "org.mockito:mockito-android:$mockito_version"
     androidTestImplementation project(":test-common")
 
+}
+
+publish {
+    userOrg = 'pusher'
+    groupId = 'com.pusher'
+    artifactId = 'pusher-platform-android'
+    publishVersion = "$VERSION_NAME"
+    desc = "Pusher Platform SDK for Android"
+    website = "https://github.com/pusher/pusher-platform-android"
 }

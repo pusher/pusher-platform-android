@@ -4,8 +4,9 @@ plugins {
     id 'org.junit.platform.gradle.plugin'
 }
 
-apply from: "$projectDir/../gradle/maven-push.gradle"
 apply from: "$projectDir/../gradle/jacoco.gradle"
+
+apply plugin: 'com.novoda.bintray-release'
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
@@ -68,4 +69,13 @@ afterEvaluate {
     def junitPlatformTestTask = tasks.getByName('junitPlatformTest')
     junitPlatformTestTask.systemProperties += rootProject.properties.findAll { it.value instanceof String }
     junitPlatformTestTask.systemProperties += System.env
+}
+
+publish {
+    userOrg = 'pusher'
+    groupId = 'com.pusher'
+    artifactId = 'pusher-platform-kotlin'
+    publishVersion = "$VERSION_NAME"
+    desc = "Pusher Platform SDK for Kotlin"
+    website = "https://github.com/pusher/pusher-platform-android"
 }
