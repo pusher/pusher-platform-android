@@ -129,7 +129,7 @@ sealed class Promise<out A> {
 }
 
 @UsesCoroutines
-suspend fun <A> Promise<A>.await(): A = with(Channel<A>()) {
+suspend fun <A> Promise<A>.await(): A = with(Channel<A>(Channel.CONFLATED)) {
     onReady { offer(it) }
     receive()
 }
