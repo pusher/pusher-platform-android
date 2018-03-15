@@ -7,9 +7,22 @@ apply from: "$projectDir/../gradle/jacoco.gradle"
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.22.1"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:0.22.1"
     api 'com.squareup.okhttp3:okhttp:3.9.1'
     api 'com.google.code.gson:gson:2.8.2'
+
+
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.mockito:mockito-inline:2.10.0'
+    testImplementation "com.google.truth:truth:0.39"
 }
 
 sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
+
+kotlin {
+    experimental {
+        coroutines 'enable'
+    }
+}

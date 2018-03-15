@@ -1,14 +1,17 @@
 package com.pusher.platform.subscription
 
-import com.pusher.platform.BaseClient.Companion.GSON
 import com.pusher.platform.MainThreadScheduler
 import com.pusher.platform.ScheduledJob
 import com.pusher.platform.Scheduler
 import com.pusher.platform.logger.Logger
+import com.pusher.platform.network.nameCurrentThread
+import com.pusher.platform.network.parseOr
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import elements.*
-import elements.Headers
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
@@ -18,7 +21,7 @@ class BaseSubscription(
         path: String,
         headers: Headers,
         httpClient: OkHttpClient,
-        onOpen: ( Headers ) -> Unit,
+        onOpen: (Headers) -> Unit,
         onError: (Error) -> Unit,
         onEvent: (SubscriptionEvent) -> Unit,
         onEnd: (EOSEvent?) -> Unit,
@@ -46,6 +49,9 @@ class BaseSubscription(
         call = httpClient.newCall(request)
 
         job = backgroundThread.schedule {
+            val nomer = nameCurrentThread(
+                "${request.method()}: /${request.url().pathSegments().joinToString("/")}"
+            )
             try {
                 val response = call.execute()
                 when (response.code()) {
@@ -62,48 +68,52 @@ class BaseSubscription(
                 } else{
                     onError(NetworkError("Connection failed"))
                 }
+            } finally {
+                nomer.restore()
             }
         }
 
     }
 
     private fun handleConnectionFailed(response: Response) {
-        if(response.body() != null){
-            val body = GSON.fromJson(response.body()!!.charStream(), ErrorResponseBody::class.java)
-
-            mainThread.schedule {
-                onError(ErrorResponse(
-                        statusCode = response.code(),
-                        headers = response.headers().toMultimap(),
-                        error = body.error,
-                        errorDescription = body.errorDescription,
-                        URI = body.URI
-                ))
-            }
+        if (response.body() != null) {
+            val errorEvent = response.body()?.charStream()
+                .parseOr { ErrorResponseBody("Could not parse: $response") }
+                .fold(
+                    onFailure = { it },
+                    onSuccess = {
+                        ErrorResponse(
+                            statusCode = response.code(),
+                            headers = response.headers().toMultimap(),
+                            error = it.error,
+                            errorDescription = it.errorDescription,
+                            URI = it.URI
+                        )
+                    }
+                )
+            onError(errorEvent)
         }
     }
 
     private fun handleConnectionOpened(response: Response) {
         onOpen(response.headers().toMultimap())
 
-        if (response.body() != null) {
-            while (!response.body()!!.source().exhausted()) {
-                val messageString = response.body()!!.source().readUtf8LineStrict()
-                val event = SubscriptionMessage.fromRaw(messageString)
-                logger.verbose("${BaseSubscription@this} received event: $event")
-                when (event) {
-                    is ControlEvent -> {} // Ignore
-                    is SubscriptionEvent -> {
-                        onEvent(event)
-                    }
-                    is EOSEvent -> {
-                        onEnd(event)
-                    }
-                }
+        val body = response.body()
+
+        when (body) {
+            null -> onError(NetworkError("No response."))
+            else -> while (!body.source().exhausted()) {
+                val messageString = body.source().readUtf8LineStrict()
+                SubscriptionMessage.fromRaw(messageString).fold(
+                    onFailure = { onError(it) },
+                    onSuccess = {
+                        when (it) {
+                            is ControlEvent -> Unit // Ignore
+                            is SubscriptionEvent -> { onEvent(it) }
+                            is EOSEvent -> { onEnd(it) }
+                        }
+                    })
             }
-        }
-        else{
-            onError(NetworkError("No response."))
         }
     }
 
