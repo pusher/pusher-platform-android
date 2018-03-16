@@ -1,5 +1,7 @@
 package elements
 
+import kotlin.Error as SystemError
+
 data class ErrorResponse(val statusCode: Int, val headers: Headers, val error: String, val errorDescription: String? = null, val URI: String? = null) : Error {
     override val reason: String = errorDescription ?: "ErrorResponse: $this"
 }
@@ -17,6 +19,10 @@ data class CompositeError(override val reason: String, val errors: List<Error>) 
 interface Error {
     val reason: String
 }
+
+fun Error.asSystemError(): ErrorAdapter = ErrorAdapter(this)
+
+data class ErrorAdapter(val error: Error): SystemError(error.reason)
 
 object Errors {
 
