@@ -31,7 +31,7 @@ sealed class Promise<out A> {
          */
         fun report(value: A) {
             result = State.Ready(value)
-            listeners.forEach { it(value) }
+            listeners.asSequence().forEach { it(value) }
         }
 
         /**
@@ -127,6 +127,12 @@ sealed class Promise<out A> {
     }
 
 }
+
+/**
+ * Collapses a nested promise into a simple one
+ */
+fun <A> Promise<Promise<A>>.flatten() =
+    map { it }
 
 @UsesCoroutines
 suspend fun <A> Promise<A>.await(): A = with(Channel<A>(Channel.CONFLATED)) {

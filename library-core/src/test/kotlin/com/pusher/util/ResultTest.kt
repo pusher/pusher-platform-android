@@ -92,13 +92,27 @@ class ResultTest {
     }
 
     @Test
-    fun `map promise with result`() {
-        var result by FutureValue<Any>()
-        val promise = SUCCESS_RESULT.asPromise().mapResult { "promised" }
+    fun `flatten successful success`() {
+        val result = SUCCESS_RESULT.asSuccess<Result<String, Int>, Int>()
 
-        promise.onReady { result = it }
+        val flatten = result.flatten()
+        assertThat(flatten).isEqualTo(SUCCESS_RESULT)
+    }
 
-        assertThat(result).isEqualTo("promised".asSuccess<String, Int>())
+    @Test
+    fun `flatten failure success`() {
+        val result = FAILURE_RESULT.asSuccess<Result<String, Int>, Int>()
+
+        val flatten = result.flatten()
+        assertThat(flatten).isEqualTo(FAILURE_RESULT)
+    }
+
+    @Test
+    fun `flatten failure`() {
+        val result = FAILURE_VALUE.asFailure<Result<String, Int>, Int>()
+
+        val flatten = result.flatten()
+        assertThat(flatten).isEqualTo(FAILURE_RESULT)
     }
 
 }
