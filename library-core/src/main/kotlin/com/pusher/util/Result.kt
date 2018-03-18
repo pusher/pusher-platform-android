@@ -5,6 +5,7 @@ import com.pusher.platform.network.Promise
 import com.pusher.platform.network.asPromise
 import com.pusher.util.Result.Companion.failure
 import com.pusher.util.Result.Companion.success
+import kotlinx.coroutines.experimental.Deferred
 
 fun <A, B> A.asSuccess(): Result<A, B> = success(this)
 fun <A, B> B.asFailure(): Result<A, B> = failure(this)
@@ -76,6 +77,14 @@ sealed class Result<A, B> {
     )
 
 }
+
+/**
+ * Collapses a nested result into a simple one
+ */
+fun <A, B> Result<Result<A, B>, B>.flatten() : Result<A, B> = fold(
+    onFailure = { it.asFailure() },
+    onSuccess = { it }
+)
 
 /**
  * Short for `map { it.map(block) }`
