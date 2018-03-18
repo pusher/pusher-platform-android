@@ -1,12 +1,13 @@
 package com.pusher.network
 
-import com.google.common.truth.Truth.*
+import com.google.common.truth.Truth.assertThat
 import com.pusher.platform.FutureValue
 import com.pusher.platform.network.Promise
 import kotlinx.coroutines.experimental.launch
 import org.junit.Test
 
 private const val EXPECTED_RESULT = "expected result"
+
 class PromiseTest {
 
     @Test
@@ -63,7 +64,7 @@ class PromiseTest {
 
     @Test
     fun `should call cancellation listener when cancelled`() {
-        var cancelled =  false
+        var cancelled = false
         val promise = Promise.promise<String> { onCancel { cancelled = true } }
 
         promise.cancel()
@@ -73,7 +74,7 @@ class PromiseTest {
 
     @Test
     fun `should map promise`() {
-        var result : Int = -1
+        var result: Int = -1
         val promise = Promise.now(EXPECTED_RESULT).map { 123 }
 
         promise.onReady { result = it }
@@ -83,7 +84,7 @@ class PromiseTest {
 
     @Test
     fun `should map pending promise`() {
-        var result : Int = -1
+        var result: Int = -1
         val promise = Promise.promise<String> { report(EXPECTED_RESULT) }.map { 123 }
 
         promise.onReady { result = it }
@@ -93,7 +94,7 @@ class PromiseTest {
 
     @Test
     fun `should flatMap promise`() {
-        var result : Int = -1
+        var result: Int = -1
         val promise = Promise.now(EXPECTED_RESULT).flatMap { Promise.now(123) }
 
         promise.onReady { result = it }
@@ -103,7 +104,7 @@ class PromiseTest {
 
     @Test
     fun `should flatMap pending promise`() {
-        var result : Int = -1
+        var result: Int = -1
         val promise = Promise.promise<String> { report(EXPECTED_RESULT) }.flatMap { Promise.now(123) }
 
         promise.onReady { result = it }
