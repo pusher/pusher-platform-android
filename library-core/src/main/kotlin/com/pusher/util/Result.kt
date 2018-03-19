@@ -32,7 +32,16 @@ sealed class Result<A, B> {
         fun <A, B> failure(error: B) = Failure<A, B>(error)
         @JvmStatic
         fun <B> failuresOf(vararg results: Result<*, B>): List<B> =
+            failuresOf(results.asList())
+        @JvmStatic
+        fun <B> failuresOf(results: List<Result<*, B>>): List<B> =
             results.mapNotNull { it as? Result.Failure }.map { it.error }
+        @JvmStatic
+        fun <A> successesOf(vararg results: Result<A, *>): List<A> =
+            successesOf(results.asList())
+        @JvmStatic
+        fun <A> successesOf(results: List<Result<A, *>>): List<A> =
+            results.mapNotNull { it as? Result.Success }.map { it.value }
     }
 
     data class Success<A, B> internal constructor(val value: A) : Result<A, B>()
