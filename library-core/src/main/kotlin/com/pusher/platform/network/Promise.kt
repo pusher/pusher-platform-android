@@ -4,7 +4,7 @@ import com.pusher.annotations.UsesCoroutines
 import kotlinx.coroutines.experimental.channels.Channel
 import java.util.concurrent.ConcurrentLinkedQueue
 
-typealias FutureResultListener<A> = (A) -> Unit
+typealias PromiseResultListener<A> = (A) -> Unit
 
 fun <A> A.asPromise(): Promise<A> = Promise.Now(this)
 
@@ -24,7 +24,7 @@ sealed class Promise<out A> {
         private var cancelled = false
 
         private val cancelListeners = ConcurrentLinkedQueue<() -> Unit>()
-        private val listeners = ConcurrentLinkedQueue<FutureResultListener<A>>()
+        private val listeners = ConcurrentLinkedQueue<PromiseResultListener<A>>()
 
         /**
          * Used to report that a value is available
@@ -68,7 +68,7 @@ sealed class Promise<out A> {
      * Use this to register a listener that will recieve an update when the value is available,
      * which could be at the time of invocation.
      */
-    abstract fun onReady(listener: FutureResultListener<A>)
+    abstract fun onReady(listener: PromiseResultListener<A>) : Promise<A>
 
     /**
      * @return true if the promise has a value available
@@ -95,13 +95,13 @@ sealed class Promise<out A> {
             context.block()
         }
 
-        override fun onReady(listener: FutureResultListener<A>) = context.onReady(listener)
+        override fun onReady(listener: PromiseResultListener<A>) = this.also { context.onReady(listener) }
         override fun cancel() = context.cancel()
         override fun isReady(): Boolean = context.isReady()
     }
 
     data class Now<out A>(private val result: A) : Promise<A>() {
-        override fun onReady(listener: FutureResultListener<A>) = listener(result)
+        override fun onReady(listener: PromiseResultListener<A>) = this.also { listener(result) }
         override fun cancel() = Unit
         override fun isReady(): Boolean = true
     }
@@ -110,8 +110,8 @@ sealed class Promise<out A> {
         val original: Promise<A>,
         val block: (A) -> B
     ) : Promise<B>() {
-        override fun onReady(listener: FutureResultListener<B>) =
-            original.onReady { listener(block(it)) }
+        override fun onReady(listener: PromiseResultListener<B>) =
+            this.also { original.onReady { listener(block(it)) } }
         override fun isReady(): Boolean = original.isReady()
         override fun cancel() = original.cancel()
     }
@@ -120,8 +120,8 @@ sealed class Promise<out A> {
         val original: Promise<A>,
         val block: (A) -> Promise<B>
     ) : Promise<B>() {
-        override fun onReady(listener: FutureResultListener<B>) =
-            original.onReady { block(it).onReady(listener) }
+        override fun onReady(listener: PromiseResultListener<B>) =
+            this.also { original.onReady { block(it).onReady(listener) } }
         override fun cancel() = original.cancel()
         override fun isReady(): Boolean = original.isReady()
     }
