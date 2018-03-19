@@ -5,7 +5,6 @@ import com.pusher.platform.network.Promise
 import com.pusher.platform.network.asPromise
 import com.pusher.util.Result.Companion.failure
 import com.pusher.util.Result.Companion.success
-import kotlinx.coroutines.experimental.Deferred
 
 fun <A, B> A.asSuccess(): Result<A, B> = success(this)
 fun <A, B> B.asFailure(): Result<A, B> = failure(this)
@@ -62,7 +61,7 @@ sealed class Result<A, B> {
     /**
      * If the result is a failure it will create a new success result using the provided [block].
      */
-    fun recover(block: (B) -> A) : A = fold(
+    fun recover(block: (B) -> A): A = fold(
         onFailure = block,
         onSuccess = { it }
     )
@@ -71,7 +70,7 @@ sealed class Result<A, B> {
      * Similar to [recover] but allows to create a new result instance with [block] instead of
      * always recovering with a success.
      */
-    fun flatRecover(block: (B) -> Result<A, B>) : Result<A, B> = fold(
+    fun flatRecover(block: (B) -> Result<A, B>): Result<A, B> = fold(
         onFailure = block,
         onSuccess = { it.asSuccess() }
     )
@@ -81,7 +80,7 @@ sealed class Result<A, B> {
 /**
  * Collapses a nested result into a simple one
  */
-fun <A, B> Result<Result<A, B>, B>.flatten() : Result<A, B> = fold(
+fun <A, B> Result<Result<A, B>, B>.flatten(): Result<A, B> = fold(
     onFailure = { it.asFailure() },
     onSuccess = { it }
 )
@@ -89,31 +88,31 @@ fun <A, B> Result<Result<A, B>, B>.flatten() : Result<A, B> = fold(
 /**
  * Short for `map { it.map(block) }`
  */
-fun <A, B, C> Promise<Result<A, B>>.mapResult(block: (A) -> C) : Promise<Result<C, B>> =
+fun <A, B, C> Promise<Result<A, B>>.mapResult(block: (A) -> C): Promise<Result<C, B>> =
     map { it.map(block) }
 
 /**
  * Short for `flatMap { it.map(block).recover { it.asFailure<C, B>().asPromise() } }`
  */
-fun <A, B, C> Promise<Result<A, B>>.flatMapResult(block: (A) -> Promise<Result<C, B>>) : Promise<Result<C, B>> =
+fun <A, B, C> Promise<Result<A, B>>.flatMapResult(block: (A) -> Promise<Result<C, B>>): Promise<Result<C, B>> =
     flatMap { it.map(block).recover { it.asFailure<C, B>().asPromise() } }
 
 /**
  * Short for `map { it.fold(onFailure, onSuccess) }`
  */
-fun <A, B, C> Promise<Result<A, B>>.fold(onFailure: (B) -> C, onSuccess: (A) -> C) : Promise<C> =
+fun <A, B, C> Promise<Result<A, B>>.fold(onFailure: (B) -> C, onSuccess: (A) -> C): Promise<C> =
     map { it.fold(onFailure, onSuccess) }
 
 /**
  * Short for `map { it.recover(block) }`
  */
-fun <A, B> Promise<Result<A, B>>.recover(block: (B) -> A) : Promise<A> =
+fun <A, B> Promise<Result<A, B>>.recover(block: (B) -> A): Promise<A> =
     map { it.recover(block) }
 
 /**
  * Short for `map { it.recover(block) }`
  */
-fun <A, B> Promise<Result<A, B>>.flatRecover(block: (B) -> Result<A, B>) : Promise<Result<A, B>> =
+fun <A, B> Promise<Result<A, B>>.flatRecover(block: (B) -> Result<A, B>): Promise<Result<A, B>> =
     map { it.flatRecover(block) }
 
 @UsesCoroutines
@@ -123,7 +122,7 @@ fun <A, B> Result<A, B>.async(): SuspendedResult<A, B> =
 @UsesCoroutines
 data class SuspendedResult<out A, B> internal constructor(private val result: Result<A, B>) {
 
-    suspend fun <C> fold(onFailure: suspend (B) -> C, onSuccess: suspend (A) -> C): C = when(result) {
+    suspend fun <C> fold(onFailure: suspend (B) -> C, onSuccess: suspend (A) -> C): C = when (result) {
         is Result.Success -> onSuccess(result.value)
         is Result.Failure -> onFailure(result.error)
     }

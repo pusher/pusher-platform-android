@@ -131,8 +131,8 @@ sealed class Promise<out A> {
 /**
  * Collapses a nested promise into a simple one
  */
-fun <A> Promise<Promise<A>>.flatten() =
-    map { it }
+fun <A> Promise<Promise<A>>.flatten(): Promise<A> =
+    flatMap { it }
 
 @UsesCoroutines
 suspend fun <A> Promise<A>.await(): A = with(Channel<A>(Channel.CONFLATED)) {

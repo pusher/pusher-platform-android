@@ -1,8 +1,6 @@
 package com.pusher.util
 
 import com.google.common.truth.Truth.assertThat
-import com.pusher.platform.network.asPromise
-import com.pusher.platform.FutureValue
 import org.junit.Test
 
 private const val SUCCESS_VALUE = "value"
@@ -16,7 +14,7 @@ class ResultTest {
 
     @Test
     fun `success instantiation`() {
-        val result= SUCCESS_VALUE.asSuccess<String, Int>()
+        val result = SUCCESS_VALUE.asSuccess<String, Int>()
 
         assertThat(result).isEqualTo(SUCCESS_RESULT)
     }
