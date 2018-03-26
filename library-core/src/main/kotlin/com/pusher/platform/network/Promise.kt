@@ -1,8 +1,8 @@
 package com.pusher.platform.network
 
 import com.pusher.annotations.UsesCoroutines
-import kotlinx.coroutines.experimental.channels.Channel
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.coroutines.experimental.suspendCoroutine
 
 typealias PromiseResultListener<A> = (A) -> Unit
 
@@ -58,7 +58,7 @@ sealed class Promise<out A> {
             result is State.Ready<A>
 
         private sealed class State<out A> {
-            class NotReady<out A>: State<A>()
+            class NotReady<out A> : State<A>()
             data class Ready<out A>(val value: A) : State<A>()
         }
 
@@ -68,7 +68,7 @@ sealed class Promise<out A> {
      * Use this to register a listener that will recieve an update when the value is available,
      * which could be at the time of invocation.
      */
-    abstract fun onReady(listener: PromiseResultListener<A>) : Promise<A>
+    abstract fun onReady(listener: PromiseResultListener<A>): Promise<A>
 
     /**
      * @return true if the promise has a value available
@@ -112,6 +112,7 @@ sealed class Promise<out A> {
     ) : Promise<B>() {
         override fun onReady(listener: PromiseResultListener<B>) =
             this.also { original.onReady { listener(block(it)) } }
+
         override fun isReady(): Boolean = original.isReady()
         override fun cancel() = original.cancel()
     }
@@ -122,6 +123,7 @@ sealed class Promise<out A> {
     ) : Promise<B>() {
         override fun onReady(listener: PromiseResultListener<B>) =
             this.also { original.onReady { block(it).onReady(listener) } }
+
         override fun cancel() = original.cancel()
         override fun isReady(): Boolean = original.isReady()
     }
@@ -135,7 +137,6 @@ fun <A> Promise<Promise<A>>.flatten(): Promise<A> =
     flatMap { it }
 
 @UsesCoroutines
-suspend fun <A> Promise<A>.await(): A = with(Channel<A>(Channel.CONFLATED)) {
-    onReady { offer(it) }
-    receive()
+suspend fun <A> Promise<A>.await(): A = suspendCoroutine { continuation ->
+    onReady { continuation.resume(it) }
 }
