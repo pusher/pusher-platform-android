@@ -127,14 +127,6 @@ class BaseClient(
         else -> UploadError("File does not exist at ${file.path}").asFailure<Response, Error>().asPromise()
     }
 
-    fun TokenProvider.fetchToken(tokenParams: Any? = null): Promise<Result<String, Error>> = Promise.promise {
-        // TODO: convert tokenProvider to promises
-        fetchToken(tokenParams,
-            { report(it.asSuccess()) },
-            { report(it.asFailure()) }
-        )
-    }
-
     private fun performRequest(
         requestDestination: RequestDestination,
         headers: Headers,

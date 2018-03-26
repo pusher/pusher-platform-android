@@ -4,25 +4,28 @@ import com.pusher.platform.Cancelable
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.tokenProvider.TokenProvider
-import elements.*
+import elements.EOSEvent
+import elements.ErrorResponse
+import elements.Headers
+import elements.Subscription
 
 
 fun createTokenProvidingStrategy(
-        nextSubscribeStrategy: SubscribeStrategy,
-        logger: Logger,
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? =  null
+    nextSubscribeStrategy: SubscribeStrategy,
+    logger: Logger,
+    tokenProvider: TokenProvider? = null,
+    tokenParams: Any? = null
 ): SubscribeStrategy {
     // Token provider might not be provided. If missing, go straight to underlying subscribe strategy
     if (tokenProvider != null) {
         return { listeners, headers ->
             TokenProvidingSubscription(
-                    logger,
-                    listeners,
-                    headers,
-                    tokenProvider,
-                    tokenParams,
-                    nextSubscribeStrategy
+                logger,
+                listeners,
+                headers,
+                tokenProvider,
+                tokenParams,
+                nextSubscribeStrategy
             )
         }
     }
@@ -30,13 +33,13 @@ fun createTokenProvidingStrategy(
 }
 
 class TokenProvidingSubscription(
-        val logger: Logger,
-        val listeners: SubscriptionListeners,
-        val headers: Headers,
-        val tokenProvider: TokenProvider,
-        val tokenParams: Any? = null,
-        val nextSubscribeStrategy: SubscribeStrategy
-): Subscription {
+    val logger: Logger,
+    val listeners: SubscriptionListeners,
+    val headers: Headers,
+    val tokenProvider: TokenProvider,
+    val tokenParams: Any? = null,
+    val nextSubscribeStrategy: SubscribeStrategy
+) : Subscription {
     var state: TokenProvidingSubscriptionState
     lateinit var tokenRequestInProgress: Cancelable
 
@@ -45,46 +48,41 @@ class TokenProvidingSubscription(
         this.subscribe()
     }
 
-    override fun unsubscribe(){
+    override fun unsubscribe() {
         tokenRequestInProgress.cancel()
         state.unsubscribe()
         state = InactiveState(logger)
     }
 
     private fun subscribe() {
-        tokenRequestInProgress = tokenProvider.fetchToken(
-                tokenParams = tokenParams,
-                onSuccess = { token ->
-                    logger.verbose("${TokenProvidingSubscription@this}: token fetched: $token")
-                    state.subscribe(
-                            token,
-                            SubscriptionListeners(
-                                    onEnd = { error: EOSEvent? ->
-                                        state = InactiveState(logger)
-                                        listeners.onEnd(error)
-                                    },
-                                    onError = { error ->
-                                        if (error.tokenExpired()) {
-                                            tokenProvider.clearToken(token)
-                                            subscribe()
-                                        } else {
-                                            state = InactiveState(logger)
-                                            listeners.onError(error)
-                                        }
-                                    },
-                                    onEvent = listeners.onEvent,
-                                    onOpen = listeners.onOpen
-                            )
-                    )
-                },
-                onFailure = { error ->
+        tokenProvider.fetchToken(tokenParams)
+            .onReady { result ->
+                result.fold({ error ->
                     logger.debug(
-                            "TokenProvidingSubscription: error when fetching token: $error"
+                        "TokenProvidingSubscription: error when fetching token: $error"
                     )
                     state = InactiveState(logger)
                     listeners.onError(error)
-                }
-        )
+                }, { token ->
+                    state.subscribe(token, SubscriptionListeners(
+                        onEnd = { error: EOSEvent? ->
+                            state = InactiveState(logger)
+                            listeners.onEnd(error)
+                        },
+                        onError = { error ->
+                            if (error.tokenExpired()) {
+                                tokenProvider.clearToken(token)
+                                subscribe()
+                            } else {
+                                state = InactiveState(logger)
+                                listeners.onError(error)
+                            }
+                        },
+                        onEvent = listeners.onEvent,
+                        onOpen = listeners.onOpen
+                    ))
+                })
+            }
     }
 }
 
@@ -94,34 +92,34 @@ interface TokenProvidingSubscriptionState {
 }
 
 class ActiveState(
-        val logger: Logger,
-        val headers: Headers,
-        val nextSubscribeStrategy: SubscribeStrategy
-): TokenProvidingSubscriptionState {
+    val logger: Logger,
+    val headers: Headers,
+    val nextSubscribeStrategy: SubscribeStrategy
+) : TokenProvidingSubscriptionState {
     lateinit var underlyingSubscription: Subscription
 
     override fun subscribe(token: String, listeners: SubscriptionListeners) {
 
         this.underlyingSubscription = this.nextSubscribeStrategy(
-                SubscriptionListeners(
-                    onEnd = { error ->
-                        this.logger.verbose("TokenProvidingSubscription: subscription ended")
-                        listeners.onEnd(error)
-                    },
-                    onError = { error ->
-                        this.logger.verbose(
-                            "TokenProvidingSubscription: subscription errored: $error"
-                        )
-                        listeners.onError(error)
-                    },
-                    onEvent = listeners.onEvent,
-                    onOpen = { headers ->
-                        this.logger.verbose("TokenProvidingSubscription: subscription opened")
-                        listeners.onOpen(headers)
-                    },
-                    onRetrying = listeners.onRetrying
-                ),
-                headers.withToken(token)
+            SubscriptionListeners(
+                onEnd = { error ->
+                    this.logger.verbose("TokenProvidingSubscription: subscription ended")
+                    listeners.onEnd(error)
+                },
+                onError = { error ->
+                    this.logger.verbose(
+                        "TokenProvidingSubscription: subscription errored: $error"
+                    )
+                    listeners.onError(error)
+                },
+                onEvent = listeners.onEvent,
+                onOpen = { headers ->
+                    this.logger.verbose("TokenProvidingSubscription: subscription opened")
+                    listeners.onOpen(headers)
+                },
+                onRetrying = listeners.onRetrying
+            ),
+            headers.withToken(token)
         )
     }
 
@@ -130,20 +128,20 @@ class ActiveState(
     }
 }
 
-class InactiveState(val logger: Logger): TokenProvidingSubscriptionState {
+class InactiveState(val logger: Logger) : TokenProvidingSubscriptionState {
     init {
         logger.verbose("TokenProvidingSubscription: transitioning to InactiveState")
     }
 
     override fun subscribe(token: String, listeners: SubscriptionListeners) {
         logger.verbose(
-                "TokenProvidingSubscription: subscribe called in Inactive state; doing nothing"
+            "TokenProvidingSubscription: subscribe called in Inactive state; doing nothing"
         )
     }
 
     override fun unsubscribe() {
         logger.verbose(
-                "TokenProvidingSubscription: unsubscribe called in Inactive state; doing nothing"
+            "TokenProvidingSubscription: unsubscribe called in Inactive state; doing nothing"
         )
     }
 }
