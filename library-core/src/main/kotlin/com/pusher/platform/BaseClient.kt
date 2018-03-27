@@ -1,7 +1,5 @@
 package com.pusher.platform
 
-import com.pusher.SdkInfo
-import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
@@ -17,18 +15,20 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 class BaseClient(
-    var host: String,
-    internal val logger: Logger,
-    internal val connectivityHelper: ConnectivityHelper,
-    internal val mediaTypeResolver: MediaTypeResolver,
-    internal val scheduler: Scheduler,
-    internal val mainScheduler: MainThreadScheduler,
-    internal val sdkInfo: SdkInfo,
+    host: String,
+    dependencies: PlatformDependencies,
     encrypted: Boolean = true
 ) {
 
     private val schema = if (encrypted) "https" else "http"
     private val baseUrl = "$schema://$host"
+
+    internal val logger = dependencies.logger
+    private val scheduler = dependencies.scheduler
+    private val mainScheduler = dependencies.mainScheduler
+    private val mediaTypeResolver = dependencies.mediaTypeResolver
+    private val connectivityHelper = dependencies.connectivityHelper
+    private val sdkInfo = dependencies.sdkInfo
 
     private val httpClient = with(OkHttpClient.Builder()) {
         readTimeout(0, TimeUnit.MINUTES)
