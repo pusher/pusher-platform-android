@@ -1,5 +1,6 @@
 package com.pusher.platform
 
+import com.pusher.SdkInfo
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.network.OkHttpResponsePromise
@@ -20,7 +21,8 @@ open class Instance(
     mediatypeResolver: MediaTypeResolver,
     connectivityHelper: ConnectivityHelper,
     baseClient: BaseClient? = null,
-    host: String? = null
+    host: String? = null,
+    sdkInfo: SdkInfo
 ) {
 
     private val id: String
@@ -48,7 +50,8 @@ open class Instance(
             scheduler = scheduler,
             mainScheduler = mainThreadScheduler,
             connectivityHelper = connectivityHelper,
-            mediaTypeResolver = mediatypeResolver
+            mediaTypeResolver = mediatypeResolver,
+            sdkInfo = sdkInfo
         )
     }
 

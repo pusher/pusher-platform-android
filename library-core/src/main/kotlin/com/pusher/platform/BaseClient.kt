@@ -1,11 +1,11 @@
 package com.pusher.platform
 
+import com.pusher.SdkInfo
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
-import com.pusher.util.Result
 import com.pusher.util.asFailure
 import com.pusher.util.asSuccess
 import elements.*
@@ -23,6 +23,7 @@ class BaseClient(
     internal val mediaTypeResolver: MediaTypeResolver,
     internal val scheduler: Scheduler,
     internal val mainScheduler: MainThreadScheduler,
+    internal val sdkInfo: SdkInfo,
     encrypted: Boolean = true
 ) {
 
@@ -97,7 +98,6 @@ class BaseClient(
                 }.recover {
                     it.asFailure<Response, Error>().asPromise()
                 }
-
             }
         }
     }
@@ -135,13 +135,15 @@ class BaseClient(
     ): OkHttpResponsePromise = Promise.promise {
         val requestURL = getRequestPath(requestDestination)
 
-        val requestBuilder = Request.Builder()
-            .method(method, requestBody)
-            .url(requestURL)
+        val request = createRequest {
+            method(method, requestBody)
+            url(requestURL)
+            headers.forEach { (name, values) ->
+                values.forEach { value -> addHeader(name, value) }
+            }
+        }
 
-        headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
-
-        val call: Call = httpClient.newCall(requestBuilder.build())
+        val call: Call = httpClient.newCall(request)
 
         onCancel { if (!call.isCanceled) call.cancel() }
 
@@ -186,10 +188,19 @@ class BaseClient(
                 httpClient = httpClient,
                 logger = logger,
                 mainThread = mainScheduler,
-                backgroundThread = scheduler
+                backgroundThread = scheduler,
+                baseClient = this
             )
         }
     }
+
+    internal fun createRequest(block: Request.Builder.() -> Unit) : Request =
+        Request.Builder().apply {
+            addHeader("X-SDK-Product", sdkInfo.product)
+            addHeader("X-SDK-Version", sdkInfo.sdkVersion)
+            addHeader("X-SDK-Language", sdkInfo.language)
+            addHeader("X-SDK-Platform", sdkInfo.platform)
+        }.also(block).build()
 
     private fun getRequestPath(requestDestination: RequestDestination): String {
         return when (requestDestination) {
@@ -203,4 +214,8 @@ class BaseClient(
     }
 
     private fun absolutePath(path: String): String = "$baseUrl/$path".replaceMultipleSlashesInUrl()
+}
+
+internal fun Request.Builder.add(headers: Headers) = headers.forEach { (name, values) ->
+    values.forEach { value -> addHeader(name, value) }
 }

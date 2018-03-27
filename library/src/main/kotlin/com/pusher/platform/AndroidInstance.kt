@@ -1,6 +1,7 @@
 package com.pusher.platform
 
 import android.content.Context
+import com.pusher.SdkInfo
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
 import com.pusher.platform.logger.Logger
@@ -23,7 +24,8 @@ object AndroidInstance {
         logger: Logger = AndroidLogger(threshold = LogLevel.DEBUG),
         mediaResolver: MediaTypeResolver = AndroidMediaTypeResolver(),
         backgroundScheduler: Scheduler = BackgroundScheduler(),
-        foregroundScheduler: MainThreadScheduler = ForegroundScheduler()
+        foregroundScheduler: MainThreadScheduler = ForegroundScheduler(),
+        sdkInfo: SdkInfo = SdkInfo("pusher-platform", "0.0.0", "Android", "Kotlin")
     ) = Instance(
         locator,
         serviceName,
@@ -34,7 +36,8 @@ object AndroidInstance {
         mediaResolver,
         connectivityResolver,
         baseClient,
-        host
+        host,
+        sdkInfo
     )
 
 }
