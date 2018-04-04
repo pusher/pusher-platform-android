@@ -10,10 +10,10 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.mockito.Mockito.any
 import org.mockito.Mockito.eq
-import org.mockito.handles
-import org.mockito.returns
-import org.mockito.returnsStubAs
-import org.mockito.stub
+import mockitox.handles
+import mockitox.returns
+import mockitox.returnsStubAs
+import mockitox.stub
 
 class AndroidConnectivityHelperTest {
 

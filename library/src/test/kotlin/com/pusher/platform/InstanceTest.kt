@@ -1,10 +1,9 @@
 package com.pusher.platform
 
 import android.content.Context
-import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
 import org.mockito.Mockito
+import mockitox.stub
 import kotlin.test.assertNotNull
 
 class InstanceTest {
