@@ -1,6 +1,7 @@
 plugins {
     id 'kotlin'
     id 'java-library'
+    id 'org.junit.platform.gradle.plugin'
 }
 apply from: "$projectDir/../gradle/maven-push.gradle"
 apply from: "$projectDir/../gradle/jacoco.gradle"
@@ -12,15 +13,26 @@ dependencies {
     api 'com.squareup.okhttp3:okhttp:3.10.0'
     api 'com.google.code.gson:gson:2.8.2'
 
-    testImplementation 'junit:junit:4.12'
     testImplementation 'org.mockito:mockito-inline:2.10.0'
     testImplementation "com.google.truth:truth:0.40"
+    testImplementation 'org.jetbrains.spek:spek-api:1.1.5'
+    testImplementation 'org.jetbrains.spek:spek-junit-platform-engine:1.1.5'
+    testImplementation 'org.junit.platform:junit-platform-runner:1.0.0'
+    testImplementation 'org.junit.platform:junit-platform-launcher:1.0.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.0.0'
     testImplementation project(":test-common")
 }
 
 sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
 
+junitPlatform {
+    filters {
+        engines {
+            include 'spek'
+        }
+    }
+}
 kotlin {
     experimental {
         coroutines 'enable'

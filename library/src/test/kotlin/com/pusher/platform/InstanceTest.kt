@@ -1,9 +1,8 @@
 package com.pusher.platform
 
 import android.content.Context
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import mockitox.stub
 import kotlin.test.assertNotNull
 
 class InstanceTest {

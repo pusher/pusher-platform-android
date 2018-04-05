@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.pusher.platform.FutureValue
 import com.pusher.platform.network.Promise
 import kotlinx.coroutines.experimental.launch
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 private const val EXPECTED_RESULT = "expected result"
 
