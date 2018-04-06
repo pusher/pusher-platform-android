@@ -5,7 +5,6 @@ import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
-import com.pusher.util.Result
 import com.pusher.util.asFailure
 import com.pusher.util.asSuccess
 import elements.*
@@ -23,13 +22,15 @@ class BaseClient(
     internal val mediaTypeResolver: MediaTypeResolver,
     internal val scheduler: Scheduler,
     internal val mainScheduler: MainThreadScheduler,
+    client: OkHttpClient = OkHttpClient(),
     encrypted: Boolean = true
 ) {
 
     private val schema = if (encrypted) "https" else "http"
     private val baseUrl = "$schema://$host"
 
-    private val httpClient = with(OkHttpClient.Builder()) {
+
+    private val httpClient = client.newBuilder().apply {
         readTimeout(0, TimeUnit.MINUTES)
     }.build()
 
