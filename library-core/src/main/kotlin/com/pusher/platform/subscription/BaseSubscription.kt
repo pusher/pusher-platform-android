@@ -1,8 +1,6 @@
 package com.pusher.platform.subscription
 
-import com.pusher.platform.MainThreadScheduler
-import com.pusher.platform.ScheduledJob
-import com.pusher.platform.Scheduler
+import com.pusher.platform.*
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.nameCurrentThread
 import com.pusher.platform.network.parseOr
@@ -17,7 +15,7 @@ import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
 
 
-class BaseSubscription(
+internal class BaseSubscription(
         path: String,
         headers: Headers,
         httpClient: OkHttpClient,
@@ -27,7 +25,8 @@ class BaseSubscription(
         onEnd: (EOSEvent?) -> Unit,
         val logger: Logger,
         private val mainThread: MainThreadScheduler,
-        backgroundThread: Scheduler
+        backgroundThread: Scheduler,
+        val baseClient: BaseClient
 ): Subscription {
 
     private val call: Call
@@ -39,12 +38,11 @@ class BaseSubscription(
     private val job: ScheduledJob
 
     init {
-        val requestBuilder = Request.Builder()
-                .method("SUBSCRIBE", null)
-                .url(path.replaceMultipleSlashesInUrl())
-
-        headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
-        val request = requestBuilder.build()
+        val request = baseClient.createRequest {
+            method("SUBSCRIBE", null)
+            url(path.replaceMultipleSlashesInUrl())
+            add(headers)
+        }
 
         call = httpClient.newCall(request)
 

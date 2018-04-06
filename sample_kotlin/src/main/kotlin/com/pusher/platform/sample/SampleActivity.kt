@@ -29,11 +29,12 @@ class SampleActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sample)
 
-        val pusherPlatform = AndroidInstance(
+        val pusherPlatform = Instance(
             locator = INSTANCE_LOCATOR,
             serviceName = "feeds",
             serviceVersion = "v1",
-            context = this)
+            dependencies = AndroidDependencies(applicationContext)
+        )
 
         val listeners = SubscriptionListeners(
             onOpen = { headers -> Log.d("PP", "OnOpen $headers") },
