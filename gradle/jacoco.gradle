@@ -1,6 +1,11 @@
 apply plugin: 'jacoco'
 
-task codeCoverageReport(type: JacocoReport, dependsOn: ['test']) {
+jacoco {
+    toolVersion = '0.8.0'
+    applyTo(junitPlatformTest)
+}
+
+task codeCoverageReport(type: JacocoReport, dependsOn: ['junitPlatformTest']) {
     executionData fileTree(project.rootDir.absolutePath).include("**/build/jacoco/*.exec")
 
     sourceSets project.sourceSets.main
