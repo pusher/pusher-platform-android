@@ -1,5 +1,8 @@
 package com.pusher.platform
 
+import com.pusher.SdkInfo
+import com.pusher.platform.logger.Logger
+import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.test.*
 import mockitox.stub
@@ -18,12 +21,7 @@ class InstanceIntegrationSpek : Spek({
             locator = "v1:api-ceres:test",
             serviceName = "platform_sdk_tester",
             serviceVersion = "v1",
-            host = HOST,
-            logger = stub(),
-            connectivityHelper = AlwaysOnlineConnectivityHelper,
-            scheduler = SyncScheduler(),
-            mainThreadScheduler = SyncScheduler(),
-            mediatypeResolver = stub(),
+            dependencies = TestDependencies(),
             baseClient = baseClient
         )
 
@@ -43,13 +41,24 @@ class InstanceIntegrationSpek : Spek({
 
 val baseClient = BaseClient(
     host = HOST,
-    scheduler = SyncScheduler(),
-    connectivityHelper = AlwaysOnlineConnectivityHelper,
-    mainScheduler = SyncScheduler(),
-    logger = stub(),
-    mediaTypeResolver = stub(),
+    dependencies = TestDependencies(),
     client = insecureOkHttpClient
 )
+
+
+class TestDependencies : PlatformDependencies {
+    override val logger: Logger = stub()
+    override val mediaTypeResolver: MediaTypeResolver = stub()
+    override val connectivityHelper: ConnectivityHelper= AlwaysOnlineConnectivityHelper
+    override val sdkInfo: SdkInfo = SdkInfo(
+        product = InstanceIntegrationSpek::class.qualifiedName!!,
+        language = "Spek",
+        platform = "JUnit",
+        sdkVersion = "test"
+    )
+    override val scheduler: Scheduler = SyncScheduler()
+    override val mainScheduler: MainThreadScheduler = SyncScheduler()
+}
 
 
 
