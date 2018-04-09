@@ -57,6 +57,7 @@ class ErrorResolver(
                     callback(DoNotRetry())
                 }
             }
+            else -> callback(DoNotRetry())
         }
     }
 

@@ -32,7 +32,7 @@ fun createTokenProvidingStrategy(
     return nextSubscribeStrategy
 }
 
-class TokenProvidingSubscription(
+private class TokenProvidingSubscription(
     val logger: Logger,
     val listeners: SubscriptionListeners,
     val headers: Headers,

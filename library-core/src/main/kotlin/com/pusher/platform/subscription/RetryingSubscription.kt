@@ -23,7 +23,7 @@ fun createRetryingStrategy(
     }
 }
 
-class RetryingSubscription(
+private class RetryingSubscription(
         listeners: SubscriptionListeners,
         val headers: Headers,
         val logger: Logger,
@@ -56,44 +56,40 @@ class RetryingSubscription(
             listeners: SubscriptionListeners,
             onTransition: StateTransition
     ): SubscriptionState {
-        lateinit var underlyingSubscription: Subscription
+
+        private val underlyingListeners = SubscriptionListeners(
+            onOpen = { headers ->
+                onTransition(
+                    OpenSubscriptionState(
+                        listeners,
+                        headers,
+                        this,
+                        onTransition
+                    )
+                )
+            },
+            onSubscribe = listeners.onSubscribe,
+            onEvent = { event ->
+                listeners.onEvent(event)
+                logger.verbose(
+                    "${RetryingSubscription@this}received event $event"
+                )
+            },
+            onRetrying = listeners.onRetrying,
+            onError = { error ->
+                onTransition(
+                    RetryingSubscriptionState(listeners, error, onTransition)
+                )
+            },
+            onEnd = { error: EOSEvent? ->
+                onTransition(EndedSubscriptionState(listeners, error))
+            }
+        )
+
+        private val underlyingSubscription: Subscription = nextSubscribeStrategy(underlyingListeners, headers)
 
         init {
             logger.verbose("${RetryingSubscription@this}: transitioning to OpeningSubscriptionState")
-
-
-            underlyingSubscription = nextSubscribeStrategy(
-                    SubscriptionListeners(
-                            onOpen = { headers ->
-                                onTransition(
-                                        OpenSubscriptionState(
-                                                listeners,
-                                                headers,
-                                                underlyingSubscription,
-                                                onTransition
-                                        )
-                                )
-                            },
-                            onSubscribe = listeners.onSubscribe,
-                            onEvent = { event ->
-                                listeners.onEvent
-                                logger.verbose(
-                                        "${RetryingSubscription@this}received event ${event}"
-                                )
-                            },
-                            onRetrying = listeners.onRetrying,
-                            onError = { error ->
-                                onTransition(
-                                        RetryingSubscriptionState(listeners, error, onTransition)
-                                )
-                            },
-                            onEnd = { error: EOSEvent? ->
-                                onTransition(EndedSubscriptionState(listeners, error))
-                            }
-                    ),
-                    headers
-            )
-
         }
 
         override fun unsubscribe() {
@@ -131,7 +127,7 @@ class RetryingSubscription(
             })
         }
 
-        private fun executeNextSubscribeStrategy(): Unit {
+        private fun executeNextSubscribeStrategy() {
             logger.verbose("${RetryingSubscription@this}: trying to re-establish the subscription")
 
             underlyingSubscription = nextSubscribeStrategy(
@@ -151,7 +147,7 @@ class RetryingSubscription(
                                 error -> executeSubscriptionOnce(error)
                             },
                             onEvent = { event ->
-                                listeners.onEvent
+                                listeners.onEvent(event)
                                 logger.verbose(
                                         "${RetryingSubscription@this}received event ${event}"
                                 )

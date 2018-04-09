@@ -15,6 +15,7 @@ import okhttp3.Response
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
+import javax.net.ssl.SSLHandshakeException
 
 
 class BaseSubscription(
@@ -63,10 +64,10 @@ class BaseSubscription(
                 }
                 response.close()
             } catch (e: IOException) {
-                if(e is StreamResetException && e.errorCode == ErrorCode.CANCEL){
-                    onEnd(null)
-                } else{
-                    onError(NetworkError("Connection failed"))
+                when {
+                    e is StreamResetException && e.errorCode == ErrorCode.CANCEL -> onEnd(null)
+                    e is SSLHandshakeException -> onError(Errors.other(e))
+                    else -> onError(NetworkError("Connection failed"))
                 }
             } finally {
                 nomer.restore()
@@ -102,17 +103,24 @@ class BaseSubscription(
 
         when (body) {
             null -> onError(NetworkError("No response."))
-            else -> while (!body.source().exhausted()) {
-                val messageString = body.source().readUtf8LineStrict()
-                SubscriptionMessage.fromRaw(messageString).fold(
-                    onFailure = { onError(it) },
-                    onSuccess = {
-                        when (it) {
-                            is ControlEvent -> Unit // Ignore
-                            is SubscriptionEvent -> { onEvent(it) }
-                            is EOSEvent -> { onEnd(it) }
-                        }
-                    })
+            else -> {
+                while (!body.source().exhausted()) {
+                    val messageString = body.source().readUtf8LineStrict()
+                    SubscriptionMessage.fromRaw(messageString).fold(
+                        onFailure = { onError(it) },
+                        onSuccess = {
+                            when (it) {
+                                is ControlEvent -> Unit // Ignore
+                                is SubscriptionEvent -> {
+                                    onEvent(it)
+                                }
+                                is EOSEvent -> {
+                                    onEnd(it)
+                                }
+                            }
+                        })
+                }
+                onEnd(null)
             }
         }
     }
