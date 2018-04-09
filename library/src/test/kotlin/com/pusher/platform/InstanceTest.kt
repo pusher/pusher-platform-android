@@ -1,26 +1,26 @@
 package com.pusher.platform
 
-import android.content.Context
 import com.pusher.platform.test.SyncScheduler
+import mockitox.stub
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
 import kotlin.test.assertNotNull
 
 class InstanceTest {
 
-    private val context: Context = Mockito.mock(Context::class.java)
-
     @Test
-    fun instanceSetUpCorrectly(){
-        val instance = AndroidInstance(
+    fun instanceSetUpCorrectly() {
+        val instance = Instance(
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
-            context = context,
-            backgroundScheduler = SyncScheduler(),
-            foregroundScheduler = SyncScheduler()
+            dependencies = TestDependencies()
         )
         assertNotNull(instance)
     }
 
+}
+
+class TestDependencies(androidDependencies: PlatformDependencies = AndroidDependencies(stub())) : PlatformDependencies by androidDependencies {
+    override val scheduler: Scheduler = SyncScheduler()
+    override val mainScheduler: MainThreadScheduler = SyncScheduler()
 }
