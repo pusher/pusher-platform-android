@@ -184,7 +184,7 @@ open class Instance(
 
 }
 
-class SubscriptionListeners(
+data class SubscriptionListeners(
     val onEnd: (error: EOSEvent?) -> Unit = {},
     val onError: (error: elements.Error) -> Unit = {},
     val onEvent: (event: SubscriptionEvent) -> Unit = {},

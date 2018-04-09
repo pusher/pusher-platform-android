@@ -3,6 +3,7 @@ plugins {
     id 'java-library'
     id 'org.junit.platform.gradle.plugin'
 }
+
 apply from: "$projectDir/../gradle/maven-push.gradle"
 apply from: "$projectDir/../gradle/jacoco.gradle"
 
@@ -18,10 +19,10 @@ dependencies {
     testImplementation 'org.jetbrains.spek:spek-api:1.1.5'
     testImplementation 'org.jetbrains.spek:spek-junit-platform-engine:1.1.5'
     testImplementation 'org.junit.platform:junit-platform-runner:1.1.0'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.0.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.0.3'
     testImplementation project(":test-common")
-    
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.0.0'
+
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.0.3'
 }
 
 test {
@@ -32,8 +33,26 @@ sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
 
 sourceSets.test {
-    java.srcDirs += ['src/test/kotlin', 'src/integrationTest/kotlin']
-    resources.srcDirs += ['src/test/resources', 'src/integrationTest/resources']
+    java.srcDirs = ['src/test/kotlin', 'src/integrationTest/kotlin']
+    resources.srcDirs = ['src/test/resources', 'src/integrationTest/resources']
+}
+
+import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP
+
+task unitTest(type: Test) {
+    description = 'Runs unit tests.'
+    group = VERIFICATION_GROUP
+    useJUnitPlatform()
+    testClassesDirs += sourceSets.test.output.classesDirs
+    include '**/test/**'
+}
+
+task integrationTest(type: Test) {
+    description = 'Runs integration tests.'
+    group = VERIFICATION_GROUP
+    useJUnitPlatform()
+    testClassesDirs += sourceSets.test.output.classesDirs
+    include '**/integrationTest/**'
 }
 
 junitPlatform {

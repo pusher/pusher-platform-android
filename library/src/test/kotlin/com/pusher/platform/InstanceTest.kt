@@ -1,6 +1,7 @@
 package com.pusher.platform
 
 import android.content.Context
+import com.pusher.platform.test.SyncScheduler
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import kotlin.test.assertNotNull
@@ -8,7 +9,6 @@ import kotlin.test.assertNotNull
 class InstanceTest {
 
     private val context: Context = Mockito.mock(Context::class.java)
-    private val scheduler = TestScheduler()
 
     @Test
     fun instanceSetUpCorrectly(){
@@ -17,32 +17,10 @@ class InstanceTest {
             serviceName = "bar",
             serviceVersion = "baz",
             context = context,
-            backgroundScheduler = scheduler,
-            foregroundScheduler = scheduler
+            backgroundScheduler = SyncScheduler(),
+            foregroundScheduler = SyncScheduler()
         )
         assertNotNull(instance)
     }
 
-}
-
-class TestScheduler : MainThreadScheduler {
-    override fun schedule(action: () -> Unit): ScheduledJob {
-        action()
-        return TestScheduleJob()
-    }
-
-    override fun schedule(delay: Long, action: () -> Unit): ScheduledJob {
-        action() // no delay in tests
-        return TestScheduleJob()
-    }
-
-}
-
-class TestScheduleJob : ScheduledJob {
-
-    var canceled: Boolean = false
-
-    override fun cancel() {
-        canceled = true
-    }
 }

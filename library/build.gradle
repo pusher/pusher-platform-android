@@ -1,5 +1,6 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'de.mannodermaus.android-junit5'
 apply from: "$projectDir/../gradle/maven-push.gradle"
 apply from: "$projectDir/../gradle/jacoco-android.gradle"
 
@@ -32,6 +33,13 @@ android {
         test.java.srcDirs += 'src/test/kotlin'
         androidTest.java.srcDirs += 'src/androidTest/kotlin'
     }
+
+    testOptions {
+        junitPlatform {
+            details "tree"
+        }
+    }
+
 }
 
 dependencies {
@@ -42,17 +50,20 @@ dependencies {
     api 'com.squareup.okhttp3:okhttp:3.10.0'
     api 'com.google.code.gson:gson:2.8.2'
 
-    testImplementation 'junit:junit:4.12'
     testImplementation 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0'
     testImplementation 'org.mockito:mockito-inline:2.10.0'
     testImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
-    testImplementation "com.google.truth:truth:0.39"
+    testImplementation "com.google.truth:truth:0.40"
+    testImplementation junit5.unitTests()
+    testCompileOnly junit5.unitTestsRuntime()
     testImplementation project(":test-common")
 
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     androidTestImplementation "com.google.truth:truth:0.40"
     androidTestImplementation 'org.mockito:mockito-android:2.10.0'
+    androidTestImplementation junit5.unitTests()
+    androidTestImplementation junit5.instrumentationTests()
 
 }
