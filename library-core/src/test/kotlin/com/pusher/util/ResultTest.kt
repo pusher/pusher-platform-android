@@ -1,11 +1,8 @@
 package com.pusher.util
 
 import com.google.common.truth.Truth.assertThat
-import com.pusher.network.Promise
-import com.pusher.network.asPromise
-import com.pusher.network.await
 import com.pusher.platform.FutureValue
-import kotlinx.coroutines.experimental.runBlocking
+import com.pusher.platform.network.asPromise
 import org.junit.Test
 
 private const val SUCCESS_VALUE = "value"
@@ -19,7 +16,7 @@ class ResultTest {
 
     @Test
     fun `success instantiation`() {
-        val result= SUCCESS_VALUE.asSuccess<String, Int>()
+        val result = SUCCESS_VALUE.asSuccess<String, Int>()
 
         assertThat(result).isEqualTo(SUCCESS_RESULT)
     }
@@ -116,6 +113,30 @@ class ResultTest {
         promise.onReady { result = it }
 
         assertThat(result).isEqualTo("promised".asSuccess<String, Int>())
+    }
+
+    @Test
+    fun `flatten successful success`() {
+        val result = SUCCESS_RESULT.asSuccess<Result<String, Int>, Int>()
+
+        val flatten = result.flatten()
+        assertThat(flatten).isEqualTo(SUCCESS_RESULT)
+    }
+
+    @Test
+    fun `flatten failure success`() {
+        val result = FAILURE_RESULT.asSuccess<Result<String, Int>, Int>()
+
+        val flatten = result.flatten()
+        assertThat(flatten).isEqualTo(FAILURE_RESULT)
+    }
+
+    @Test
+    fun `flatten failure`() {
+        val result = FAILURE_VALUE.asFailure<Result<String, Int>, Int>()
+
+        val flatten = result.flatten()
+        assertThat(flatten).isEqualTo(FAILURE_RESULT)
     }
 
 }

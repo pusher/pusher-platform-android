@@ -1,17 +1,9 @@
 package com.pusher.platform
 
-import com.google.gson.FieldNamingPolicy
-import com.google.gson.GsonBuilder
-import com.pusher.network.Promise
-import com.pusher.network.asPromise
-import com.pusher.platform.logger.Logger
-import com.pusher.platform.network.ConnectivityHelper
-import com.pusher.platform.network.OkHttpResponsePromise
-import com.pusher.platform.network.replaceMultipleSlashesInUrl
+import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
-import com.pusher.util.Result
 import com.pusher.util.asFailure
 import com.pusher.util.asSuccess
 import elements.*
@@ -23,25 +15,24 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 class BaseClient(
-    var host: String,
-    internal val logger: Logger,
-    internal val connectivityHelper: ConnectivityHelper,
-    internal val mediaTypeResolver: MediaTypeResolver,
-    internal val scheduler: Scheduler,
-    internal val mainScheduler: MainThreadScheduler,
+    host: String,
+    dependencies: PlatformDependencies,
     encrypted: Boolean = true
 ) {
 
-    val prefix = if (encrypted) "https" else "http"
-    val baseUrl = "$prefix://$host"
+    private val schema = if (encrypted) "https" else "http"
+    private val baseUrl = "$schema://$host"
 
-    val httpClient: okhttp3.OkHttpClient = OkHttpClient.Builder().readTimeout(0, TimeUnit.MINUTES).build()
+    internal val logger = dependencies.logger
+    private val scheduler = dependencies.scheduler
+    private val mainScheduler = dependencies.mainScheduler
+    private val mediaTypeResolver = dependencies.mediaTypeResolver
+    private val connectivityHelper = dependencies.connectivityHelper
+    private val sdkInfo = dependencies.sdkInfo
 
-    companion object {
-        val GSON = GsonBuilder()
-            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-            .create()
-    }
+    private val httpClient = with(OkHttpClient.Builder()) {
+        readTimeout(0, TimeUnit.MINUTES)
+    }.build()
 
     fun subscribeResuming(
         requestDestination: RequestDestination,
@@ -98,11 +89,15 @@ class BaseClient(
         tokenParams: Any? = null
     ): OkHttpResponsePromise {
         val requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) }
-        return when(tokenProvider) {
+        return when (tokenProvider) {
             null -> performRequest(requestDestination, headers, method, requestBody)
-            else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
-                headers["Authorization"] = listOf("Bearer $token")
-                performRequest(requestDestination, headers, method, requestBody)
+            else -> tokenProvider.fetchToken(tokenParams).flatMap {
+                it.map { token ->
+                    val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
+                    performRequest(requestDestination, authHeaders, method, requestBody)
+                }.recover {
+                    it.asFailure<Response, Error>().asPromise()
+                }
             }
         }
     }
@@ -121,23 +116,15 @@ class BaseClient(
                 .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
                 .build()
 
-            when(tokenProvider) {
+            when (tokenProvider) {
                 null -> performRequest(requestDestination, headers, "POST", requestBody)
                 else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
-                    headers["Authorization"] = listOf("Bearer $token")
-                    performRequest(requestDestination, headers, "POST", requestBody)
+                    val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
+                    performRequest(requestDestination, authHeaders, "POST", requestBody)
                 }
             }
         }
         else -> UploadError("File does not exist at ${file.path}").asFailure<Response, Error>().asPromise()
-    }
-
-    fun TokenProvider.fetchToken(tokenParams: Any? = null): Promise<Result<String, elements.Error>> = Promise.promise {
-        // TODO: convert tokenProvider to promises
-        fetchToken(tokenParams,
-            { report(it.asSuccess()) },
-            { report(it.asFailure()) }
-        )
     }
 
     private fun performRequest(
@@ -148,13 +135,15 @@ class BaseClient(
     ): OkHttpResponsePromise = Promise.promise {
         val requestURL = getRequestPath(requestDestination)
 
-        val requestBuilder = Request.Builder()
-            .method(method, requestBody)
-            .url(requestURL)
+        val request = createRequest {
+            method(method, requestBody)
+            url(requestURL)
+            headers.forEach { (name, values) ->
+                values.forEach { value -> addHeader(name, value) }
+            }
+        }
 
-        headers.entries.forEach { entry -> entry.value.forEach { requestBuilder.addHeader(entry.key, it) } }
-
-        val call: Call = httpClient.newCall(requestBuilder.build())
+        val call: Call = httpClient.newCall(request)
 
         onCancel { if (!call.isCanceled) call.cancel() }
 
@@ -164,14 +153,19 @@ class BaseClient(
                     null -> report(OtherError("Response was null").asFailure())
                     in 200..299 -> report(response.asSuccess())
                     else -> {
-                        val errorBody = GSON.fromJson(response.body()!!.string(), ErrorResponseBody::class.java)
-                        report(ErrorResponse(
-                            statusCode = response.code(),
-                            headers = response.headers().toMultimap(),
-                            error = errorBody.error,
-                            errorDescription = errorBody.errorDescription,
-                            URI = errorBody.URI
-                        ).asFailure())
+                        val error = response.body()?.charStream()
+                            .parseOr { ErrorResponseBody("could not parse error response: $response") }
+                            .map { b ->
+                                Errors.response(
+                                    statusCode = response.code(),
+                                    headers = response.headers().toMultimap(),
+                                    error = b.error,
+                                    errorDescription = b.errorDescription,
+                                    URI = b.URI
+                                )
+                            }.recover { it }
+
+                        report(error.asFailure())
                     }
                 }
             }
@@ -194,10 +188,19 @@ class BaseClient(
                 httpClient = httpClient,
                 logger = logger,
                 mainThread = mainScheduler,
-                backgroundThread = scheduler
+                backgroundThread = scheduler,
+                baseClient = this
             )
         }
     }
+
+    internal fun createRequest(block: Request.Builder.() -> Unit): Request =
+        Request.Builder().apply {
+            addHeader("X-SDK-Product", sdkInfo.product)
+            addHeader("X-SDK-Version", sdkInfo.sdkVersion)
+            addHeader("X-SDK-Language", sdkInfo.language)
+            addHeader("X-SDK-Platform", sdkInfo.platform)
+        }.also(block).build()
 
     private fun getRequestPath(requestDestination: RequestDestination): String {
         return when (requestDestination) {

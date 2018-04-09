@@ -1,30 +1,27 @@
 package com.pusher.platform
 
-import android.content.Context
-import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
-import org.mockito.Mockito
+import org.mockito.stub
 import kotlin.test.assertNotNull
 
 class InstanceTest {
 
-    private val context: Context = Mockito.mock(Context::class.java)
-    private val scheduler = TestScheduler()
-
     @Test
-    fun instanceSetUpCorrectly(){
-        val instance = AndroidInstance(
+    fun instanceSetUpCorrectly() {
+        val instance = Instance(
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
-            context = context,
-            backgroundScheduler = scheduler,
-            foregroundScheduler = scheduler
+            dependencies = TestDependencies()
         )
         assertNotNull(instance)
     }
 
+}
+
+class TestDependencies(androidDependencies: PlatformDependencies = AndroidDependencies(stub())) : PlatformDependencies by androidDependencies {
+    override val scheduler: Scheduler = TestScheduler()
+    override val mainScheduler: MainThreadScheduler = TestScheduler()
 }
 
 class TestScheduler : MainThreadScheduler {

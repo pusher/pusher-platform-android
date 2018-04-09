@@ -1,56 +1,38 @@
 package com.pusher.platform
 
-import com.pusher.platform.logger.Logger
-import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.network.OkHttpResponsePromise
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.tokenProvider.TokenProvider
-import elements.*
+import elements.EOSEvent
+import elements.Headers
+import elements.Subscription
+import elements.SubscriptionEvent
 import java.io.File
 import java.util.*
 
+private const val DEFAULT_HOST_BASE = "pusherplatform.io"
 
-open class Instance(
-    locator: String,
-    val serviceName: String,
-    val serviceVersion: String,
-    logger: Logger,
-    scheduler: Scheduler,
-    mainThreadScheduler: MainThreadScheduler,
-    mediatypeResolver: MediaTypeResolver,
-    connectivityHelper: ConnectivityHelper,
-    baseClient: BaseClient? = null,
-    host: String? = null
+open class Instance private constructor(
+    private val id: String,
+    private val baseClient: BaseClient,
+    private val serviceName: String,
+    private val serviceVersion: String
 ) {
 
-    private val id: String
-    private val serviceHost: String
-    private val baseClient: BaseClient
-
-    companion object {
-        const val HOST_BASE = "pusherplatform.io"
-    }
-
-    init {
-        val splitInstanceLocator = locator.split(":")
-        require(splitInstanceLocator.size == 3) {
-            "Expecting locator to be of the form 'v1:us1:1a234-123a-1234-12a3-1234123aa12' but got this instead: $locator'. Check the dashboard to ensure you have a properly formatted locator."
-        }
-
-        val (_, cluster, id) = splitInstanceLocator
-
-        this.id = id
-
-        serviceHost = host ?: "$cluster.$HOST_BASE"
-        this.baseClient = baseClient ?: BaseClient(
-            host = serviceHost,
-            logger = logger,
-            scheduler = scheduler,
-            mainScheduler = mainThreadScheduler,
-            connectivityHelper = connectivityHelper,
-            mediaTypeResolver = mediatypeResolver
-        )
-    }
+    @JvmOverloads
+    constructor(
+        locator: String,
+        serviceName: String,
+        serviceVersion: String,
+        dependencies: PlatformDependencies,
+        host: String = "${Locator(locator).cluster}.$DEFAULT_HOST_BASE",
+        baseClient: BaseClient = BaseClient(host, dependencies)
+    ) : this(
+        Locator(locator).id,
+        baseClient,
+        serviceName,
+        serviceVersion
+    )
 
     fun subscribeResuming(
         path: String,
@@ -157,10 +139,10 @@ open class Instance(
 
     fun upload(
         requestDestination: RequestDestination,
-               headers: elements.Headers = TreeMap(),
-               file: File,
-               tokenProvider: TokenProvider? = null,
-               tokenParams: Any? = null
+        headers: elements.Headers = TreeMap(),
+        file: File,
+        tokenProvider: TokenProvider? = null,
+        tokenParams: Any? = null
     ): OkHttpResponsePromise {
         val destination = scopeDestinationIfAppropriate(requestDestination)
 
@@ -182,6 +164,20 @@ open class Instance(
         return "services/$serviceName/$serviceVersion/$id/$relativePath"
     }
 
+}
+
+private data class Locator(val version: String, val cluster: String, val id: String) {
+    companion object {
+        operator fun invoke(raw: String) : Locator {
+            val splitInstanceLocator = raw.split(":")
+            splitInstanceLocator.getOrNull(2)
+            require(splitInstanceLocator.size == 3) {
+                "Expecting locator to be of the form 'v1:us1:1a234-123a-1234-12a3-1234123aa12' but got this instead: $this'. Check the dashboard to ensure you have a properly formatted locator."
+            }
+            val (version, cluster, id) = splitInstanceLocator
+            return Locator(version, cluster, id)
+        }
+    }
 }
 
 class SubscriptionListeners(

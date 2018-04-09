@@ -9,7 +9,6 @@ import elements.EOSEvent
 import elements.Headers
 import elements.Subscription
 
-
 fun createResumingStrategy(
     initialEventId: String? = null,
     errorResolver: ErrorResolver,
@@ -68,9 +67,12 @@ class ResumingSubscription(
             var lastEventId = initialEventId
             logger.verbose("${ResumingSubscription@ this}: transitioning to OpeningSubscriptionState")
 
-            if (lastEventId != null) {
-                headers.put("Last-Event-Id", listOf(lastEventId!!))
-                logger.verbose("${ResumingSubscription@ this}: initialEventId is $lastEventId")
+            val subscriptionHeaders = when {
+                lastEventId != null -> {
+                    logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
+                    headers + ("Last-Event-Id" to listOf(lastEventId))
+                }
+                else -> headers
             }
 
             underlyingSubscription = nextSubscribeStrategy(
@@ -108,7 +110,7 @@ class ResumingSubscription(
                         onTransition(EndedSubscriptionState(listeners, error))
                     }
                 ),
-                headers
+                subscriptionHeaders
             )
 
         }
@@ -149,13 +151,16 @@ class ResumingSubscription(
             })
         }
 
-        private fun executeNextSubscribeStrategy(eventId: String?): Unit {
+        private fun executeNextSubscribeStrategy(eventId: String?) {
             var lastEventId = eventId
 
             logger.verbose("${ResumingSubscription@ this}: trying to re-establish the subscription")
-            if (lastEventId != null) {
-                headers.put("Last-Event-Id", listOf(lastEventId!!))
-                logger.verbose("${ResumingSubscription@ this}: initialEventId is $lastEventId")
+            val subscriptionHeaders = when {
+                lastEventId != null -> {
+                    logger.verbose("${ResumingSubscription@ this}: initialEventId is $lastEventId")
+                    headers + ("Last-Event-Id" to listOf(lastEventId))
+                }
+                else -> headers
             }
 
             underlyingSubscription = nextSubscribeStrategy(
@@ -186,7 +191,7 @@ class ResumingSubscription(
                         onTransition(EndedSubscriptionState(listeners, error))
                     }
                 ),
-                headers
+                subscriptionHeaders
             )
         }
     }
