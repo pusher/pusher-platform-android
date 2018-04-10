@@ -68,6 +68,14 @@ sealed class Result<A, B> {
     )
 
     /**
+     * Changes the result to it's inverse
+     */
+    fun swap() : Result<B, A> = fold(
+        onFailure = { it.asSuccess() },
+        onSuccess = { it.asFailure() }
+    )
+
+    /**
      * If the result is a failure it will create a new success result using the provided [block].
      */
     fun recover(block: (B) -> A): A = fold(
@@ -113,6 +121,12 @@ fun <A, B, C> Promise<Result<A, B>>.fold(onFailure: (B) -> C, onSuccess: (A) -> 
     map { it.fold(onFailure, onSuccess) }
 
 /**
+ * Short for `map { it.swap() }`
+ */
+fun <A, B> Promise<Result<A, B>>.swap() : Promise<Result<B, A>> =
+    map { it.swap() }
+
+/**
  * Short for `map { it.recover(block) }`
  */
 fun <A, B> Promise<Result<A, B>>.recover(block: (B) -> A): Promise<A> =
@@ -141,5 +155,7 @@ data class SuspendedResult<out A, B> internal constructor(private val result: Re
 
     suspend fun <C> flatMap(block: suspend (A) -> Result<C, B>): SuspendedResult<C, B> =
         result.flatMap { block(it) }.async()
+
+    private fun <A, B> (suspend (A) -> B).desuspend(): (A) -> suspend () -> B = { suspend { this(it) } }
 
 }

@@ -172,7 +172,7 @@ class BaseClient(
             }
 
             override fun onFailure(call: Call?, e: IOException?) {
-                report(NetworkError("Request reason: $e").asFailure())
+                report(NetworkError("Request error: ${e?.toString()}").asFailure())
             }
         })
     }
@@ -195,7 +195,7 @@ class BaseClient(
         }
     }
 
-    internal fun createRequest(block: Request.Builder.() -> Unit) : Request =
+    internal fun createRequest(block: Request.Builder.() -> Unit): Request =
         Request.Builder().apply {
             addHeader("X-SDK-Product", sdkInfo.product)
             addHeader("X-SDK-Version", sdkInfo.sdkVersion)
@@ -215,8 +215,4 @@ class BaseClient(
     }
 
     private fun absolutePath(path: String): String = "$baseUrl/$path".replaceMultipleSlashesInUrl()
-}
-
-internal fun Request.Builder.add(headers: Headers) = headers.forEach { (name, values) ->
-    values.forEach { value -> addHeader(name, value) }
 }
