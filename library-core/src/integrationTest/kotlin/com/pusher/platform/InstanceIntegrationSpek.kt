@@ -36,6 +36,38 @@ class InstanceIntegrationSpek : Spek({
                 )
             )
         }
+
+        will("subscribe to a subscription that is kept open") {
+            instance.subscribeNonResuming(
+                path = PATH_3_AND_OPEN,
+                retryOptions = RetryStrategyOptions(limit = 0),
+                listeners = observeUntil(
+                    open = 1,
+                    events = 3
+                )
+            )
+        }
+
+        will("subscribes and receives EOS immediately - expecting onEnd with no events") {
+            instance.subscribeNonResuming(
+                path = PATH_0_EOS,
+                retryOptions = RetryStrategyOptions(limit = 0),
+                listeners = observeUntil(
+                    open = 1,
+                    end = 1
+                )
+            )
+        }
+
+        will("subsccribes and receives EOS with retry-after headers") {
+            instance.subscribeNonResuming(
+                path = "subscribe_retry_after",
+                retryOptions = RetryStrategyOptions(limit = 0),
+                listeners = observeUntil(
+                    error = 1
+                )
+            )
+        }
     }
 })
 
@@ -49,7 +81,7 @@ val baseClient = BaseClient(
 class TestDependencies : PlatformDependencies {
     override val logger: Logger = stub()
     override val mediaTypeResolver: MediaTypeResolver = stub()
-    override val connectivityHelper: ConnectivityHelper= AlwaysOnlineConnectivityHelper
+    override val connectivityHelper: ConnectivityHelper = AlwaysOnlineConnectivityHelper
     override val sdkInfo: SdkInfo = SdkInfo(
         product = InstanceIntegrationSpek::class.qualifiedName!!,
         language = "Spek",
