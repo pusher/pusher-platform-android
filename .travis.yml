@@ -20,8 +20,8 @@ before_script:
 
 script:
 #  - ./library/gradle/main.sh
- - ./gradlew :library:assembleDebug :library:junitPlatformTestDebug :library:lintDebug
- - ./gradlew :library-core:assemble :library-core:junitPlatformTest
+ - ./gradlew :library:assembleDebug :library:test :library:lintDebug
+ - ./gradlew :library-core:assemble :library-core:test
  - ./gradlew codeCoverageReport
 # - ./gradle/firebase/auth.sh
 # - ./gradle/firebase/runLibraryAndroidTests.sh
