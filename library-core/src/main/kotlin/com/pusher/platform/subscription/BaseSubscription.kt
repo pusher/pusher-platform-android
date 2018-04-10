@@ -8,7 +8,6 @@ import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import elements.*
 import okhttp3.Call
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.Response
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
@@ -16,17 +15,17 @@ import java.io.IOException
 
 
 internal class BaseSubscription(
-        path: String,
-        headers: Headers,
-        httpClient: OkHttpClient,
-        onOpen: (Headers) -> Unit,
-        onError: (Error) -> Unit,
-        onEvent: (SubscriptionEvent) -> Unit,
-        onEnd: (EOSEvent?) -> Unit,
-        val logger: Logger,
-        private val mainThread: MainThreadScheduler,
-        backgroundThread: Scheduler,
-        val baseClient: BaseClient
+    path: String,
+    headers: Headers,
+    httpClient: OkHttpClient,
+    onOpen: (Headers) -> Unit,
+    onError: (Error) -> Unit,
+    onEvent: (SubscriptionEvent) -> Unit,
+    onEnd: (EOSEvent?) -> Unit,
+    val logger: Logger,
+    private val mainThread: MainThreadScheduler,
+    backgroundThread: Scheduler,
+    val baseClient: BaseClient
 ): Subscription {
 
     private val call: Call
@@ -41,7 +40,9 @@ internal class BaseSubscription(
         val request = baseClient.createRequest {
             method("SUBSCRIBE", null)
             url(path.replaceMultipleSlashesInUrl())
-            add(headers)
+            headers.forEach { (name, values) ->
+                values.forEach { value -> addHeader(name, value) }
+            }
         }
 
         call = httpClient.newCall(request)

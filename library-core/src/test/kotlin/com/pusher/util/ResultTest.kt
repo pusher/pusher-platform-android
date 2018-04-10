@@ -1,6 +1,8 @@
 package com.pusher.util
 
 import com.google.common.truth.Truth.assertThat
+import com.pusher.platform.FutureValue
+import com.pusher.platform.network.asPromise
 import org.junit.Test
 
 private const val SUCCESS_VALUE = "value"
@@ -66,6 +68,20 @@ class ResultTest {
         val result = FAILURE_RESULT.flatMap { ALTERNATIVE_RESULT }
 
         assertThat(result).isEqualTo(FAILURE_RESULT)
+    }
+
+    @Test
+    fun `can swap success result`() {
+        val result = SUCCESS_RESULT.swap()
+
+        assertThat(result).isEqualTo(Result.Failure<Int, String>(SUCCESS_VALUE))
+    }
+
+    @Test
+    fun `can swap failure result`() {
+        val result = FAILURE_RESULT.swap()
+
+        assertThat(result).isEqualTo(Result.Success<Int, String>(FAILURE_VALUE))
     }
 
     @Test
