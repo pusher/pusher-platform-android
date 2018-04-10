@@ -29,7 +29,7 @@ private fun isReachable(uri: String) : Boolean {
                 it.connect()
                 it.disconnect()
                 true
-            } catch (e: ConnectException) {
+            } catch (e: Exception) {
                 false
             }
         }
