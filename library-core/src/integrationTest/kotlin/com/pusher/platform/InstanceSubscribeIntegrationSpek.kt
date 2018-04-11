@@ -1,15 +1,13 @@
 package com.pusher.platform
 
 import com.google.common.truth.Truth.assertThat
-import com.pusher.SdkInfo
-import com.pusher.platform.logger.Logger
-import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.retrying.RetryStrategyOptions
-import com.pusher.platform.test.*
+import com.pusher.platform.test.describeWhenReachable
+import com.pusher.platform.test.listenersWithCounter
+import com.pusher.platform.test.will
 import elements.ErrorResponse
 import elements.Subscription
 import elements.retryAfter
-import mockitox.stub
 import org.jetbrains.spek.api.Spek
 
 private const val PATH_10_AND_EOS = "subscribe10"
@@ -18,9 +16,8 @@ private const val PATH_0_EOS = "subscribe_0_eos"
 private const val PATH_NOT_EXISTING = "subscribe_missing"
 private const val PATH_FORBIDDEN = "subscribe_forbidden"
 
-private const val HOST = "localhost:10443"
 
-class InstanceIntegrationSpek : Spek({
+class InstancesubscribeIntegrationSpek : Spek({
 
     describeWhenReachable("https://$HOST", "Instance Subscribe") {
         val instance = Instance(
@@ -174,34 +171,6 @@ class InstanceIntegrationSpek : Spek({
     }
 
 })
-
-val baseClient = BaseClient(
-    host = HOST,
-    dependencies = TestDependencies(),
-    client = insecureOkHttpClient
-)
-
-class TestDependencies : PlatformDependencies {
-    override val logger: Logger = object : Logger {
-        override fun verbose(message: String, error: Error?) = log("V:", message, error)
-        override fun debug(message: String, error: Error?) = log("D:", message, error)
-        override fun info(message: String, error: Error?) = log("I:", message, error)
-        override fun warn(message: String, error: Error?) = log("W:", message, error)
-        override fun error(message: String, error: Error?) = log("E:", message, error)
-        private fun log(type: String, message: String, error: Error?) =
-            println("$type: $message ${error?.let { "\n" + it } ?: ""}")
-    }
-    override val mediaTypeResolver: MediaTypeResolver = stub()
-    override val connectivityHelper: ConnectivityHelper = AlwaysOnlineConnectivityHelper
-    override val sdkInfo: SdkInfo = SdkInfo(
-        product = InstanceIntegrationSpek::class.qualifiedName!!,
-        language = "Spek",
-        platform = "JUnit",
-        sdkVersion = "test"
-    )
-    override val scheduler: Scheduler = AsyncScheduler()
-    override val mainScheduler: MainThreadScheduler = AsyncScheduler()
-}
 
 
 
