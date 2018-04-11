@@ -42,7 +42,7 @@ class ErrorResolver(
             }
             is ErrorResponse -> {
                 val retryAfter = error.headers.retryAfter
-                if (retryAfter != null) {
+                if (retryAfter > 0) {
                     runningJobs + scheduler.schedule(retryAfter) { callback(Retry())}
                 } else if(error.isRetryable() || retryUnsafeRequests){
                     if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit ){
