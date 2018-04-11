@@ -71,15 +71,12 @@ class InstanceIntegrationSpek : Spek({
             )
         }
 
-        will("subscribe and then unsubscribe - expecting onEnd", Timeout.None) {
+        will("subscribe and then unsubscribe - expecting onEnd") {
             var sub: Subscription by FutureValue()
             sub = instance.subscribeNonResuming(
                 path = PATH_3_AND_OPEN,
                 retryOptions = RetryStrategyOptions(limit = 0),
                 listeners = listenersWithCounter(
-                    onOpen = {
-                        println("meh")
-                    },
                     onEvent = {
                         events++
                         attempt { assertThat(events).isLessThan(4) }
