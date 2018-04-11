@@ -135,8 +135,8 @@ class TestDependencies : PlatformDependencies {
         platform = "JUnit",
         sdkVersion = "test"
     )
-    override val scheduler: Scheduler = SyncScheduler()
-    override val mainScheduler: MainThreadScheduler = SyncScheduler()
+    override val scheduler: Scheduler = AsyncScheduler()
+    override val mainScheduler: MainThreadScheduler = AsyncScheduler()
 }
 
 
