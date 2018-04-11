@@ -7,6 +7,8 @@ import kotlinx.coroutines.experimental.withTimeout
 import org.jetbrains.spek.api.dsl.TestBody
 import org.jetbrains.spek.api.dsl.TestContainer
 import org.jetbrains.spek.api.dsl.it
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.MILLISECONDS
 
 
 /**
@@ -64,14 +66,22 @@ class SuspendedTestBody(body: SuspendedTestBody.() -> Unit) : TestBody {
 
 }
 
+sealed class Timeout {
+    data class Some(val amount: Long, val unit: TimeUnit = MILLISECONDS) : Timeout()
+    object None : Timeout()
+}
+
 /**
  * Entry point for [SuspendedTestBody]
  */
-fun TestContainer.will(description: String, timeout: Long = 5000, body: SuspendedTestBody.() -> Unit) =
+fun TestContainer.will(description: String, timeout: Timeout = Timeout.Some(5000), body: SuspendedTestBody.() -> Unit) =
     it("will $description") {
         val doneAction = runBlocking {
-            withTimeout(timeout) {
-                SuspendedTestBody(body).await()
+            when(timeout) {
+                is Timeout.Some -> withTimeout(timeout.amount, timeout.unit) {
+                    SuspendedTestBody(body).await()
+                }
+                is Timeout.None -> SuspendedTestBody(body).await()
             }
         }
         doneAction()
