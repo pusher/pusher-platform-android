@@ -29,8 +29,8 @@ class ErrorResolver(
     private val retryUnsafeRequests: Boolean = false
 ) {
 
-    var currentRetryCount = 0
-    var currentBackoffMillis = 0L
+    private var currentRetryCount = 0
+    private var currentBackoffMillis = 0L
 
     private val runningJobs = LinkedList<ScheduledJob>()
 
