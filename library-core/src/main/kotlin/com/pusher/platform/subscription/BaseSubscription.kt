@@ -110,12 +110,8 @@ internal class BaseSubscription(
                         onSuccess = {
                             when (it) {
                                 is ControlEvent -> Unit // Ignore
-                                is SubscriptionEvent -> {
-                                    onEvent(it)
-                                }
-                                is EOSEvent -> {
-                                    onEnd(it)
-                                }
+                                is SubscriptionEvent -> onEvent(it)
+                                is EOSEvent -> onEnd(it)
                             }
                         })
                 }
