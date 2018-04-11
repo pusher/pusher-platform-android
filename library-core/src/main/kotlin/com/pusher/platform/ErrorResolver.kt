@@ -21,6 +21,8 @@ fun ErrorResponse.isRetryable(): Boolean =
     this.statusCode in 500..599 &&
             this.headers["Request-Method"]?.firstOrNull()?.isSafeRequest() ?: false
 
+private val ErrorResponse.retryAfter : Long?
+    get() = (headers["Retry-After"]?.firstOrNull()?.toLong()?:0) * 1_000
 
 class ErrorResolver(
     private val connectivityHelper: ConnectivityHelper,
@@ -40,9 +42,8 @@ class ErrorResolver(
                 connectivityHelper.onConnected { callback(Retry())}
             }
             is ErrorResponse -> {
-                //Retry-After present
-                if (error.headers["Retry-After"] != null) {
-                    val retryAfter = error.headers["Retry-After"]!![0].toLong() * 1000
+                val retryAfter = error.retryAfter
+                if (retryAfter != null) {
                     runningJobs + scheduler.schedule(retryAfter) { callback(Retry())}
                 } else if(error.isRetryable() || retryUnsafeRequests){
                     if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit ){
