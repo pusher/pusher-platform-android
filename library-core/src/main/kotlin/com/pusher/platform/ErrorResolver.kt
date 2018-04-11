@@ -8,6 +8,7 @@ import com.pusher.platform.retrying.RetryStrategyResult
 import elements.Error
 import elements.ErrorResponse
 import elements.NetworkError
+import elements.retryAfter
 import java.util.*
 
 typealias RetryStrategyResultCallback = (RetryStrategyResult) -> Unit
@@ -21,8 +22,6 @@ fun ErrorResponse.isRetryable(): Boolean =
     this.statusCode in 500..599 &&
             this.headers["Request-Method"]?.firstOrNull()?.isSafeRequest() ?: false
 
-private val ErrorResponse.retryAfter : Long?
-    get() = (headers["Retry-After"]?.firstOrNull()?.toLong()?:0) * 1_000
 
 class ErrorResolver(
     private val connectivityHelper: ConnectivityHelper,
@@ -42,7 +41,7 @@ class ErrorResolver(
                 connectivityHelper.onConnected { callback(Retry())}
             }
             is ErrorResponse -> {
-                val retryAfter = error.retryAfter
+                val retryAfter = error.headers.retryAfter
                 if (retryAfter != null) {
                     runningJobs + scheduler.schedule(retryAfter) { callback(Retry())}
                 } else if(error.isRetryable() || retryUnsafeRequests){
