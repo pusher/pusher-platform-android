@@ -8,8 +8,6 @@ import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.test.*
 import elements.ErrorResponse
 import elements.Subscription
-import kotlinx.coroutines.experimental.channels.Channel
-import kotlinx.coroutines.experimental.launch
 import mockitox.stub
 import org.jetbrains.spek.api.Spek
 
@@ -44,7 +42,7 @@ class InstanceIntegrationSpek : Spek({
 
         will("subscribe, terminate on EOS, and trigger onEnd callback exactly once") {
             instance.subscribeNonResuming(
-                path = PATH_3_AND_OPEN,
+                path = PATH_10_AND_EOS,
                 retryOptions = RetryStrategyOptions(limit = 0),
                 listeners = listenersWithCounter(
                     onEnd = {
