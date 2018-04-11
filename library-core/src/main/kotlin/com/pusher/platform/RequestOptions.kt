@@ -1,18 +1,19 @@
 package com.pusher.platform
-import java.util.TreeMap
+
+import elements.emptyHeaders
 
 data class RequestOptions(
-        val method: String = "GET",
-        val destination: RequestDestination,
-        val headers: elements.Headers = TreeMap(),
-        val body: String? = null
+    val destination: RequestDestination,
+    val method: String = "GET",
+    val headers: elements.Headers = emptyHeaders(),
+    val body: String? = null
 ) {
     constructor(
-            method: String = "GET",
-            path: String,
-            headers: elements.Headers = TreeMap(),
-            body: String? = null
-    ): this(method, RequestDestination.Relative(path), headers, body)
+        path: String,
+        method: String = "GET",
+        headers: elements.Headers = emptyHeaders(),
+        body: String? = null
+    ) : this(RequestDestination.Relative(path), method, headers, body)
 }
 
 sealed class RequestDestination {
