@@ -66,13 +66,16 @@ class SuspendedTestBody(body: SuspendedTestBody.() -> Unit) : TestBody {
 
 }
 
+/**
+ * Describes whether and for how long [SuspendedTestBody] should wait for.
+ */
 sealed class Timeout {
     data class Some(val amount: Long, val unit: TimeUnit = MILLISECONDS) : Timeout()
     object None : Timeout()
 }
 
 /**
- * Entry point for [SuspendedTestBody]
+ * Entry point for [SuspendedTestBody], call this to create a test that will wait for async termination or [timeout]
  */
 fun TestContainer.will(description: String, timeout: Timeout = Timeout.Some(5000), body: SuspendedTestBody.() -> Unit) =
     it("will $description") {
