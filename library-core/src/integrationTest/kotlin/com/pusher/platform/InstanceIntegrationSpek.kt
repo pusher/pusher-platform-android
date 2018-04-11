@@ -8,6 +8,7 @@ import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.test.*
 import elements.ErrorResponse
 import elements.Subscription
+import elements.retryAfter
 import mockitox.stub
 import org.jetbrains.spek.api.Spek
 
@@ -70,16 +71,22 @@ class InstanceIntegrationSpek : Spek({
             )
         }
 
-        will("subscribe and then unsubscribe - expecting onEnd") {
+        will("subscribe and then unsubscribe - expecting onEnd", Timeout.None) {
             var sub: Subscription by FutureValue()
             sub = instance.subscribeNonResuming(
                 path = PATH_3_AND_OPEN,
                 retryOptions = RetryStrategyOptions(limit = 0),
                 listeners = listenersWithCounter(
+                    onOpen = {
+                        println("meh")
+                    },
                     onEvent = {
                         events++
                         attempt { assertThat(events).isLessThan(4) }
-                        if (events == 3) sub.unsubscribe()
+                        if (events == 3) {
+                            val sub1 = sub
+                            sub1.unsubscribe()
+                        }
                     },
                     onEnd = { done() },
                     onError = { done { error("onError triggered - this shouldn't be!") } }
@@ -107,10 +114,7 @@ class InstanceIntegrationSpek : Spek({
                     onEvent = { fail("No events should have been receive") },
                     onEnd = { fail("We should get an error") },
                     onError = { error ->
-                        done {
-                            assertThat((error as ErrorResponse).headers)
-                                .containsEntry("Retry-After", listOf("10"))
-                        }
+                        done { assertThat((error as ErrorResponse).headers.retryAfter).isEqualTo(10_000) }
                     }
                 )
             )
@@ -124,9 +128,16 @@ val baseClient = BaseClient(
     client = insecureOkHttpClient
 )
 
-
 class TestDependencies : PlatformDependencies {
-    override val logger: Logger = stub()
+    override val logger: Logger = object : Logger {
+        override fun verbose(message: String, error: Error?) = log("V:", message, error)
+        override fun debug(message: String, error: Error?) = log("D:", message, error)
+        override fun info(message: String, error: Error?) = log("I:", message, error)
+        override fun warn(message: String, error: Error?) = log("W:", message, error)
+        override fun error(message: String, error: Error?) = log("E:", message, error)
+        private fun log(type: String, message: String, error: Error?) =
+            println("$type: $message ${error?.let { "\n" + it } ?: ""}")
+    }
     override val mediaTypeResolver: MediaTypeResolver = stub()
     override val connectivityHelper: ConnectivityHelper = AlwaysOnlineConnectivityHelper
     override val sdkInfo: SdkInfo = SdkInfo(

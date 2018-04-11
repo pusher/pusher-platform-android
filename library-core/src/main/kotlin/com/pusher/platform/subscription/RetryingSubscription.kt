@@ -107,6 +107,7 @@ private class RetryingSubscription(
 
         init {
             logger.verbose("${RetryingSubscription@this}: transitioning to RetryingSubscriptionState")
+            listeners.onError(error)
             executeSubscriptionOnce(error)
         }
 
@@ -162,7 +163,7 @@ private class RetryingSubscription(
             listeners: SubscriptionListeners,
             headers: Headers,
             val underlyingSubscription: Subscription,
-            onTransition: StateTransition
+            val onTransition: StateTransition
     ): SubscriptionState {
         init {
             logger.verbose("${RetryingSubscription@this}: transitioning to OpenSubscriptionState")

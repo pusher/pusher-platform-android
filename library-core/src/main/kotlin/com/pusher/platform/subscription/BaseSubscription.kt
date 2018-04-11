@@ -64,6 +64,7 @@ internal class BaseSubscription(
                 response.close()
             } catch (e: IOException) {
                 when {
+                    call.isCanceled -> onEnd(null)
                     e is StreamResetException && e.errorCode == ErrorCode.CANCEL -> onEnd(null)
                     e is SSLHandshakeException -> onError(Errors.other(e))
                     else -> onError(NetworkError("Connection failed"))
