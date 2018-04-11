@@ -15,6 +15,8 @@ import org.jetbrains.spek.api.Spek
 private const val PATH_10_AND_EOS = "subscribe10"
 private const val PATH_3_AND_OPEN = "subscribe_3_continuous"
 private const val PATH_0_EOS = "subscribe_0_eos"
+private const val PATH_NOT_EXISTING = "subscribe_missing"
+private const val PATH_FORBIDDEN = "subscribe_forbidden"
 
 private const val HOST = "localhost:10443"
 
@@ -117,6 +119,60 @@ class InstanceIntegrationSpek : Spek({
             )
         }
     }
+
+    describeWhenReachable("https://$HOST", "Instance Subscribe errors nicely") {
+        val instance = Instance(
+            locator = "v1:api-ceres:test",
+            serviceName = "platform_sdk_tester",
+            serviceVersion = "v1",
+            dependencies = TestDependencies(),
+            baseClient = baseClient
+        )
+
+        will("handle 404") {
+            instance.subscribeNonResuming(
+                path = PATH_NOT_EXISTING,
+                retryOptions = RetryStrategyOptions(limit = 0),
+                listeners = listenersWithCounter(
+                    onEvent = { fail("Expecting onError") },
+                    onEnd = { fail("Expecting onError") },
+                    onError = { error ->
+                        done { assertThat((error as ErrorResponse).statusCode).isEqualTo(404) }
+                    }
+                )
+            )
+        }
+
+        will("handle 403") {
+            instance.subscribeNonResuming(
+                path = PATH_FORBIDDEN,
+                retryOptions = RetryStrategyOptions(limit = 0),
+                listeners = listenersWithCounter(
+                    onEvent = { fail("Expecting onError") },
+                    onEnd = { fail("Expecting onError") },
+                    onError = { error ->
+                        done { assertThat((error as ErrorResponse).statusCode).isEqualTo(403) }
+                    }
+                )
+            )
+        }
+
+        will("handle 500") {
+            instance.subscribeNonResuming(
+                path = "subscribe_internal_server_error",
+                retryOptions = RetryStrategyOptions(limit = 0),
+                listeners = listenersWithCounter(
+                    onEvent = { fail("Expecting onError") },
+                    onEnd = { fail("Expecting onError") },
+                    onError = { error ->
+                        done { assertThat((error as ErrorResponse).statusCode).isEqualTo(500) }
+                    }
+                )
+            )
+        }
+
+    }
+
 })
 
 val baseClient = BaseClient(
