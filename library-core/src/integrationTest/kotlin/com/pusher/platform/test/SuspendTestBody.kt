@@ -3,9 +3,11 @@ package com.pusher.platform.test
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
+import kotlinx.coroutines.experimental.withTimeout
 import org.jetbrains.spek.api.dsl.TestBody
 import org.jetbrains.spek.api.dsl.TestContainer
 import org.jetbrains.spek.api.dsl.it
+
 
 /**
  * Spek extension to allow a test to block for threaded completion. It can be used inside a
@@ -13,68 +15,53 @@ import org.jetbrains.spek.api.dsl.it
  *
  * To suspend the test we need to call `await()`.
  *
- * To finish the suspension we can either call `done()` or `done {}`  with an action (i.e. fail test)
- * as well as (and recommended to avoid endless tests) with the function `timeout {}` to provide
- * with an action if the test takes too long (default is 100ms).
+ * To finish the suspension we can either call `done()`, `done {}` with an action (i.e. fail test)
+ * or `fail(cause)`
  */
-class SuspendedTestBody(private val timeout: Long, body: SuspendedTestBody.() -> Unit) : TestBody {
+class SuspendedTestBody(body: SuspendedTestBody.() -> Unit) : TestBody {
 
-    private val conditions = mutableListOf<() -> SuspendTestResult>()
-    private val start = System.currentTimeMillis()
     private val completeChannel = Channel<() -> Unit>()
 
-    private fun duration() = System.currentTimeMillis() - start
-    private fun isTimedOut() = duration() >= timeout
-    private fun allConditionsPass() = conditions.all { it() === SuspendTestResult.Pass }
-    private fun collateConditionMessages() =
-        conditions.map { it() }
-            .mapIndexed { i, result ->
-                when (result) {
-                    is SuspendTestResult.Pass -> "$i: Pass"
-                    is SuspendTestResult.Failed -> "$i: Failed: \n${result.message}"
-                }
-            }
-            .joinToString("\n")
-
     init {
-        launch {
-            while (!isTimedOut() && !allConditionsPass());
-            done {
-                when {
-                    allConditionsPass() -> Unit
-                    else -> error("Timed out before matching all conditions: \n${collateConditionMessages()}")
-                }
-            }
-        }
         launch {
             body()
         }
     }
 
-    fun until(condition: () -> SuspendTestResult) {
-        conditions += condition
-    }
-
+    /**
+     * signals the test to stop with an action that could fail. This will run on the original thread.
+     */
     fun done(action: () -> Unit = {}) =
         completeChannel.offer(action)
 
-    fun fail(cause: String) = done { error(cause) }
+    /**
+     * Signals the test to fail with the provided [cause]
+     */
+    fun fail(cause: String) = fail(Error(cause))
 
+    /**
+     * Signals the test to fail with the provided [cause]
+     */
+    fun fail(cause: Throwable) = done { throw cause }
+
+    /**
+     * Tries to run the provided [action] failing the test if it throws an exception.
+     */
     fun attempt(action: () -> Unit) {
-        try { action() }
-        catch (e: Throwable) { done { throw e } }
+        try {
+            action()
+        } catch (e: Throwable) {
+            fail(e)
+        }
     }
 
-    suspend fun await() =
-        completeChannel.receive().also {
-            completeChannel.close()
-        }
+    /**
+     * Waits for [done], [fail] or [attempt] with failure are called.
+     */
+    suspend fun await() = completeChannel.receive().also {
+        completeChannel.close()
+    }
 
-}
-
-sealed class SuspendTestResult {
-    object Pass : SuspendTestResult()
-    data class Failed(val message: String) : SuspendTestResult()
 }
 
 /**
@@ -82,5 +69,10 @@ sealed class SuspendTestResult {
  */
 fun TestContainer.will(description: String, timeout: Long = 5000, body: SuspendedTestBody.() -> Unit) =
     it("will $description") {
-        runBlocking { SuspendedTestBody(timeout, body).await() }()
+        val doneAction = runBlocking {
+            withTimeout(timeout) {
+                SuspendedTestBody(body).await()
+            }
+        }
+        doneAction()
     }
