@@ -20,7 +20,7 @@ before_script:
 
 script:
 #  - ./library/gradle/main.sh
- - ./gradlew :library:assembleDebug :library:junitPlatformTestDebug :library:lintDebug
+ - ./gradlew :library:assembleDebug :library:junitPlatformTestDebug :library:lintDebug :library:jacocoTestReportDebug
  - ./gradlew :library-core:assemble :library-core:junitPlatformTest
  - ./gradlew codeCoverageReport
 # - ./gradle/firebase/auth.sh
