@@ -4,7 +4,7 @@ import android.util.LogCapture
 import android.util.LogSpy
 import com.google.common.truth.Truth.assertThat
 import com.pusher.platform.logger.LogLevel.*
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
