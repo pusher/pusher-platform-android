@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'org.mockito:mockito-inline:2.10.0'
+    implementation "org.mockito:mockito-core:$mockito_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
 }
 
