@@ -4,36 +4,20 @@ import android.util.LogCapture
 import android.util.LogSpy
 import com.google.common.truth.Truth.assertThat
 import com.pusher.platform.logger.LogLevel.*
-import org.junit.jupiter.api.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 
 private const val EXPECTED_TAG = "pusherPlatform"
 private const val EXPECTED_MESSAGE = "message"
 private val EXPECTED_ERROR = Error("Awesome error")
 
-@RunWith(Parameterized::class)
-class AndroidLoggerTest(
-    private val logLevel: LogLevel,
-    private val doLog: Logger.(String, Error?) -> Unit
-) {
+class AndroidLoggerTest {
 
-    companion object {
-        @JvmStatic
-        @Parameterized.Parameters(name = "{0}")
-        fun data() = values().map { level ->
-            arrayOf(level, when (level) {
-                VERBOSE -> Logger::verbose
-                DEBUG -> Logger::debug
-                INFO -> Logger::info
-                WARN -> Logger::warn
-                ERROR -> Logger::error
-            })
-        }
-    }
-
-    @Test
-    fun shouldLog() {
+    @ParameterizedTest(name = " should log {0}")
+    @EnumSource(LogLevel::class)
+    fun shouldLog(logLevel: LogLevel) {
+        val doLog: Logger.(String, Error?) -> Unit = logLevel.doLog
         val log = LogSpy()
         val logger = AndroidLogger(VERBOSE)
 
@@ -43,8 +27,11 @@ class AndroidLoggerTest(
             .containsExactly(captureOf(logLevel))
     }
 
-    @Test
-    fun shouldLog_withError() {
+
+    @ParameterizedTest(name = " should log {0} with Error")
+    @EnumSource(LogLevel::class)
+    fun shouldLog_withError(logLevel: LogLevel) {
+        val doLog: Logger.(String, Error?) -> Unit = logLevel.doLog
         val log = LogSpy()
         val logger = AndroidLogger(VERBOSE)
 
@@ -54,28 +41,14 @@ class AndroidLoggerTest(
             .containsExactly(captureOf(logLevel, error = EXPECTED_ERROR))
     }
 
-    @RunWith(Parameterized::class)
-    class Threshold(
-        private val logLevelThreshold: LogLevel,
-        private val expectedCaptures: Iterable<LogCapture>
-    ) {
+    @Nested
+    class Threshold {
 
-        companion object {
-            @JvmStatic
-            @Parameterized.Parameters(name = "{0}")
-            fun data() = arrayOf(
-                arrayOf(VERBOSE, capturesOf(VERBOSE, DEBUG, INFO, WARN, ERROR)),
-                arrayOf(DEBUG, capturesOf(DEBUG, INFO, WARN, ERROR)),
-                arrayOf(INFO, capturesOf(INFO, WARN, ERROR)),
-                arrayOf(WARN, capturesOf(WARN, ERROR)),
-                arrayOf(ERROR, capturesOf(ERROR))
-            )
-        }
-
-        @Test
-        fun shouldNotLog_whenThresholdIsHigher() {
+        @ParameterizedTest(name = " should log {0} when threshold is higher")
+        @EnumSource(LogLevel::class)
+        fun shouldNotLog_whenThresholdIsHigher(logLevel: LogLevel) {
             val log = LogSpy()
-            val logger = AndroidLogger(logLevelThreshold)
+            val logger = AndroidLogger(logLevel)
 
             logger.verbose(EXPECTED_MESSAGE)
             logger.debug(EXPECTED_MESSAGE)
@@ -83,12 +56,51 @@ class AndroidLoggerTest(
             logger.warn(EXPECTED_MESSAGE)
             logger.error(EXPECTED_MESSAGE)
 
-            assertThat(log.captures).containsExactlyElementsIn(expectedCaptures)
+            assertThat(log.captures).containsExactlyElementsIn(logLevel.expectedCaptures)
         }
 
     }
 
 }
+
+private val LogLevel.expectedCaptures
+    get() = when (this) {
+        LogLevel.VERBOSE -> capturesOf(VERBOSE, DEBUG, INFO, WARN, ERROR)
+        LogLevel.DEBUG -> capturesOf(DEBUG, INFO, WARN, ERROR)
+        LogLevel.INFO -> capturesOf(INFO, WARN, ERROR)
+        LogLevel.WARN -> capturesOf(WARN, ERROR)
+        LogLevel.ERROR -> capturesOf(ERROR)
+    }
+
+private val LogLevel.doLog: Logger.(String, Error?) -> Unit
+    get() = when (this) {
+        LogLevel.VERBOSE -> Logger::verbose
+        LogLevel.DEBUG -> Logger::debug
+        LogLevel.INFO -> Logger::info
+        LogLevel.WARN -> Logger::warn
+        LogLevel.ERROR -> Logger::error
+    }
+
+//class LogParameters : ArgumentsProvider {
+//    override fun provideArguments(context: ExtensionContext?): Stream<Arguments> = Stream.of(
+//        Arguments.of(VERBOSE, Logger::verbose),
+//        Arguments.of(DEBUG, Logger::debug),
+//        Arguments.of(INFO, Logger::info),
+//        Arguments.of(WARN, Logger::warn),
+//        Arguments.of(ERROR, Logger::error)
+//    )
+//}
+
+//class ThresholdLogParameters : ArgumentsProvider {
+//    override fun provideArguments(context: ExtensionContext?): Stream<Arguments> = Stream.of(
+//        Arguments.of(VERBOSE, capturesOf(VERBOSE, DEBUG, INFO, WARN, ERROR)),
+//        Arguments.of(DEBUG, capturesOf(DEBUG, INFO, WARN, ERROR)),
+//        Arguments.of(INFO, capturesOf(INFO, WARN, ERROR)),
+//        Arguments.of(WARN, capturesOf(WARN, ERROR)),
+//        Arguments.of(ERROR, capturesOf(ERROR))
+//    )
+//}
+
 
 fun captureOf(
     logLevel: LogLevel,

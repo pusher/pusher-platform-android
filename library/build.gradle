@@ -57,6 +57,7 @@ dependencies {
     testImplementation "com.google.truth:truth:0.40"
     testImplementation junit5.unitTests()
     testCompileOnly junit5.unitTestsRuntime()
+    testImplementation junit5.parameterized()
     testImplementation project(":test-common")
 
     androidTestImplementation 'com.android.support.test:runner:1.0.1'

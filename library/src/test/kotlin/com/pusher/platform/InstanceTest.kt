@@ -13,14 +13,14 @@ class InstanceTest {
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
-            dependencies = TestDependencies()
+            dependencies = InstanceDependencies()
         )
         assertNotNull(instance)
     }
 
 }
 
-class TestDependencies(androidDependencies: PlatformDependencies = AndroidDependencies(stub())) : PlatformDependencies by androidDependencies {
+class InstanceDependencies(androidDependencies: PlatformDependencies = AndroidDependencies(stub())) : PlatformDependencies by androidDependencies {
     override val scheduler: Scheduler = SyncScheduler()
     override val mainScheduler: MainThreadScheduler = SyncScheduler()
 }
