@@ -16,4 +16,11 @@ task codeCoverageReport(type: JacocoReport, dependsOn: ['junitPlatformTest']) {
         html.enabled false
         csv.enabled false
     }
+
+}
+
+junitPlatformTest {
+    jacoco {
+        destinationFile = file("$buildDir/jacoco/test.exec")
+    }
 }
