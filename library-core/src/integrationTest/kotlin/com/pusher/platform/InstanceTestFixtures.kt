@@ -7,14 +7,19 @@ import com.pusher.platform.test.AlwaysOnlineConnectivityHelper
 import com.pusher.platform.test.AsyncScheduler
 import com.pusher.platform.test.insecureOkHttpClient
 import mockitox.stub
+import okhttp3.OkHttpClient
+import java.util.logging.Level
+import java.util.logging.Logger.getLogger as findJavaLoggerFor
 
 const val HOST = "localhost:10443"
 
-val baseClient = BaseClient(
+val testHttpClient = BaseClient(
     host = HOST,
     dependencies = TestDependencies(),
     client = insecureOkHttpClient
-)
+).also {
+    findJavaLoggerFor(OkHttpClient::class.java.name).level = Level.FINE
+}
 
 class TestDependencies : PlatformDependencies {
     override val logger: Logger = object : Logger {

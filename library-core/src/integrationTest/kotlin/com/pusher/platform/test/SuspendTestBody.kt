@@ -18,7 +18,8 @@ import java.util.concurrent.TimeUnit.MILLISECONDS
  * To suspend the test we need to call `await()`.
  *
  * To finish the suspension we can either call `done()`, `done {}` with an action (i.e. fail test)
- * or `fail(cause)`
+ * or `fail(cause)`.
+ *
  */
 class SuspendedTestBody(body: SuspendedTestBody.() -> Unit) : TestBody {
 
@@ -71,11 +72,14 @@ class SuspendedTestBody(body: SuspendedTestBody.() -> Unit) : TestBody {
  */
 sealed class Timeout {
     data class Some(val amount: Long, val unit: TimeUnit = MILLISECONDS) : Timeout()
+    /**
+     * Only useful for debugging, not to be used in live tests.
+     */
     object None : Timeout()
 }
 
 /**
- * Entry point for [SuspendedTestBody], call this to create a test that will wait for async termination or [timeout]
+ * Main entry point for [SuspendedTestBody], use this to create a test that will wait for async termination or [timeout]
  */
 fun TestContainer.will(description: String, timeout: Timeout = Timeout.Some(5000), body: SuspendedTestBody.() -> Unit) =
     it("will $description") {

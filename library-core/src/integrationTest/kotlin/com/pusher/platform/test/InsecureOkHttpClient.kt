@@ -14,10 +14,10 @@ val trustyCertificate: X509TrustManager = object : X509TrustManager {
 }
 val trustAllCerts = arrayOf<TrustManager>(trustyCertificate)
 
-val sslContext = SSLContext.getInstance("SSL").apply {
+val sslContext: SSLContext = SSLContext.getInstance("SSL").apply {
     init(null, trustAllCerts, SecureRandom())
 }
 
-val insecureOkHttpClient = OkHttpClient.Builder().apply {
+val insecureOkHttpClient: OkHttpClient = OkHttpClient.Builder().apply {
     sslSocketFactory(sslContext.socketFactory, trustyCertificate)
 }.build()
