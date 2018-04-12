@@ -61,9 +61,10 @@ class SuspendedTestBody(body: SuspendedTestBody.() -> Unit) : TestBody {
     /**
      * Waits for [done], [fail] or [attempt] with failure are called.
      */
-    suspend fun await() = completeChannel.receive().also {
-        completeChannel.close()
-    }
+    suspend fun await(timeout: Timeout = Timeout.Some(5000)) = when (timeout) {
+        is Timeout.Some -> withTimeout(timeout.amount, timeout.unit) { completeChannel.receive() }
+        is Timeout.None -> completeChannel.receive()
+    }.also { completeChannel.close() }
 
 }
 
@@ -81,15 +82,10 @@ sealed class Timeout {
 /**
  * Main entry point for [SuspendedTestBody], use this to create a test that will wait for async termination or [timeout]
  */
-fun TestContainer.will(description: String, timeout: Timeout = Timeout.Some(5000), body: SuspendedTestBody.() -> Unit) =
-    it("will $description") {
-        val doneAction = runBlocking {
-            when(timeout) {
-                is Timeout.Some -> withTimeout(timeout.amount, timeout.unit) {
-                    SuspendedTestBody(body).await()
-                }
-                is Timeout.None -> SuspendedTestBody(body).await()
-            }
-        }
-        doneAction()
-    }
+fun TestContainer.will(
+    description: String,
+    timeout: Timeout = Timeout.Some(5000),
+    body: SuspendedTestBody.() -> Unit
+): Unit = it("will $description") {
+    runBlocking { SuspendedTestBody(body).await(timeout) }.invoke()
+}
