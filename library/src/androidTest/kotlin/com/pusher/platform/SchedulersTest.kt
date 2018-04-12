@@ -2,7 +2,7 @@ package com.pusher.platform
 
 import android.os.Looper
 import com.google.common.truth.Truth.assertThat
-import org.junit.jupiter.api.Test
+import org.junit.Test
 
 private const val DELAY = 20L
 
