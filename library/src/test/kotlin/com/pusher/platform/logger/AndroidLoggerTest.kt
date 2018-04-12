@@ -81,27 +81,6 @@ private val LogLevel.doLog: Logger.(String, Error?) -> Unit
         LogLevel.ERROR -> Logger::error
     }
 
-//class LogParameters : ArgumentsProvider {
-//    override fun provideArguments(context: ExtensionContext?): Stream<Arguments> = Stream.of(
-//        Arguments.of(VERBOSE, Logger::verbose),
-//        Arguments.of(DEBUG, Logger::debug),
-//        Arguments.of(INFO, Logger::info),
-//        Arguments.of(WARN, Logger::warn),
-//        Arguments.of(ERROR, Logger::error)
-//    )
-//}
-
-//class ThresholdLogParameters : ArgumentsProvider {
-//    override fun provideArguments(context: ExtensionContext?): Stream<Arguments> = Stream.of(
-//        Arguments.of(VERBOSE, capturesOf(VERBOSE, DEBUG, INFO, WARN, ERROR)),
-//        Arguments.of(DEBUG, capturesOf(DEBUG, INFO, WARN, ERROR)),
-//        Arguments.of(INFO, capturesOf(INFO, WARN, ERROR)),
-//        Arguments.of(WARN, capturesOf(WARN, ERROR)),
-//        Arguments.of(ERROR, capturesOf(ERROR))
-//    )
-//}
-
-
 fun captureOf(
     logLevel: LogLevel,
     message: String = EXPECTED_MESSAGE,
