@@ -12,13 +12,9 @@ import com.pusher.util.Result
 import com.pusher.util.asSuccess
 import elements.Error
 import elements.ErrorResponse
-import mockitox.mock
-import mockitox.returns
-import mockitox.stub
 import okhttp3.Response
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
-import org.mockito.ArgumentMatchers.*
 
 class InstanceRequestIntegrationSpek : Spek({
 
@@ -105,7 +101,7 @@ class InstanceRequestIntegrationSpek : Spek({
                     ).onReady { result ->
                         result.fold(
                             onFailure = { error ->
-                                done { assertThat((error as ErrorResponse).statusCode).isEqualTo(errorCode)   }
+                                done { assertThat((error as ErrorResponse).statusCode).isEqualTo(errorCode) }
                             },
                             onSuccess = { fail("Expecting error") }
                         )
@@ -119,6 +115,7 @@ class InstanceRequestIntegrationSpek : Spek({
             val dummyTokenProvider: TokenProvider = object : TokenProvider {
                 override fun fetchToken(tokenParams: Any?): Promise<Result<String, Error>> =
                     "blahblaharandomtoken".asSuccess<String, Error>().asPromise()
+
                 override fun clearToken(token: String?) = Unit
             }
 
@@ -130,7 +127,7 @@ class InstanceRequestIntegrationSpek : Spek({
                     ).onReady { result ->
                         result.fold(
                             onFailure = { error ->
-                                done { assertThat((error as ErrorResponse).statusCode).isEqualTo(errorCode)   }
+                                done { assertThat((error as ErrorResponse).statusCode).isEqualTo(errorCode) }
                             },
                             onSuccess = { fail("Expecting error") }
                         )
@@ -143,7 +140,6 @@ class InstanceRequestIntegrationSpek : Spek({
     }
 
 })
-
 
 
 private fun forEachErrorCode(testBody: (Int) -> Unit) =
