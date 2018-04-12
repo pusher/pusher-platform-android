@@ -29,8 +29,3 @@ task codeCoverageReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
     ])
 }
 
-junitPlatformTest {
-    jacoco {
-        destinationFile = file("$buildDir/jacoco/test.exec")
-    }
-}
