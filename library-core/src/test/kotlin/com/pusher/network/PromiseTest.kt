@@ -3,6 +3,7 @@ package com.pusher.network
 import com.google.common.truth.Truth.assertThat
 import com.pusher.platform.FutureValue
 import com.pusher.platform.network.Promise
+import com.pusher.platform.network.asPromise
 import kotlinx.coroutines.experimental.launch
 import org.junit.jupiter.api.Test
 
@@ -41,7 +42,7 @@ class PromiseTest {
     @Test
     fun `should call on ready when register with initial value`() {
         var result: String? = null
-        val promise = Promise.now(EXPECTED_RESULT)
+        val promise = EXPECTED_RESULT.asPromise()
 
         promise.onReady { result = it }
 
@@ -70,6 +71,18 @@ class PromiseTest {
         promise.cancel()
 
         assertThat(cancelled).isTrue()
+    }
+
+    @Test
+    fun `should call cancellation listener if cancelled before`() {
+        var cancelled = false
+
+        Promise.promise<String> {
+            cancel()
+            onCancel { cancelled = true }
+        }
+
+        assertThat(cancelled).isFalse()
     }
 
     @Test
