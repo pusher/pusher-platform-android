@@ -22,7 +22,7 @@ interface Error {
 
 fun Error.asSystemError(): ErrorAdapter = ErrorAdapter(this)
 
-data class ErrorAdapter(val error: Error): SystemError(error.reason)
+data class ErrorAdapter(val error: Error) : SystemError(error.reason)
 
 object Errors {
 
@@ -49,8 +49,11 @@ object Errors {
 
     @JvmStatic
     fun compose(errors: List<Error>): Error = CompositeError(
-        "Multiple errors: \n ${errors.map { it.reason }.joinToString { "\n" }}",
+        "Multiple errors: \n ${errors.joinToString("\n") { it.reason }}",
         errors.toList()
     )
+
+    @JvmStatic
+    fun compose(vararg errors: Error): Error = compose(errors.asList())
 
 }

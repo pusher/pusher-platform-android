@@ -2,6 +2,7 @@ package elements
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.google.gson.JsonPrimitive
 import com.pusher.platform.network.parseAs
 import com.pusher.util.Result
 import com.pusher.util.Result.Companion.failuresOf
@@ -23,14 +24,14 @@ sealed class SubscriptionMessage {
     }
 }
 
-private val Array<JsonElement>.messageType
-    get() = getOrNull(0)?.asInt ?: -1
+private val Array<JsonElement>?.messageType
+    get() = this?.getOrNull(0)?.takeIf { it.isJsonPrimitive and it.asJsonPrimitive.isNumber }?.asInt ?: -1
 
 private fun <A> Array<JsonElement>.valueAt(index: Int, name: String, block: JsonElement.() -> A): Result<A, Error> =
-    getOrNull(index)?.block().orElse { Errors.other("Field '$name' of type Int not found in subscription message") }
+    getOrNull(index)?.block().orElse { Errors.other("Field '$name' not found in subscription message") }
 
 private fun Array<JsonElement>.createControlEvent(): Result<SubscriptionMessage, Error> =
-    valueAt(0, "body") { asString }.map { ControlEvent(body = it) }
+    getOrElse(1) { JsonPrimitive("")}.asString.let { ControlEvent(body = it) }.asSuccess()
 
 private fun Array<JsonElement>.createEosEvent(): Result<SubscriptionMessage, Error> {
     val statusCode = valueAt(1, "statusCode") { asInt }
@@ -63,6 +64,6 @@ private fun checkProperties(vararg results: Result<*, Error>) =
         .takeIf { it.isNotEmpty() }
         ?.let { Errors.compose(it).asFailure<SubscriptionMessage, Error>() }
 
-data class SubscriptionEvent(val messageType: Int = 1, val eventId: String, val headers: Headers, val body: JsonElement) : SubscriptionMessage()
-data class EOSEvent(val messageType: Int = 255, val statusCode: Int, val headers: Headers, val errorBody: JsonElement) : SubscriptionMessage()
-data class ControlEvent(val messageType: Int = 0, val body: String) : SubscriptionMessage()
+data class SubscriptionEvent(val eventId: String, val headers: Headers, val body: JsonElement) : SubscriptionMessage()
+data class EOSEvent(val statusCode: Int, val headers: Headers, val errorBody: JsonElement) : SubscriptionMessage()
+data class ControlEvent(val body: String) : SubscriptionMessage()
