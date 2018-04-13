@@ -82,7 +82,7 @@ class PromiseTest {
             onCancel { cancelled = true }
         }
 
-        assertThat(cancelled).isFalse()
+        assertThat(cancelled).isTrue()
     }
 
     @Test
