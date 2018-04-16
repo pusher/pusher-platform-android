@@ -4,7 +4,9 @@ buildscript {
     ext {
         kotlin_version = '1.2.31'
         android_gradle_version = '3.1.1'
+        android_support_version = '27.1.1'
         mockito_version = '2.10.0'
+        constraints_layout_version = '1.1.0'
     }
     repositories {
         google()
