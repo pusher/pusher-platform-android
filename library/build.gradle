@@ -60,9 +60,9 @@ dependencies {
     testImplementation junit5.parameterized()
     testImplementation project(":test-common")
 
-    androidTestImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.1'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+    androidTestImplementation "junit:junit:$junit_legacy_version"
+    androidTestImplementation "com.android.support.test:runner:$espresso_runner_version"
+    androidTestImplementation "com.android.support.test.espresso:espresso-core:$espresso_version"
     androidTestImplementation "com.google.truth:truth:0.40"
     androidTestImplementation "org.mockito:mockito-android:$mockito_version"
     androidTestImplementation project(":test-common")
