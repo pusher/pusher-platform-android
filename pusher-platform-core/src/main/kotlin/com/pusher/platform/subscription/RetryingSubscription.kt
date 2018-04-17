@@ -107,7 +107,6 @@ private class RetryingSubscription(
 
         init {
             logger.verbose("${RetryingSubscription@this}: transitioning to RetryingSubscriptionState")
-            listeners.onError(error)
             executeSubscriptionOnce(error)
         }
 

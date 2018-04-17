@@ -41,12 +41,9 @@ class ErrorResolver(
                 connectivityHelper.onConnected { callback(Retry())}
             }
             is ErrorResponse -> {
-                val retryAfter = error.headers.retryAfter
-                if (retryAfter > 0) {
-                    runningJobs + scheduler.schedule(retryAfter) { callback(Retry())}
-                } else if(error.isRetryable() || retryUnsafeRequests){
-                    if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit ){
-                        currentBackoffMillis = increaseCurrentBackoff()
+                if(error.isRetryable() || retryUnsafeRequests){
+                    if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit){
+                        currentBackoffMillis = error.headers.retryAfter.takeIf { it > 0 } ?: increaseCurrentBackoff()
                         currentRetryCount += 1
 
                         runningJobs += scheduler.schedule(currentBackoffMillis) { callback(Retry())}
