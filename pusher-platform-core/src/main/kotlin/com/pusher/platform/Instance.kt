@@ -12,11 +12,11 @@ import java.util.*
 
 private const val DEFAULT_HOST_BASE = "pusherplatform.io"
 
-open class Instance private constructor(
-    private val id: String,
-    private val baseClient: BaseClient,
-    private val serviceName: String,
-    private val serviceVersion: String
+data class Instance constructor(
+    val id: String,
+    val baseClient: BaseClient,
+    val serviceName: String,
+    val serviceVersion: String
 ) {
 
     @JvmOverloads

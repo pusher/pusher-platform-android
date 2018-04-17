@@ -14,10 +14,11 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class BaseClient(
-    host: String,
-    dependencies: PlatformDependencies,
-    encrypted: Boolean = true
+data class BaseClient(
+    val host: String,
+    val dependencies: PlatformDependencies,
+    val client: OkHttpClient = OkHttpClient(),
+    val encrypted: Boolean = true
 ) {
 
     private val schema = if (encrypted) "https" else "http"
@@ -30,7 +31,7 @@ class BaseClient(
     private val connectivityHelper = dependencies.connectivityHelper
     private val sdkInfo = dependencies.sdkInfo
 
-    private val httpClient = with(OkHttpClient.Builder()) {
+    private val httpClient = client.newBuilder().apply {
         readTimeout(0, TimeUnit.MINUTES)
     }.build()
 
