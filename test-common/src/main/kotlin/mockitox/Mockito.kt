@@ -1,4 +1,4 @@
-package org.mockito
+package mockitox
 
 import org.mockito.BDDMockito.*
 import org.mockito.invocation.InvocationOnMock

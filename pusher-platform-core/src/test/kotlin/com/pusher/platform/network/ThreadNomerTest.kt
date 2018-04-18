@@ -1,7 +1,7 @@
 package com.pusher.platform.network
 
 import com.google.common.truth.Truth.assertThat
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 class ThreadNomerTest {
 
