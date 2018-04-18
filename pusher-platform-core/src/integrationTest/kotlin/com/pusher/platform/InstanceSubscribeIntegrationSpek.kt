@@ -25,7 +25,7 @@ class InstancesubscribeIntegrationSpek : Spek({
             serviceName = "platform_sdk_tester",
             serviceVersion = "v1",
             dependencies = TestDependencies(),
-            baseClient = testHttpClient
+            baseClient = insecureHttpClient
         )
 
         will("subscribe and terminate on EOS after receiving all events") {
@@ -123,7 +123,7 @@ class InstancesubscribeIntegrationSpek : Spek({
             serviceName = "platform_sdk_tester",
             serviceVersion = "v1",
             dependencies = TestDependencies(),
-            baseClient = testHttpClient
+            baseClient = insecureHttpClient
         )
 
         will("handle 404") {
