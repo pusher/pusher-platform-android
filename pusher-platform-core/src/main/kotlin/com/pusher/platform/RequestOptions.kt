@@ -17,6 +17,6 @@ data class RequestOptions(
 }
 
 sealed class RequestDestination {
-    class Relative(val path: String) : RequestDestination()
-    class Absolute(val url: String) : RequestDestination()
+    data class Relative(val path: String) : RequestDestination()
+    data class Absolute(val url: String) : RequestDestination()
 }
