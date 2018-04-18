@@ -1,2 +1,2 @@
 rootProject.name = 'pusher-platform-parent'
-include ':pusher-platform-core', ':pusher-platform-android', ':sample_kotlin', ':sample_java', ':sample_java'
+include ':pusher-platform-core', ':pusher-platform-android', ':sample_kotlin', ':sample_java', ':sample_java', ':test-common'

@@ -1,47 +1,60 @@
 package com.pusher.platform
 
-import org.junit.Test
-import org.mockito.stub
+import com.google.common.truth.Truth
+import com.pusher.platform.test.SyncScheduler
+import mockitox.stub
+import org.junit.jupiter.api.Test
 import kotlin.test.assertNotNull
 
 class InstanceTest {
 
     @Test
-    fun instanceSetUpCorrectly() {
+    fun `instance set up correctly`() {
         val instance = Instance(
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
-            dependencies = TestDependencies()
+            dependencies = InstanceDependencies()
         )
         assertNotNull(instance)
     }
 
-}
+    @Test
+    fun `composition of multiple listeners`() {
+        var tracker = ""
+        val subscription = SubscriptionListeners.compose(
+            SubscriptionListeners(
+                onEnd = { tracker += "a" },
+                onOpen = { tracker += "b" },
+                onError = { tracker += "c" },
+                onEvent = { tracker += "d" },
+                onSubscribe = { tracker += "e" },
+                onRetrying = { tracker += "f" }
+            ),
+            SubscriptionListeners(
+                onEnd = { tracker += "aa" },
+                onOpen = { tracker += "bb" },
+                onError = { tracker += "cc" },
+                onEvent = { tracker += "dd" },
+                onSubscribe = { tracker += "ee" },
+                onRetrying = { tracker += "ff" }
+            )
+        )
 
-class TestDependencies(androidDependencies: PlatformDependencies = AndroidDependencies(stub())) : PlatformDependencies by androidDependencies {
-    override val scheduler: Scheduler = TestScheduler()
-    override val mainScheduler: MainThreadScheduler = TestScheduler()
-}
+        subscription.onEnd(stub())
+        subscription.onOpen(stub())
+        subscription.onError(stub())
+        subscription.onEvent(stub())
+        subscription.onSubscribe()
+        subscription.onRetrying()
 
-class TestScheduler : MainThreadScheduler {
-    override fun schedule(action: () -> Unit): ScheduledJob {
-        action()
-        return TestScheduleJob()
+        Truth.assertThat(tracker).isEqualTo("aaabbbcccdddeeefff")
+
     }
 
-    override fun schedule(delay: Long, action: () -> Unit): ScheduledJob {
-        action() // no delay in tests
-        return TestScheduleJob()
-    }
-
 }
 
-class TestScheduleJob : ScheduledJob {
-
-    var canceled: Boolean = false
-
-    override fun cancel() {
-        canceled = true
-    }
+class InstanceDependencies(androidDependencies: PlatformDependencies = AndroidDependencies(stub())) : PlatformDependencies by androidDependencies {
+    override val scheduler: Scheduler = SyncScheduler()
+    override val mainScheduler: MainThreadScheduler = SyncScheduler()
 }

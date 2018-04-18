@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 class BaseClient(
     host: String,
     dependencies: PlatformDependencies,
+    client: OkHttpClient = OkHttpClient(),
     encrypted: Boolean = true
 ) {
 
@@ -30,7 +31,7 @@ class BaseClient(
     private val connectivityHelper = dependencies.connectivityHelper
     private val sdkInfo = dependencies.sdkInfo
 
-    private val httpClient = with(OkHttpClient.Builder()) {
+    private val httpClient = client.newBuilder().apply {
         readTimeout(0, TimeUnit.MINUTES)
     }.build()
 
@@ -127,6 +128,17 @@ class BaseClient(
         else -> UploadError("File does not exist at ${file.path}").asFailure<Response, Error>().asPromise()
     }
 
+    /**
+     * Ensures that:
+     *  - GET doesn't have a body
+     *  - PUT and POST have an empty body if missing
+     */
+    private fun RequestBody?.forMethod(method: String): RequestBody? = when(method.toUpperCase()) {
+        "GET" -> null
+        "POST", "PUT" -> this ?: RequestBody.create(MediaType.parse("text/plain"), "")
+        else -> this
+    }
+
     private fun performRequest(
         requestDestination: RequestDestination,
         headers: Headers,
@@ -136,7 +148,7 @@ class BaseClient(
         val requestURL = getRequestPath(requestDestination)
 
         val request = createRequest {
-            method(method, requestBody)
+            method(method, requestBody.forMethod(method))
             url(requestURL)
             headers.forEach { (name, values) ->
                 values.forEach { value -> addHeader(name, value) }
@@ -164,7 +176,6 @@ class BaseClient(
                                     URI = b.URI
                                 )
                             }.recover { it }
-
                         report(error.asFailure())
                     }
                 }
