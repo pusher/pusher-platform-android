@@ -15,11 +15,12 @@ const val HOST = "localhost:10443"
 
 val testHttpClient = BaseClient(
     host = HOST,
-    dependencies = TestDependencies(),
-    client = insecureOkHttpClient
+    dependencies = TestDependencies()
 ).also {
     findJavaLoggerFor(OkHttpClient::class.java.name).level = Level.FINE
 }
+
+val insecureHttpClient = testHttpClient.copy(client = insecureOkHttpClient)
 
 class TestDependencies : PlatformDependencies {
     override val logger: Logger = object : Logger {

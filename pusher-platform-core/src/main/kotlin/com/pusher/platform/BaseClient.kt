@@ -14,11 +14,11 @@ import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class BaseClient(
-    host: String,
-    dependencies: PlatformDependencies,
-    client: OkHttpClient = OkHttpClient(),
-    encrypted: Boolean = true
+data class BaseClient(
+    val host: String,
+    val dependencies: PlatformDependencies,
+    val client: OkHttpClient = OkHttpClient(),
+    val encrypted: Boolean = true
 ) {
 
     private val schema = if (encrypted) "https" else "http"

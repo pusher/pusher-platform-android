@@ -25,7 +25,7 @@ class InstanceRequestIntegrationSpek : Spek({
             serviceName = "platform_sdk_tester",
             serviceVersion = "v1",
             dependencies = TestDependencies(),
-            baseClient = testHttpClient
+            baseClient = insecureHttpClient
         )
 
         will("make a successful GET request") {
@@ -89,7 +89,7 @@ class InstanceRequestIntegrationSpek : Spek({
             serviceName = "platform_sdk_tester",
             serviceVersion = "v1",
             dependencies = TestDependencies(),
-            baseClient = testHttpClient
+            baseClient = insecureHttpClient
         )
 
         describe("with no token provider") {

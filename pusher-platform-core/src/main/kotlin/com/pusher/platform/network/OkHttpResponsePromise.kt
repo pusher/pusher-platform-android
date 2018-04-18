@@ -4,4 +4,5 @@ import com.pusher.util.Result
 import elements.Error
 import okhttp3.Response
 
-typealias OkHttpResponsePromise = Promise<Result<Response, Error>>
+typealias OkHttpResponseResult = Result<Response, Error>
+typealias OkHttpResponsePromise = Promise<OkHttpResponseResult>
