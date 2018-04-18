@@ -3,8 +3,11 @@ package com.pusher.platform.subscription
 import com.pusher.platform.Cancelable
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
+import com.pusher.platform.network.Promise
 import com.pusher.platform.tokenProvider.TokenProvider
+import com.pusher.util.Result
 import elements.EOSEvent
+import elements.Error
 import elements.ErrorResponse
 import elements.Headers
 import elements.Subscription
@@ -41,7 +44,7 @@ class TokenProvidingSubscription(
     val nextSubscribeStrategy: SubscribeStrategy
 ) : Subscription {
     var state: TokenProvidingSubscriptionState
-    lateinit var tokenRequestInProgress: Cancelable
+    private var tokenRequestInProgress: Promise<Result<String, Error>>? = null
 
     init {
         state = ActiveState(logger, headers, nextSubscribeStrategy)
@@ -49,13 +52,13 @@ class TokenProvidingSubscription(
     }
 
     override fun unsubscribe() {
-        tokenRequestInProgress.cancel()
+        tokenRequestInProgress?.cancel()
         state.unsubscribe()
         state = InactiveState(logger)
     }
 
     private fun subscribe() {
-        tokenProvider.fetchToken(tokenParams)
+        tokenRequestInProgress = tokenProvider.fetchToken(tokenParams)
             .onReady { result ->
                 result.fold({ error ->
                     logger.debug(
