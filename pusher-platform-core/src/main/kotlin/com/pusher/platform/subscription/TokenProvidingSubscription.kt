@@ -99,7 +99,7 @@ class ActiveState(
     val headers: Headers,
     val nextSubscribeStrategy: SubscribeStrategy
 ) : TokenProvidingSubscriptionState {
-    lateinit var underlyingSubscription: Subscription
+    private var underlyingSubscription: Subscription? = null
 
     override fun subscribe(token: String, listeners: SubscriptionListeners) {
 
@@ -127,7 +127,7 @@ class ActiveState(
     }
 
     override fun unsubscribe() {
-        this.underlyingSubscription.unsubscribe()
+        this.underlyingSubscription?.unsubscribe()
     }
 }
 
