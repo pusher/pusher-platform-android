@@ -1,0 +1,12 @@
+plugins {
+    id 'kotlin'
+    id 'java-library'
+}
+
+dependencies {
+    implementation "org.mockito:mockito-core:$mockito_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+}
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"

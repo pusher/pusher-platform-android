@@ -1,5 +1,5 @@
 package com.pusher.platform.subscription
 
-interface SubscriptionState {
-    fun unsubscribe()
-}
+import elements.Subscription
+
+interface SubscriptionState : Subscription

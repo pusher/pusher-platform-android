@@ -8,11 +8,9 @@ import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.retrying.DoNotRetry
 import elements.ErrorResponse
-import elements.Subscription
 import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.util.*
-import kotlin.test.assertTrue
 
 class ResumingSubscriptionStateTest {
 

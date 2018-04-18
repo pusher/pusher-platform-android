@@ -1,9 +1,7 @@
 package com.pusher.util
 
 import com.google.common.truth.Truth.assertThat
-import com.pusher.platform.FutureValue
-import com.pusher.platform.network.asPromise
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 private const val SUCCESS_VALUE = "value"
 private const val FAILURE_VALUE = 123

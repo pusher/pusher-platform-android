@@ -187,4 +187,21 @@ class SubscriptionListeners(
     val onOpen: (headers: Headers) -> Unit = {},
     val onRetrying: () -> Unit = {},
     val onSubscribe: () -> Unit = {}
-)
+) {
+
+    companion object {
+
+        @JvmStatic
+        fun compose(vararg l: SubscriptionListeners) = SubscriptionListeners(
+            onEnd = { error -> l.forEach { it.onEnd(error) } },
+            onError = { error -> l.forEach { it.onError(error) } },
+            onEvent = { event -> l.forEach { it.onEvent(event) } },
+            onOpen = { headers -> l.forEach { it.onOpen(headers) } },
+            onRetrying = { l.forEach { it.onRetrying() } },
+            onSubscribe = { l.forEach { it.onSubscribe() } }
+        )
+
+    }
+
+}
+

@@ -4,7 +4,7 @@ import android.util.Log
 import com.pusher.platform.logger.AndroidLogger.LogStrategy.*
 import com.pusher.platform.logger.LogLevel.*
 
-class AndroidLogger( val threshold: LogLevel) : Logger {
+class AndroidLogger(private val threshold: LogLevel) : Logger {
 
     private val tag = "pusherPlatform"
 
@@ -24,16 +24,15 @@ class AndroidLogger( val threshold: LogLevel) : Logger {
         ERROR.strategy.log(tag, message, error)
 
     private val LogLevel.strategy
-        get() = if (this >= threshold) {
-            when (this) {
+        get() = when {
+            this >= threshold -> when (this) {
                 VERBOSE -> Verbose
                 DEBUG -> Debug
                 INFO -> Info
                 WARN -> Warning
                 ERROR -> Err
             }
-        } else {
-            Disabled
+            else -> Disabled
         }
 
     private sealed class LogStrategy(

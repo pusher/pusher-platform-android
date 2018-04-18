@@ -1,25 +1,68 @@
 plugins {
     id 'kotlin'
     id 'java-library'
+    id 'org.junit.platform.gradle.plugin'
 }
+
 apply from: "$projectDir/../gradle/maven-push.gradle"
 apply from: "$projectDir/../gradle/jacoco.gradle"
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.22.1"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:0.22.1"
-    api 'com.squareup.okhttp3:okhttp:3.9.1'
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
+    api 'com.squareup.okhttp3:okhttp:3.10.0'
     api 'com.google.code.gson:gson:2.8.2'
 
+    testImplementation "org.mockito:mockito-inline:$mockito_version"
+    testImplementation "com.google.truth:truth:0.40"
+    testImplementation 'org.jetbrains.spek:spek-api:1.1.5'
+    testImplementation 'org.jetbrains.spek:spek-junit-platform-engine:1.1.5'
+    testImplementation 'org.junit.platform:junit-platform-runner:1.1.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.0.3'
+    testImplementation project(":test-common")
 
-    testImplementation 'junit:junit:4.12'
-    testImplementation 'org.mockito:mockito-inline:2.10.0'
-    testImplementation "com.google.truth:truth:0.39"
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.0.3'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
+
+sourceSets.test {
+    java.srcDirs = ['src/test/kotlin', 'src/integrationTest/kotlin']
+    resources.srcDirs = ['src/test/resources', 'src/integrationTest/resources']
+}
+
+import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP
+
+task unitTest(type: Test) {
+    description = 'Runs unit tests.'
+    group = VERIFICATION_GROUP
+    useJUnitPlatform()
+    testClassesDirs += sourceSets.test.output.classesDirs
+    include '**/test/**'
+}
+
+task integrationTest(type: Test) {
+    description = 'Runs integration tests.'
+    group = VERIFICATION_GROUP
+    useJUnitPlatform()
+    testClassesDirs += sourceSets.test.output.classesDirs
+    include '**/integrationTest/**'
+}
+
+junitPlatform {
+    details 'tree'
+    filters {
+        engines {
+            include 'junit-jupiter', 'spek'
+        }
+    }
+}
 
 kotlin {
     experimental {

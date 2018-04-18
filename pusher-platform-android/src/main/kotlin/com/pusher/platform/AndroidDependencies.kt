@@ -26,5 +26,4 @@ data class AndroidDependencies(
     override val mediaTypeResolver: MediaTypeResolver by lazy { AndroidMediaTypeResolver() }
     override val connectivityHelper: ConnectivityHelper by lazy { AndroidConnectivityHelper(context) }
 
-
 }
