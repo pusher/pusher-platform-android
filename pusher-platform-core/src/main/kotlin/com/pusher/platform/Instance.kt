@@ -172,7 +172,7 @@ private data class Locator(val version: String, val cluster: String, val id: Str
             val splitInstanceLocator = raw.split(":")
             splitInstanceLocator.getOrNull(2)
             require(splitInstanceLocator.size == 3) {
-                "Expecting locator to be of the form 'v1:us1:1a234-123a-1234-12a3-1234123aa12' but got this instead: $raw'. Check the dashboard to ensure you have a properly formatted locator."
+                "Expecting locator to be of the form 'v1:us1:1a234-123a-1234-12a3-1234123aa12' but got this instead: '$raw'. Check the dashboard to ensure you have a properly formatted locator."
             }
             val (version, cluster, id) = splitInstanceLocator
             return Locator(version, cluster, id)
