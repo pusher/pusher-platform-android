@@ -5,13 +5,20 @@ import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.test.AlwaysOnlineConnectivityHelper
 import com.pusher.platform.test.AsyncScheduler
+import com.pusher.platform.test.describeWhenReachable
 import com.pusher.platform.test.insecureOkHttpClient
 import mockitox.stub
 import okhttp3.OkHttpClient
 import java.util.logging.Level
 import java.util.logging.Logger.getLogger as findJavaLoggerFor
 
-const val HOST = "localhost:10443"
+/**
+ * If nothing is set up the default location to the sdk tester is assumed to be localhost:10443.
+ * When the property 'pusher_platform_sdk_tester_host' is set in ~/.gradle/gradle.properties or
+ * as an environment variable. In either case, if the path is not reachable, any tests using
+ * [describeWhenReachable] will be skipped.
+ */
+val HOST: String = System.getProperty("pusher_platform_sdk_tester_host", "localhost:10443")
 
 val testHttpClient = BaseClient(
     host = HOST,
