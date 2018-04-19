@@ -14,7 +14,7 @@ private val EXPECTED_ERROR = Error("Awesome error")
 
 class AndroidLoggerTest {
 
-    @ParameterizedTest(name = " should log {0}")
+    @ParameterizedTest(name = "should log {0}")
     @EnumSource(LogLevel::class)
     fun shouldLog(logLevel: LogLevel) {
         val doLog: Logger.(String, Error?) -> Unit = logLevel.doLog
@@ -28,7 +28,7 @@ class AndroidLoggerTest {
     }
 
 
-    @ParameterizedTest(name = " should log {0} with Error")
+    @ParameterizedTest(name = "should log {0} with Error")
     @EnumSource(LogLevel::class)
     fun shouldLog_withError(logLevel: LogLevel) {
         val doLog: Logger.(String, Error?) -> Unit = logLevel.doLog
@@ -44,7 +44,7 @@ class AndroidLoggerTest {
     @Nested
     class Threshold {
 
-        @ParameterizedTest(name = " should log {0} when threshold is higher")
+        @ParameterizedTest(name = "should log {0} when threshold is higher")
         @EnumSource(LogLevel::class)
         fun shouldNotLog_whenThresholdIsHigher(logLevel: LogLevel) {
             val log = LogSpy()
