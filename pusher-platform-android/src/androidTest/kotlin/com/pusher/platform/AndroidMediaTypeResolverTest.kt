@@ -1,5 +1,6 @@
 package com.pusher.platform
 
+import com.google.common.truth.StringSubject
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -9,18 +10,18 @@ import java.io.File
 @RunWith(Parameterized::class)
 class AndroidMediaTypeResolverTest(
     private val file: File,
-    private val expectedMediaType: Any?
+    private val isValid: StringSubject.() -> Unit
 ) {
 
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{1}")
         fun data() = arrayOf(
-            case("image.jpg", "image/jpeg"),
-            case("image.png", "image/png"),
-            case("image.gif", "image/gif"),
-            case("image.pdf", "application/pdf"),
-            case("no-extension", null)
+            case("image.jpg", { isEqualTo("image/jpeg") }),
+            case("image.png", { isEqualTo("image/png") }),
+            case("image.gif", { isEqualTo("image/gif") }),
+            case("image.pdf", { isEqualTo("application/pdf") }),
+            case("no-extension", { isNull() })
         )
     }
 
@@ -30,9 +31,9 @@ class AndroidMediaTypeResolverTest(
 
         val mediaType = resolver.fileMediaType(file)
 
-        assertThat(mediaType).isEqualTo(expectedMediaType)
+        assertThat(mediaType).isValid()
     }
 
 }
 
-private fun case(file: String, type: String?) = arrayOf(File(file), type)
+private fun case(file: String, type: StringSubject.() -> Unit) = arrayOf(File(file), type)
