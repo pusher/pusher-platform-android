@@ -31,13 +31,37 @@ dependencies {
 
 The main entity used to access to platform services is [Instance](pusher-platform-core/src/main/kotlin/com/pusher/platform/Instance.kt).
 
-To create a new instance we need 4 things:
+The simpler way to create a new instance uses 4 things:
 
-* id: The instance id
-* baseClient: A client with all the required dependencies
+* locator: Instance locator id in the form of 'v1:us1:1a234-123a-1234-12a3-1234123aa12'
 * serviceName: the name of the service this instance will use
 * serviceVersion: The version of the service
+* dependencies: An object containing the requirements for the instance. The default implementation for Android provides all that is needed in `com.pusher.platform.AndroidDependencies`
 
+Examples:
+
+```kotlin
+class KotlinExample {
+    val instance = Instance(
+         locator = "v1:us1:1a234-123a-1234-12a3-1234123aa12",
+         serviceName = "service",
+         serviceVersion = "v1",
+         dependencies = AndroidDependencies()
+    )
+}
+```
+
+```java
+class JavaExample {
+    Instance instance = new Instance(
+        "v1:us1:1a234-123a-1234-12a3-1234123aa12",
+        "service",
+        "v1",
+        new AndroidDependencies()
+    );
+}
+
+```
 
 
 ## Testing
