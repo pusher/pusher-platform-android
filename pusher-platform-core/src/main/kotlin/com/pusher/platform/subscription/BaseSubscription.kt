@@ -88,23 +88,21 @@ internal class BaseSubscription(
     }
 
     private fun handleConnectionFailed(response: Response) {
-        if (response.body() != null) {
-            val errorEvent = response.body()?.charStream()
-                .parseOr { ErrorResponseBody("Could not parse: $response") }
-                .fold(
-                    onFailure = { it },
-                    onSuccess = {
-                        ErrorResponse(
-                            statusCode = response.code(),
-                            headers = response.headers().toMultimap(),
-                            error = it.error,
-                            errorDescription = it.errorDescription,
-                            URI = it.URI
-                        )
-                    }
-                )
-            onError(errorEvent)
-        }
+        val errorEvent = response.body()?.charStream()
+            .parseOr { ErrorResponseBody("Could not parse: $response") }
+            .fold(
+                onFailure = { it },
+                onSuccess = {
+                    ErrorResponse(
+                        statusCode = response.code(),
+                        headers = response.headers().toMultimap(),
+                        error = it.error,
+                        errorDescription = it.errorDescription,
+                        URI = it.URI
+                    )
+                }
+            )
+        onError(errorEvent)
     }
 
     private fun handleConnectionOpened(response: Response) {
