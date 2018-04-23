@@ -13,6 +13,7 @@ import elements.*
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import okhttp3.ResponseBody
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
@@ -43,7 +44,7 @@ internal class BaseSubscription(
 
     private val job: ScheduledJob
 
-    private var activeReader by Delegates.observable<Reader?>(null) { _, old, _ ->
+    private var activeResponseBody by Delegates.observable<ResponseBody?>(null) { _, old, _ ->
         old?.close()
     }
 
@@ -110,18 +111,13 @@ internal class BaseSubscription(
         onOpen(response.headers().toMultimap())
 
         val body = response.body()
-
+        activeResponseBody = body
         when (body) {
             null -> onError(NetworkError("No response."))
-            else -> {
-                activeReader = body.charStream()
-                activeReader?.useLines { lines ->
-                    lines.map { SubscriptionMessage.fromRaw(it) }
-                        .map { result -> result.report() }
-                        .any { it is EOSEvent }
-                        .let { ended -> if (!ended) onEnd(null) }
-                }
-            }
+            else -> body.messages
+                .map { result -> result.report() }
+                .any { it is EOSEvent }
+                .let { ended -> if (!ended) onEnd(null) }
         }
     }
 
@@ -137,9 +133,13 @@ internal class BaseSubscription(
         return (this as? Result.Success)?.value
     }
 
+    private val ResponseBody.messages
+        get() = charStream().buffered().lineSequence()
+            .map {line -> SubscriptionMessage.fromRaw(line) }
+
     override fun unsubscribe() {
         call.takeUnless { it.isCanceled }?.cancel()
-        activeReader?.close()
+        activeResponseBody?.close()
         job.cancel()
     }
 }
