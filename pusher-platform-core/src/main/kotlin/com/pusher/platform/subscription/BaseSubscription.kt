@@ -9,6 +9,7 @@ import com.pusher.platform.network.nameCurrentThread
 import com.pusher.platform.network.parseOr
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import com.pusher.util.Result
+import com.pusher.util.flatten
 import elements.*
 import okhttp3.Call
 import okhttp3.OkHttpClient
@@ -90,18 +91,16 @@ internal class BaseSubscription(
     private fun handleConnectionFailed(response: Response) {
         val errorEvent = response.body()?.charStream()
             .parseOr { ErrorResponseBody("Could not parse: $response") }
-            .fold(
-                onFailure = { it },
-                onSuccess = {
-                    ErrorResponse(
-                        statusCode = response.code(),
-                        headers = response.headers().toMultimap(),
-                        error = it.error,
-                        errorDescription = it.errorDescription,
-                        URI = it.URI
-                    )
-                }
-            )
+            .map {
+                ErrorResponse(
+                    statusCode = response.code(),
+                    headers = response.headers().toMultimap(),
+                    error = it.error,
+                    errorDescription = it.errorDescription,
+                    URI = it.URI
+                ) as Error
+            }
+            .flatten()
         onError(errorEvent)
     }
 
