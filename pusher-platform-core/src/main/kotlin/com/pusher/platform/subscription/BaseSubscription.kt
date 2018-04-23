@@ -15,9 +15,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
-import okio.BufferedSource
 import java.io.IOException
+import java.io.Reader
 import javax.net.ssl.SSLHandshakeException
+import kotlin.properties.Delegates
 
 
 internal class BaseSubscription(
@@ -42,6 +43,10 @@ internal class BaseSubscription(
 
     private val job: ScheduledJob
 
+    private var activeReader by Delegates.observable<Reader?>(null) { _, old, _ ->
+        old?.close()
+    }
+
     init {
         val request = baseClient.createRequest {
             method("SUBSCRIBE", null)
@@ -58,15 +63,16 @@ internal class BaseSubscription(
                 "${request.method()}: /${request.url().pathSegments().joinToString("/")}"
             )
             try {
-                val response = call.execute()
-                when (response.code()) {
-                    in 200..299 -> handleConnectionOpened(response)
-                    in 400..599 -> handleConnectionFailed(response)
-                    else -> {
-                        onError(NetworkError("Connection failed"))
+                call.execute().also { response ->
+                    when (response.code()) {
+                        in 200..299 -> handleConnectionOpened(response)
+                        in 400..599 -> handleConnectionFailed(response)
+                        else -> {
+                            onError(NetworkError("Connection failed"))
+                        }
                     }
+                    response.close()
                 }
-                response.close()
             } catch (e: IOException) {
                 when {
                     call.isCanceled -> onEnd(null)
@@ -108,10 +114,15 @@ internal class BaseSubscription(
 
         when (body) {
             null -> onError(NetworkError("No response."))
-            else ->  body.source().messages
-                .map { result -> result.report() }
-                .any { it is EOSEvent }
-                .let { ended -> if (!ended) { onEnd(null) } }
+            else -> {
+                activeReader = body.charStream()
+                activeReader?.useLines { lines ->
+                    lines.map { SubscriptionMessage.fromRaw(it) }
+                        .map { result -> result.report() }
+                        .any { it is EOSEvent }
+                        .let { ended -> if (!ended) onEnd(null) }
+                }
+            }
         }
     }
 
@@ -127,15 +138,9 @@ internal class BaseSubscription(
         return (this as? Result.Success)?.value
     }
 
-    private val BufferedSource.messages
-        get() = generateSequence {
-            takeUnless { exhausted() } ?.let { SubscriptionMessage.fromRaw(readUtf8LineStrict()) }
-        }
-
     override fun unsubscribe() {
-        if(!call.isCanceled){
-            call.cancel()
-        }
+        call.takeUnless { it.isCanceled }?.cancel()
+        activeReader?.close()
         job.cancel()
     }
 }
