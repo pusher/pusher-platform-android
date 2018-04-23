@@ -63,16 +63,15 @@ internal class BaseSubscription(
                 "${request.method()}: /${request.url().pathSegments().joinToString("/")}"
             )
             try {
-                call.execute().also { response ->
-                    when (response.code()) {
-                        in 200..299 -> handleConnectionOpened(response)
-                        in 400..599 -> handleConnectionFailed(response)
-                        else -> {
-                            onError(NetworkError("Connection failed"))
-                        }
+                val response = call.execute()
+                when (response.code()) {
+                    in 200..299 -> handleConnectionOpened(response)
+                    in 400..599 -> handleConnectionFailed(response)
+                    else -> {
+                        onError(NetworkError("Connection failed"))
                     }
-                    response.close()
                 }
+                response.close()
             } catch (e: IOException) {
                 when {
                     call.isCanceled -> onEnd(null)
