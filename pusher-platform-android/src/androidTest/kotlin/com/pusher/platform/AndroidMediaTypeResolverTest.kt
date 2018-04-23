@@ -9,7 +9,7 @@ import java.io.File
 @RunWith(Parameterized::class)
 class AndroidMediaTypeResolverTest(
     private val file: File,
-    private val expectedMediaType: String?
+    private val expectedMediaType: Any?
 ) {
 
     companion object {
