@@ -16,7 +16,7 @@ cache:
 before_script:
   - ./gradle/android/sdk-setup.sh
   - if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
-      ./gradle/firebase/install.sh
+      ./gradle/firebase/install.sh;
     fi
 
 script:
@@ -25,8 +25,8 @@ script:
  - ./gradlew :pusher-platform-core:assemble :pusher-platform-core:test
  - ./gradlew codeCoverageReport
  - if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
-    ./gradle/firebase/auth.sh
-    ./gradle/firebase/runLibraryAndroidTests.sh
+    ./gradle/firebase/auth.sh;
+    ./gradle/firebase/runLibraryAndroidTests.sh;
    fi
 
 after_success:
