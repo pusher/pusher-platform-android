@@ -18,7 +18,6 @@ import okhttp3.ResponseBody
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
-import java.io.Reader
 import javax.net.ssl.SSLHandshakeException
 import kotlin.properties.Delegates
 
