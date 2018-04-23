@@ -11,7 +11,7 @@ class SchedulersTest {
     @Test
     fun mainThreadScheduler_runsOnMainLooper() {
         val scheduler = ForegroundScheduler()
-        var looper by FutureValue<Looper>()
+        var looper by FutureValue<Looper?>()
 
         scheduler.schedule { looper = Looper.myLooper() }
 
@@ -21,7 +21,7 @@ class SchedulersTest {
     @Test
     fun backgroundScheduler_runsOnBackground() {
         val scheduler = BackgroundScheduler()
-        var looper by FutureValue<Looper>()
+        var looper by FutureValue<Looper?>()
 
         scheduler.schedule { looper = Looper.myLooper() }
 
