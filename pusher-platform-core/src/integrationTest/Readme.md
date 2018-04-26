@@ -10,4 +10,4 @@ The tester can be found here: https://github.com/pusher/platform-sdk-tester (Pri
 running it locally there is nothing else to set up. If you have a remote server when you have to 
 provide the following values in your `~/.gradle.properties` or as `envvars`:
 
- - sdk_tester_url: The address to where the sdk tester is located (`localhost:10443` by default)
+ - sdk_tester_url: The host (without schema) of where the SDK tester is located (`localhost:10443` by default)
