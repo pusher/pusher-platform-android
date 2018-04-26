@@ -33,10 +33,10 @@ The main entity used to access to platform services is [Instance](pusher-platfor
 
 The simpler way to create a new instance uses 4 things:
 
-* locator: Instance locator id in the form of 'v1:us1:1a234-123a-1234-12a3-1234123aa12'
-* serviceName: the name of the service this instance will use
-* serviceVersion: The version of the service
-* dependencies: An object containing the requirements for the instance. The default implementation for Android provides all that is needed in `com.pusher.platform.AndroidDependencies`
+* `locator`: Instance locator id in the form of 'v1:us1:1a234-123a-1234-12a3-1234123aa12'
+* `serviceName`: The name of the service this instance will use
+* `serviceVersion`: The version of the service
+* `dependencies`: An object containing the requirements for the instance. The default implementation for Android provides all that is needed in `com.pusher.platform.AndroidDependencies`
 
 Examples:
 
@@ -66,7 +66,7 @@ class JavaExample {
 
 ## Testing
 
-We use Junit 5 and/or Spek to run unit and integration tests. In `pusher-platform-core` we have two test folders. Unit tests can be located in `test` and integration tests in `integrationTest`. In order to run integration tests locally have to do a couple of extra steps. They can be found [here](pusher-platform-core/src/integrationTest/Readme.md).
+We use Junit 5 and/or Spek to run unit and integration tests. In `pusher-platform-core` we have two test folders. Unit tests can be located in `test` and integration tests in `integrationTest`. In order to run integration tests locally we have to do a couple of extra steps. They can be found [here](pusher-platform-core/src/integrationTest/Readme.md).
 
 ## Communication
 
