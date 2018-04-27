@@ -44,9 +44,7 @@ internal class BaseSubscription(
 
     private val job: ScheduledJob
 
-    private var activeResponseBody by Delegates.observable<ResponseBody?>(null) { _, old, _ ->
-        old?.close()
-    }
+    private var activeResponseBody: ResponseBody? = null
 
     init {
         val request = baseClient.createRequest {
