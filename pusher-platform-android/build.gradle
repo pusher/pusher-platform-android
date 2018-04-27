@@ -45,7 +45,7 @@ android {
 dependencies {
     implementation "com.android.support:appcompat-v7:$android_support_version"
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     api project(":pusher-platform-core")
     api 'com.squareup.okhttp3:okhttp:3.10.0'
     api 'com.google.code.gson:gson:2.8.2'

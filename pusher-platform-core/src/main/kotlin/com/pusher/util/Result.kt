@@ -95,6 +95,12 @@ sealed class Result<A, B> {
 }
 
 /**
+ * If the result is the same time on both sides it will return the one that is present.
+ */
+fun <A> Result<A, A>.flatten(): A =
+    fold({ it }, { it })
+
+/**
  * Collapses a nested result into a simple one
  */
 fun <A, B> Result<Result<A, B>, B>.flatten(): Result<A, B> = fold(
