@@ -1,5 +1,7 @@
 package com.pusher.platform
 
+import com.pusher.platform.RequestDestination.Absolute
+import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.logger.log
 import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
@@ -10,6 +12,7 @@ import elements.*
 import elements.Headers
 import okhttp3.*
 import java.io.File
+import java.lang.reflect.Type
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
@@ -35,7 +38,7 @@ data class BaseClient(
     }.build()
 
     fun subscribeResuming(
-        requestDestination: RequestDestination,
+        destination: RequestDestination,
         listeners: SubscriptionListeners,
         headers: Headers,
         tokenProvider: TokenProvider?,
@@ -51,7 +54,7 @@ data class BaseClient(
                 tokenParams = tokenParams,
                 logger = logger,
                 nextSubscribeStrategy = createBaseSubscription(
-                    path = getRequestPath(requestDestination)
+                    path = destination.toRequestPath()
                 )
             ),
             errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
@@ -61,7 +64,7 @@ data class BaseClient(
     }
 
     fun subscribeNonResuming(
-        requestDestination: RequestDestination,
+        destination: RequestDestination,
         listeners: SubscriptionListeners,
         headers: Headers,
         tokenProvider: TokenProvider?,
@@ -74,7 +77,7 @@ data class BaseClient(
                 tokenProvider = tokenProvider,
                 tokenParams = tokenParams,
                 logger = logger,
-                nextSubscribeStrategy = createBaseSubscription(path = getRequestPath(requestDestination))),
+                nextSubscribeStrategy = createBaseSubscription(path = destination.toRequestPath())),
             errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
         )
         return subscribeStrategy(listeners, headers)
@@ -85,14 +88,14 @@ data class BaseClient(
         requestDestination: RequestDestination,
         headers: elements.Headers,
         method: String,
-        type: Class<A>,
+        type: Type,
         body: String? = null,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = tokenProvider
         .authHeaders(headers, tokenParams)
         .flatMapFutureResult { authHeaders ->
-            performRequest(
+            performRequest<A>(
                 destination = requestDestination,
                 headers = authHeaders,
                 method = method,
@@ -101,18 +104,18 @@ data class BaseClient(
             )
         }
 
-
+    @JvmOverloads
     fun <A> upload(
         requestDestination: RequestDestination,
         headers: elements.Headers = emptyHeaders(),
         file: File,
-        type: Class<A>,
+        type: Type,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = when {
         file.exists() -> {
             tokenProvider.authHeaders(headers, tokenParams).flatMapFutureResult { authHeaders ->
-                performRequest(requestDestination, authHeaders, "POST", file.toRequestMultipartBody(), type)
+                performRequest<A>(requestDestination, authHeaders, "POST", file.toRequestMultipartBody(), type)
             }
         }
         else -> Futures.now(UploadError("File does not exist at ${file.path}").asFailure<A, Error>())
@@ -151,9 +154,9 @@ data class BaseClient(
         headers: Headers,
         method: String,
         requestBody: RequestBody?,
-        type: Class<A>
+        type: Type
     ): Future<Result<A, Error>> = Futures.schedule {
-        val requestURL = getRequestPath(destination)
+        val requestURL = destination.toRequestPath()
         logger.verbose("Request started: $method $destination with body: $requestBody")
 
         val request = createRequest {
@@ -216,15 +219,9 @@ data class BaseClient(
             addHeader("X-SDK-Platform", sdkInfo.platform)
         }.also(block).build()
 
-    private fun getRequestPath(requestDestination: RequestDestination): String {
-        return when (requestDestination) {
-            is RequestDestination.Absolute -> {
-                requestDestination.url
-            }
-            is RequestDestination.Relative -> {
-                absolutePath(requestDestination.path)
-            }
-        }
+    private fun RequestDestination.toRequestPath(): String = when (this) {
+        is Absolute -> url
+        is Relative -> absolutePath(path)
     }
 
     private fun absolutePath(path: String): String = "$baseUrl/$path".replaceMultipleSlashesInUrl()

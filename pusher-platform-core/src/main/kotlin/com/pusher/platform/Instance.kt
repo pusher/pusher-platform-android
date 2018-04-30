@@ -1,12 +1,15 @@
 package com.pusher.platform
 
+import com.google.gson.reflect.TypeToken
 import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
+import com.pusher.platform.network.typeToken
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import elements.*
 import java.io.File
+import java.lang.reflect.Type
 import java.util.*
 import java.util.concurrent.Future
 
@@ -61,7 +64,7 @@ data class Instance constructor(
         retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
         initialEventId: String? = null
     ): Subscription = baseClient.subscribeResuming(
-        requestDestination = requestDestination.toScopedDestination(),
+        destination = requestDestination.toScopedDestination(),
         listeners = listeners,
         headers = headers,
         tokenProvider = tokenProvider,
@@ -94,7 +97,7 @@ data class Instance constructor(
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription = baseClient.subscribeNonResuming(
-        requestDestination = requestDestination.toScopedDestination(),
+        destination = requestDestination.toScopedDestination(),
         listeners = listeners,
         headers = headers,
         tokenProvider = tokenProvider,
@@ -105,7 +108,7 @@ data class Instance constructor(
     @JvmOverloads
     inline fun <reified A> request(
         options: RequestOptions,
-        type: Class<A> = A::class.java,
+        type: Type = typeToken<A>(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = baseClient.request(
