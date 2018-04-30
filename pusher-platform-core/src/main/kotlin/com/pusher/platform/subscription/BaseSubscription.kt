@@ -9,15 +9,17 @@ import com.pusher.platform.network.nameCurrentThread
 import com.pusher.platform.network.parseOr
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
 import com.pusher.util.Result
+import com.pusher.util.flatten
 import elements.*
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import okhttp3.ResponseBody
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
-import okio.BufferedSource
 import java.io.IOException
 import javax.net.ssl.SSLHandshakeException
+import kotlin.properties.Delegates
 
 
 internal class BaseSubscription(
@@ -41,6 +43,8 @@ internal class BaseSubscription(
     private val onEnd: (EOSEvent?) -> Unit = { event -> mainThread.schedule { onEnd(event) }}
 
     private val job: ScheduledJob
+
+    private var activeResponseBody: ResponseBody? = null
 
     init {
         val request = baseClient.createRequest {
@@ -82,36 +86,32 @@ internal class BaseSubscription(
     }
 
     private fun handleConnectionFailed(response: Response) {
-        if (response.body() != null) {
-            val errorEvent = response.body()?.charStream()
-                .parseOr { ErrorResponseBody("Could not parse: $response") }
-                .fold(
-                    onFailure = { it },
-                    onSuccess = {
-                        ErrorResponse(
-                            statusCode = response.code(),
-                            headers = response.headers().toMultimap(),
-                            error = it.error,
-                            errorDescription = it.errorDescription,
-                            URI = it.URI
-                        )
-                    }
-                )
-            onError(errorEvent)
-        }
+        val errorEvent = response.body()?.charStream()
+            .parseOr { ErrorResponseBody("Could not parse: $response") }
+            .map {
+                ErrorResponse(
+                    statusCode = response.code(),
+                    headers = response.headers().toMultimap(),
+                    error = it.error,
+                    errorDescription = it.errorDescription,
+                    URI = it.URI
+                ) as Error
+            }
+            .flatten()
+        onError(errorEvent)
     }
 
     private fun handleConnectionOpened(response: Response) {
         onOpen(response.headers().toMultimap())
 
         val body = response.body()
-
+        activeResponseBody = body
         when (body) {
             null -> onError(NetworkError("No response."))
-            else ->  body.source().messages
+            else -> body.messages
                 .map { result -> result.report() }
                 .any { it is EOSEvent }
-                .let { ended -> if (!ended) { onEnd(null) } }
+                .let { ended -> if (!ended) onEnd(null) }
         }
     }
 
@@ -127,15 +127,13 @@ internal class BaseSubscription(
         return (this as? Result.Success)?.value
     }
 
-    private val BufferedSource.messages
-        get() = generateSequence {
-            takeUnless { exhausted() } ?.let { SubscriptionMessage.fromRaw(readUtf8LineStrict()) }
-        }
+    private val ResponseBody.messages
+        get() = charStream().buffered().lineSequence()
+            .map {line -> SubscriptionMessage.fromRaw(line) }
 
     override fun unsubscribe() {
-        if(!call.isCanceled){
-            call.cancel()
-        }
+        call.takeUnless { it.isCanceled }?.cancel()
+        activeResponseBody?.close()
         job.cancel()
     }
 }

@@ -17,7 +17,7 @@ private const val PATH_NOT_EXISTING = "subscribe_missing"
 private const val PATH_FORBIDDEN = "subscribe_forbidden"
 
 
-class InstancesubscribeIntegrationSpek : Spek({
+class InstanceSubscribeIntegrationSpek : Spek({
 
     describeWhenReachable("https://$HOST", "Instance Subscribe") {
         val instance = Instance(
