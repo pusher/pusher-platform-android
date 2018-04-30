@@ -19,6 +19,8 @@ private const val PATH_FORBIDDEN = "subscribe_forbidden"
 
 class InstanceSubscribeIntegrationSpek : Spek({
 
+    afterGroup { System.exit(0) } // TODO: make sure connections are closed
+
     describeWhenReachable("https://$HOST", "Instance Subscribe") {
         val instance = Instance(
             locator = "v1:api-ceres:test",

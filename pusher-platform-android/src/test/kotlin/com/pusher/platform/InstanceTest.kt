@@ -1,14 +1,15 @@
 package com.pusher.platform
 
 import com.google.common.truth.Truth.assertThat
+import com.google.gson.JsonElement
 import com.pusher.platform.network.Futures
+import com.pusher.platform.network.typeToken
 import com.pusher.platform.test.SyncScheduler
 import com.pusher.util.Result
 import com.pusher.util.asSuccess
 import elements.Error
 import mockitox.returns
 import mockitox.stub
-import okhttp3.Response
 import org.junit.jupiter.api.Test
 import java.util.concurrent.Future
 import kotlin.test.assertNotNull
@@ -62,13 +63,14 @@ class InstanceTest {
     @Test
     fun `can copy existing instance`() {
 
-        val expectedResponse = stub<Response>()
+        val expectedResponse = stub<JsonElement>()
 
         val fakeClient = stub<BaseClient> {
-            request(
+            request<JsonElement>(
                 requestDestination = RequestDestination.Relative("services/bar/baz/baz/path"),
                 headers = emptyMap(),
-                method = "GET"
+                method = "GET",
+                type = typeToken<JsonElement>()
             ) returns Futures.now(expectedResponse.asSuccess())
         }
 
@@ -79,7 +81,7 @@ class InstanceTest {
             dependencies = InstanceDependencies()
         ).copy(baseClient = fakeClient)
 
-        val request: Future<Result<Response, Error>> = instance.request(
+        val request: Future<Result<JsonElement, Error>> = instance.request(
             options = RequestOptions(path = "path")
         )
 
