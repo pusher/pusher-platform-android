@@ -1,9 +1,7 @@
 package com.pusher.platform.subscription
 
-import com.pusher.platform.Cancelable
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
-import com.pusher.platform.network.Promise
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import elements.EOSEvent
@@ -11,6 +9,7 @@ import elements.Error
 import elements.ErrorResponse
 import elements.Headers
 import elements.Subscription
+import java.util.concurrent.Future
 
 
 fun createTokenProvidingStrategy(
@@ -44,7 +43,7 @@ internal class TokenProvidingSubscription(
     val nextSubscribeStrategy: SubscribeStrategy
 ) : Subscription {
     var state: TokenProvidingSubscriptionState
-    private var tokenRequestInProgress: Promise<Result<String, Error>>? = null
+    private var tokenRequestInProgress: Future<Result<String, Error>>? = null
 
     init {
         state = ActiveState(logger, headers, nextSubscribeStrategy)
@@ -52,40 +51,40 @@ internal class TokenProvidingSubscription(
     }
 
     override fun unsubscribe() {
-        tokenRequestInProgress?.cancel()
+        tokenRequestInProgress?.cancel(true)
         state.unsubscribe()
         state = InactiveState(logger)
     }
 
     private fun subscribe() {
-        tokenRequestInProgress = tokenProvider.fetchToken(tokenParams)
-            .onReady { result ->
-                result.fold({ error ->
-                    logger.debug(
-                        "TokenProvidingSubscription: error when fetching token: $error"
-                    )
-                    state = InactiveState(logger)
-                    listeners.onError(error)
-                }, { token ->
-                    state.subscribe(token, SubscriptionListeners(
-                        onEnd = { error: EOSEvent? ->
+        tokenRequestInProgress = tokenProvider.fetchToken(tokenParams).apply {
+            get()
+                .fold({ error ->
+                logger.debug(
+                    "TokenProvidingSubscription: error when fetching token: $error"
+                )
+                state = InactiveState(logger)
+                listeners.onError(error)
+            }, { token ->
+                state.subscribe(token, SubscriptionListeners(
+                    onEnd = { error: EOSEvent? ->
+                        state = InactiveState(logger)
+                        listeners.onEnd(error)
+                    },
+                    onError = { error ->
+                        if (error.tokenExpired()) {
+                            tokenProvider.clearToken(token)
+                            subscribe()
+                        } else {
                             state = InactiveState(logger)
-                            listeners.onEnd(error)
-                        },
-                        onError = { error ->
-                            if (error.tokenExpired()) {
-                                tokenProvider.clearToken(token)
-                                subscribe()
-                            } else {
-                                state = InactiveState(logger)
-                                listeners.onError(error)
-                            }
-                        },
-                        onEvent = listeners.onEvent,
-                        onOpen = listeners.onOpen
-                    ))
-                })
-            }
+                            listeners.onError(error)
+                        }
+                    },
+                    onEvent = listeners.onEvent,
+                    onOpen = listeners.onOpen
+                ))
+            })
+        }
     }
 }
 

@@ -4,14 +4,15 @@ import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
+import com.pusher.util.Result
 import com.pusher.util.asFailure
 import com.pusher.util.asSuccess
 import elements.*
 import elements.Headers
 import okhttp3.*
 import java.io.File
-import java.io.IOException
 import java.util.*
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 data class BaseClient(
@@ -88,16 +89,16 @@ data class BaseClient(
         body: String? = null,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): OkHttpResponsePromise {
+    ): Future<Result<Response, Error>> {
         val requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) }
         return when (tokenProvider) {
             null -> performRequest(requestDestination, headers, method, requestBody)
-            else -> tokenProvider.fetchToken(tokenParams).flatMap {
-                it.map { token ->
+            else -> Futures.schedule {
+                tokenProvider.fetchToken(tokenParams).get().map { token ->
                     val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
-                    performRequest(requestDestination, authHeaders, method, requestBody)
+                    performRequest(requestDestination, authHeaders, method, requestBody).get()
                 }.recover {
-                    it.asFailure<Response, Error>().asPromise()
+                    it.asFailure()
                 }
             }
         }
@@ -109,7 +110,7 @@ data class BaseClient(
         file: File,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): OkHttpResponsePromise = when {
+    ): Future<Result<Response, Error>> = when {
         file.exists() -> {
             val mediaType = MediaType.parse(mediaTypeResolver.fileMediaType(file) ?: "")
             val requestBody = MultipartBody.Builder()
@@ -119,13 +120,15 @@ data class BaseClient(
 
             when (tokenProvider) {
                 null -> performRequest(requestDestination, headers, "POST", requestBody)
-                else -> tokenProvider.fetchToken(tokenParams).flatMap { token ->
-                    val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
-                    performRequest(requestDestination, authHeaders, "POST", requestBody)
+                else -> Futures.schedule {
+                    tokenProvider.fetchToken(tokenParams).get().flatMap { token ->
+                        val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
+                        performRequest(requestDestination, authHeaders, "POST", requestBody).get()
+                    }
                 }
             }
         }
-        else -> UploadError("File does not exist at ${file.path}").asFailure<Response, Error>().asPromise()
+        else -> Futures.now(UploadError("File does not exist at ${file.path}").asFailure<Response, Error>())
     }
 
     /**
@@ -144,8 +147,9 @@ data class BaseClient(
         headers: Headers,
         method: String,
         requestBody: RequestBody?
-    ): OkHttpResponsePromise = Promise.promise {
+    ): Future<Result<Response, Error>> = Futures.schedule {
         val requestURL = getRequestPath(requestDestination)
+        logger.verbose("Request started: $method $requestDestination with body: $requestBody")
 
         val request = createRequest {
             method(method, requestBody.forMethod(method))
@@ -157,34 +161,30 @@ data class BaseClient(
 
         val call: Call = httpClient.newCall(request)
 
-        onCancel { if (!call.isCanceled) call.cancel() }
+        val response = call.execute()
 
-        call.enqueue(object : Callback {
-            override fun onResponse(call: Call?, response: Response?) {
-                when (response?.code()) {
-                    null -> report(OtherError("Response was null").asFailure())
-                    in 200..299 -> report(response.asSuccess())
-                    else -> {
-                        val error = response.body()?.charStream()
-                            .parseOr { ErrorResponseBody("could not parse error response: $response") }
-                            .map { b ->
-                                Errors.response(
-                                    statusCode = response.code(),
-                                    headers = response.headers().toMultimap(),
-                                    error = b.error,
-                                    errorDescription = b.errorDescription,
-                                    URI = b.URI
-                                )
-                            }.recover { it }
-                        report(error.asFailure())
-                    }
-                }
+        when (response?.code()) {
+            null -> OtherError("Response was null").asFailure<Response, Error>()
+            in 200..299 -> {
+                logger.verbose("Request OK: $method $requestDestination with status code: ${response.code()} ")
+                response.asSuccess()
             }
-
-            override fun onFailure(call: Call?, e: IOException?) {
-                report(NetworkError("Request error: ${e?.toString()}").asFailure())
+            else -> {
+                logger.verbose("Request Failed: $method $requestDestination with status code: ${response.code()}")
+                val error = response.body()?.charStream()
+                    .parseOr { ErrorResponseBody("could not parse error response: $response") }
+                    .map { b ->
+                        Errors.response(
+                            statusCode = response.code(),
+                            headers = response.headers().toMultimap(),
+                            error = b.error,
+                            errorDescription = b.errorDescription,
+                            URI = b.URI
+                        )
+                    }.recover { it }
+                error.asFailure()
             }
-        })
+        }
     }
 
     fun createBaseSubscription(path: String): SubscribeStrategy {
