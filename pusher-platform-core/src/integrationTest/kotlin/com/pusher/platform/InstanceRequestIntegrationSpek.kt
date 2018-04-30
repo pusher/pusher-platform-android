@@ -1,7 +1,7 @@
 package com.pusher.platform
 
-import com.pusher.platform.network.map
-import com.pusher.platform.network.parseAs
+import com.google.gson.JsonElement
+import com.google.gson.JsonPrimitive
 import com.pusher.platform.network.toFuture
 import com.pusher.platform.network.wait
 import com.pusher.platform.test.describeWhenReachable
@@ -19,7 +19,9 @@ import java.util.concurrent.Future
 
 class InstanceRequestIntegrationSpek : Spek({
 
-    describeWhenReachable("https://${HOST}", "Instance Requests") {
+    afterGroup { System.exit(0) } // TODO: we need to close the connections
+
+    describeWhenReachable("https://$HOST", "Instance Requests") {
         val instance = Instance(
             locator = "v1:api-ceres:test",
             serviceName = "platform_sdk_tester",
@@ -29,14 +31,14 @@ class InstanceRequestIntegrationSpek : Spek({
         )
 
         it("makes a successful GET request") {
-            val result = instance.request(
+            val result = instance.request<JsonElement>(
                 options = RequestOptions("get_ok")
             ).wait()
             assertSuccess(result)
         }
 
         it("makes a successful POST request") {
-            val result = instance.request(
+            val result = instance.request<JsonPrimitive>(
                 options = RequestOptions(
                     method = "POST",
                     path = "post_ok"
@@ -47,26 +49,19 @@ class InstanceRequestIntegrationSpek : Spek({
 
         it("makes a successful POST request with JSON body") {
             val expected = mapOf("test" to "123")
-            val result = instance.request(
+            val result = instance.request<Map<String, String>>(
                 options = RequestOptions(
                     method = "POST",
                     path = "post_ok",
                     body = """{ "test": "123" }"""
                 )
-            ).map { result ->
-                result.flatMap { response ->
-                    response.body()
-                        ?.charStream()
-                        ?.parseAs<Map<String, String>>()
-                        ?: emptyMap<String, String>().asSuccess()
-                }
-            }.wait()
+            ).wait()
 
             assertSuccess(result).isEqualTo(expected)
         }
 
         it("makes a successful PUT request") {
-            val result = instance.request(
+            val result = instance.request<JsonElement>(
                 options = RequestOptions(
                     method = "PUT",
                     path = "put_ok"
@@ -76,7 +71,7 @@ class InstanceRequestIntegrationSpek : Spek({
         }
 
         it("makes a successful DELETE request") {
-            val result = instance.request(
+            val result = instance.request<JsonElement>(
                 options = RequestOptions(
                     method = "DELETE",
                     path = "delete_ok"
@@ -87,7 +82,7 @@ class InstanceRequestIntegrationSpek : Spek({
 
     }
 
-    describeWhenReachable("https://${HOST}", "Instance requests - failing") {
+    describeWhenReachable("https://$HOST", "Instance requests - failing") {
 
         val instance = Instance(
             locator = "v1:api-ceres:test",
@@ -101,7 +96,7 @@ class InstanceRequestIntegrationSpek : Spek({
 
             forEachErrorCode { errorCode ->
                 it("fail on $errorCode error") {
-                    val result = instance.request(
+                    val result = instance.request<JsonElement>(
                         options = RequestOptions("get_$errorCode")
                     ).wait()
 
@@ -122,7 +117,7 @@ class InstanceRequestIntegrationSpek : Spek({
 
             forEachErrorCode { errorCode ->
                 it("fails on $errorCode error") {
-                    val result = instance.request(
+                    val result = instance.request<JsonElement>(
                         options = RequestOptions("get_$errorCode"),
                         tokenProvider = dummyTokenProvider
                     ).wait()

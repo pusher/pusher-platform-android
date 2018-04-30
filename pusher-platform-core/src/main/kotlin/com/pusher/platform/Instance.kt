@@ -1,14 +1,11 @@
 package com.pusher.platform
 
+import com.pusher.platform.RequestDestination.Absolute
+import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
-import elements.EOSEvent
-import elements.Error
-import elements.Headers
-import elements.Subscription
-import elements.SubscriptionEvent
-import okhttp3.Response
+import elements.*
 import java.io.File
 import java.util.*
 import java.util.concurrent.Future
@@ -40,22 +37,20 @@ data class Instance constructor(
     fun subscribeResuming(
         path: String,
         listeners: SubscriptionListeners,
-        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+        headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
         initialEventId: String? = null
-    ): Subscription {
-        return subscribeResuming(
-            requestDestination = RequestDestination.Relative(path),
-            listeners = listeners,
-            headers = headers,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            retryOptions = retryOptions,
-            initialEventId = initialEventId
-        )
-    }
+    ): Subscription = subscribeResuming(
+        requestDestination = Relative(path),
+        listeners = listeners,
+        headers = headers,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams,
+        retryOptions = retryOptions,
+        initialEventId = initialEventId
+    )
 
     fun subscribeResuming(
         requestDestination: RequestDestination,
@@ -65,19 +60,15 @@ data class Instance constructor(
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
         initialEventId: String? = null
-    ): Subscription {
-        val destination = scopeDestinationIfAppropriate(requestDestination)
-
-        return this.baseClient.subscribeResuming(
-            requestDestination = destination,
-            listeners = listeners,
-            headers = headers,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            retryOptions = retryOptions,
-            initialEventId = initialEventId
-        )
-    }
+    ): Subscription = baseClient.subscribeResuming(
+        requestDestination = requestDestination.toScopedDestination(),
+        listeners = listeners,
+        headers = headers,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams,
+        retryOptions = retryOptions,
+        initialEventId = initialEventId
+    )
 
     fun subscribeNonResuming(
         path: String,
@@ -86,26 +77,8 @@ data class Instance constructor(
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
-    ): Subscription {
-        return subscribeNonResuming(
-            requestDestination = RequestDestination.Relative(path),
-            listeners = listeners,
-            headers = headers,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            retryOptions = retryOptions
-        )
-    }
-
-    fun subscribeNonResuming(
-        requestDestination: RequestDestination,
-        listeners: SubscriptionListeners,
-        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
-        retryOptions: RetryStrategyOptions = RetryStrategyOptions()
-    ): Subscription = this.baseClient.subscribeNonResuming(
-        requestDestination = scopeDestinationIfAppropriate(requestDestination),
+    ): Subscription = subscribeNonResuming(
+        requestDestination = Relative(path),
         listeners = listeners,
         headers = headers,
         tokenProvider = tokenProvider,
@@ -113,54 +86,75 @@ data class Instance constructor(
         retryOptions = retryOptions
     )
 
-    fun request(
+    fun subscribeNonResuming(
+        requestDestination: RequestDestination,
+        listeners: SubscriptionListeners,
+        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+        tokenProvider: TokenProvider? = null,
+        tokenParams: Any? = null,
+        retryOptions: RetryStrategyOptions = RetryStrategyOptions()
+    ): Subscription = baseClient.subscribeNonResuming(
+        requestDestination = requestDestination.toScopedDestination(),
+        listeners = listeners,
+        headers = headers,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams,
+        retryOptions = retryOptions
+    )
+
+    @JvmOverloads
+    inline fun <reified A> request(
         options: RequestOptions,
+        type: Class<A> = A::class.java,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): Future<Result<Response, Error>> = this.baseClient.request(
-        requestDestination = scopeDestinationIfAppropriate(options.destination),
+    ): Future<Result<A, Error>> = baseClient.request(
+        requestDestination = options.destination.toScopedDestination(),
         headers = options.headers,
         method = options.method,
         body = options.body,
         tokenProvider = tokenProvider,
-        tokenParams = tokenParams
+        tokenParams = tokenParams,
+        type = type
     )
 
-    fun upload(
+    @JvmOverloads
+    inline fun <reified A> upload(
         path: String,
         headers: elements.Headers = TreeMap(),
         file: File,
+        type: Class<A> = A::class.java,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): Future<Result<Response, Error>> = upload(
-        requestDestination = RequestDestination.Relative(path),
+    ): Future<Result<A, Error>> = upload(
+        requestDestination = Relative(path),
         headers = headers,
         file = file,
+        type = type,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams
     )
 
-    fun upload(
+    @JvmOverloads
+    inline fun <reified A> upload(
         requestDestination: RequestDestination,
         headers: elements.Headers = TreeMap(),
         file: File,
+        type: Class<A> = A::class.java,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): Future<Result<Response, Error>> {
-        val destination = scopeDestinationIfAppropriate(requestDestination)
+    ): Future<Result<A, Error>> = baseClient.upload(
+        requestDestination = requestDestination.toScopedDestination(),
+        headers = headers,
+        file = file,
+        type = type,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams
+    )
 
-        return this.baseClient.upload(destination, headers, file, tokenProvider, tokenParams)
-    }
-
-    private fun scopeDestinationIfAppropriate(destination: RequestDestination): RequestDestination {
-        return when (destination) {
-            is RequestDestination.Absolute -> {
-                destination
-            }
-            is RequestDestination.Relative -> {
-                RequestDestination.Relative(scopePathToService(destination.path))
-            }
-        }
+    fun RequestDestination.toScopedDestination(): RequestDestination = when (this) {
+        is Absolute -> this
+        is Relative -> Relative(scopePathToService(path))
     }
 
     private fun scopePathToService(relativePath: String): String {

@@ -1,17 +1,15 @@
 package com.pusher.platform
 
+import com.pusher.platform.logger.log
 import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
-import com.pusher.util.Result
-import com.pusher.util.asFailure
-import com.pusher.util.asSuccess
+import com.pusher.util.*
 import elements.*
 import elements.Headers
 import okhttp3.*
 import java.io.File
-import java.util.*
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
@@ -82,74 +80,81 @@ data class BaseClient(
         return subscribeStrategy(listeners, headers)
     }
 
-    fun request(
+    @JvmOverloads
+    fun <A> request(
         requestDestination: RequestDestination,
         headers: elements.Headers,
         method: String,
+        type: Class<A>,
         body: String? = null,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): Future<Result<Response, Error>> {
-        val requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) }
-        return when (tokenProvider) {
-            null -> performRequest(requestDestination, headers, method, requestBody)
-            else -> Futures.schedule {
-                tokenProvider.fetchToken(tokenParams).get().map { token ->
-                    val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
-                    performRequest(requestDestination, authHeaders, method, requestBody).get()
-                }.recover {
-                    it.asFailure()
-                }
-            }
+    ): Future<Result<A, Error>> = tokenProvider
+        .authHeaders(headers, tokenParams)
+        .flatMapFutureResult { authHeaders ->
+            performRequest(
+                destination = requestDestination,
+                headers = authHeaders,
+                method = method,
+                requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) },
+                type = type
+            )
         }
-    }
 
-    fun upload(
+
+    fun <A> upload(
         requestDestination: RequestDestination,
-        headers: elements.Headers = TreeMap(),
+        headers: elements.Headers = emptyHeaders(),
         file: File,
+        type: Class<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): Future<Result<Response, Error>> = when {
+    ): Future<Result<A, Error>> = when {
         file.exists() -> {
-            val mediaType = MediaType.parse(mediaTypeResolver.fileMediaType(file) ?: "")
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("file", file.name, RequestBody.create(mediaType, file))
-                .build()
-
-            when (tokenProvider) {
-                null -> performRequest(requestDestination, headers, "POST", requestBody)
-                else -> Futures.schedule {
-                    tokenProvider.fetchToken(tokenParams).get().flatMap { token ->
-                        val authHeaders = headers + ("Authorization" to listOf("Bearer $token"))
-                        performRequest(requestDestination, authHeaders, "POST", requestBody).get()
-                    }
-                }
+            tokenProvider.authHeaders(headers, tokenParams).flatMapFutureResult { authHeaders ->
+                performRequest(requestDestination, authHeaders, "POST", file.toRequestMultipartBody(), type)
             }
         }
-        else -> Futures.now(UploadError("File does not exist at ${file.path}").asFailure<Response, Error>())
+        else -> Futures.now(UploadError("File does not exist at ${file.path}").asFailure<A, Error>())
     }
+
+    /**
+     * Provides a future that will provide the same headers with auth token if possible.
+     */
+    private fun TokenProvider?.authHeaders(headers: Headers, tokenParams: Any? = null): Future<Result<Headers, Error>> =
+        this?.fetchToken(tokenParams)
+            ?.mapResult { token -> headers + ("Authorization" to listOf("Bearer $token")) }
+            ?: headers.asSuccess<Headers, Error>().toFuture()
+
+    private fun File.toRequestMultipartBody(): MultipartBody =
+        MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file", name, toRequestBody())
+            .build()
+
+    private fun File.toRequestBody(): RequestBody =
+        RequestBody.create(MediaType.parse(mediaTypeResolver.fileMediaType(this) ?: ""), this)
 
     /**
      * Ensures that:
      *  - GET doesn't have a body
      *  - PUT and POST have an empty body if missing
      */
-    private fun RequestBody?.forMethod(method: String): RequestBody? = when(method.toUpperCase()) {
+    private fun RequestBody?.forMethod(method: String): RequestBody? = when (method.toUpperCase()) {
         "GET" -> null
         "POST", "PUT" -> this ?: RequestBody.create(MediaType.parse("text/plain"), "")
         else -> this
     }
 
-    private fun performRequest(
-        requestDestination: RequestDestination,
+    private fun <A> performRequest(
+        destination: RequestDestination,
         headers: Headers,
         method: String,
-        requestBody: RequestBody?
-    ): Future<Result<Response, Error>> = Futures.schedule {
-        val requestURL = getRequestPath(requestDestination)
-        logger.verbose("Request started: $method $requestDestination with body: $requestBody")
+        requestBody: RequestBody?,
+        type: Class<A>
+    ): Future<Result<A, Error>> = Futures.schedule {
+        val requestURL = getRequestPath(destination)
+        logger.verbose("Request started: $method $destination with body: $requestBody")
 
         val request = createRequest {
             method(method, requestBody.forMethod(method))
@@ -159,31 +164,29 @@ data class BaseClient(
             }
         }
 
-        val call: Call = httpClient.newCall(request)
-
-        val response = call.execute()
+        val response = httpClient.newCall(request).execute()
 
         when (response?.code()) {
-            null -> OtherError("Response was null").asFailure<Response, Error>()
-            in 200..299 -> {
-                logger.verbose("Request OK: $method $requestDestination with status code: ${response.code()} ")
-                response.asSuccess()
-            }
-            else -> {
-                logger.verbose("Request Failed: $method $requestDestination with status code: ${response.code()}")
-                val error = response.body()?.charStream()
-                    .parseOr { ErrorResponseBody("could not parse error response: $response") }
-                    .map { b ->
-                        Errors.response(
-                            statusCode = response.code(),
-                            headers = response.headers().toMultimap(),
-                            error = b.error,
-                            errorDescription = b.errorDescription,
-                            URI = b.URI
-                        )
-                    }.recover { it }
-                error.asFailure()
-            }
+            null -> OtherError("Response was null").asFailure<A, Error>()
+            in 200..299 -> logger
+                .log(response) { verbose("Request OK: $method $destination with status code: ${response.code()} ") }
+                .body()?.string()
+                .parseAs(type) { Errors.other("Missing body in $response") }
+            else -> logger
+                .log(response) { verbose("Request Failed: $method $destination with status code: ${response.code()}") }
+                .body()?.string()
+                .parseAs<ErrorResponse> { Errors.network("could not parse error response: $response") }
+                .map { b ->
+                    Errors.response(
+                        statusCode = response.code(),
+                        headers = response.headers().toMultimap(),
+                        error = b.error,
+                        errorDescription = b.errorDescription,
+                        URI = b.URI
+                    )
+                }
+                .recover { it }
+                .asFailure()
         }
     }
 

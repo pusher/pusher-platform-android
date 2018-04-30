@@ -45,6 +45,9 @@ object Errors {
     fun other(reason: String): Error = OtherError(reason)
 
     @JvmStatic
+    fun other(reason: String, throwable: Throwable): Error = OtherError(reason, throwable)
+
+    @JvmStatic
     fun other(throwable: Throwable): Error = OtherError(throwable.message ?: "no message", throwable)
 
     @JvmStatic
