@@ -1,14 +1,20 @@
 package com.pusher.util
 
 import com.google.common.truth.Truth.assertThat
+import com.pusher.platform.network.Futures
+import com.pusher.platform.network.map
+import com.pusher.platform.network.toFuture
+import com.pusher.platform.network.wait
+import elements.Error
+import elements.Errors
 import org.junit.jupiter.api.Test
 
 private const val SUCCESS_VALUE = "value"
 private const val FAILURE_VALUE = 123
 private const val ALTERNATIVE_VALUE = 2.0f
-private val SUCCESS_RESULT = Result.Success<String, Int>(SUCCESS_VALUE)
-private val FAILURE_RESULT = Result.Failure<String, Int>(FAILURE_VALUE)
-private val ALTERNATIVE_RESULT = Result.Success<Float, Int>(ALTERNATIVE_VALUE)
+private val SUCCESS_RESULT = Result.success<String, Int>(SUCCESS_VALUE)
+private val FAILURE_RESULT = Result.failure<String, Int>(FAILURE_VALUE)
+private val ALTERNATIVE_RESULT = Result.success<Float, Int>(ALTERNATIVE_VALUE)
 
 class ResultTest {
 
@@ -125,6 +131,116 @@ class ResultTest {
 
         val flatten = result.flatten()
         assertThat(flatten).isEqualTo(FAILURE_RESULT)
+    }
+
+    @Test
+    fun `collect successes`() {
+        val results = Result.successesOf(
+            "a".asSuccess<String, Error>(),
+            "b".asSuccess<String, Error>(),
+            Errors.other("b").asFailure())
+
+        assertThat(results).containsExactly("a", "b")
+    }
+
+    @Test
+    fun `collect failures`() {
+        val results = Result.failuresOf(
+            "a".asSuccess(),
+            "b".asSuccess(),
+            Errors.other("b").asFailure<String, Error>())
+
+        assertThat(results).containsExactly(Errors.other("b"))
+    }
+
+    @Test
+    fun `future maps success result`() {
+        val future = Futures.now(Result.success<String, Error>("a"))
+
+        val mapped = future.mapResult { it + "b" }.wait()
+
+        assertThat(mapped).isEqualTo("ab".asSuccess<String, Error>())
+    }
+
+    @Test
+    fun `future maps failure result`() {
+        val future = Futures.now(FAILURE_RESULT)
+
+        val mapped = future.mapResult { it + "b" }.wait()
+
+        assertThat(mapped).isEqualTo(FAILURE_RESULT)
+    }
+
+    @Test
+    fun `future recovers from failure result`() {
+        val future = Futures.now(FAILURE_RESULT)
+
+        val recovered = future.recoverResult { SUCCESS_RESULT }.wait()
+
+        assertThat(recovered).isEqualTo(SUCCESS_RESULT)
+    }
+
+    @Test
+    fun `future recovers from success result`() {
+        val future = Futures.now(SUCCESS_RESULT)
+
+        val recovered = future.recoverResult { error("no recovery needed") }.wait()
+
+        assertThat(recovered).isEqualTo(SUCCESS_RESULT)
+    }
+
+    @Test
+    fun `recover future failure`() {
+        val future = Futures.now(FAILURE_RESULT)
+
+        val recovered = future.recoverFutureResult { SUCCESS_RESULT.toFuture() }.wait()
+
+        assertThat(recovered).isEqualTo(SUCCESS_RESULT)
+    }
+
+    @Test
+    fun `recover future success`() {
+        val future = Futures.now(SUCCESS_RESULT)
+
+        val recovered = future.recoverFutureResult { error("no recovery needed") }.wait()
+
+        assertThat(recovered).isEqualTo(SUCCESS_RESULT)
+    }
+
+    @Test
+    fun `flatMap future success to result`() {
+        val future = Futures.now(SUCCESS_RESULT)
+
+        val flatMapped = future.flatMapResult { "b".asSuccess<String, Int>() }.wait()
+
+        assertThat(flatMapped).isEqualTo("b".asSuccess<String, Int>())
+    }
+
+    @Test
+    fun `flatMap future failure to result`() {
+        val future = Futures.now(FAILURE_RESULT)
+
+        val flatMapped = future.flatMapResult<String, Int, String> { error("no flatmap expected") }.wait()
+
+        assertThat(flatMapped).isEqualTo(FAILURE_RESULT)
+    }
+
+    @Test
+    fun `flatMap future success to future result`() {
+        val future = Futures.now(SUCCESS_RESULT)
+
+        val flatMapped = future.flatMapFutureResult { "b".asSuccess<String, Int>().toFuture() }.wait()
+
+        assertThat(flatMapped).isEqualTo("b".asSuccess<String, Int>())
+    }
+
+    @Test
+    fun `flatMap future failure to future result`() {
+        val future = Futures.now(FAILURE_RESULT)
+
+        val flatMapped = future.flatMapFutureResult<String, Int, String> { error("no flatmap expected") }.wait()
+
+        assertThat(flatMapped).isEqualTo(FAILURE_RESULT)
     }
 
 }

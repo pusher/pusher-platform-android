@@ -25,17 +25,32 @@ object Futures {
 
 }
 
+/**
+ * Same as [Futures.now]
+ */
 fun <A> A.toFuture(): Future<A> =
     Futures.now(this)
 
+/**
+ * Derives a new [Future] using the provided transformation.
+ */
 fun <V, R> Future<V>.map(block: (V) -> R) =
     Futures.map(this, block)
 
+/**
+ * Derives a new [Future] from the provided transformation.
+ */
 fun <V, R> Future<V>.flatMap(block: (V) -> Future<R>) =
     Futures.flatMap(this, block)
 
+/**
+ * Short hand for `cancel(true)`
+ */
 fun <V> Future<V>.cancel() = cancel(true)
 
+/**
+ * Internal implementation to map from one future to a new one used by [map]
+ */
 private class MapFuture<V, R>(val future: Future<V>, val block: (V) -> R) : Future<R> {
     override fun isDone() = future.isDone
     override fun get(): R = future.get().let(block)
@@ -44,6 +59,9 @@ private class MapFuture<V, R>(val future: Future<V>, val block: (V) -> R) : Futu
     override fun isCancelled() = future.isCancelled
 }
 
+/**
+ * Internal implementation to map from one future to a new one used by [flatMap]
+ */
 private class FlatMapFuture<V, R>(val future: Future<V>, val block: (V) -> Future<R>) : Future<R> {
     override fun isDone() = future.isDone
     override fun get(): R = future.get().let(block).get()
@@ -52,9 +70,8 @@ private class FlatMapFuture<V, R>(val future: Future<V>, val block: (V) -> Futur
     override fun isCancelled() = future.isCancelled
 }
 
-
 /**
- * Adds the option to use a [Future] as a blocking delegated property.
+ * Adds the option to wait blocking for a future to be ready with a default wait of 10 seconds
  */
 fun <V> Future<V>.wait(wait: Wait = Wait.For(10, SECONDS)): V = when(wait) {
     is Wait.ForEver -> get()
@@ -79,10 +96,16 @@ fun <V> Future<V>.waitOr(wait: Wait = Wait.For(10, SECONDS), alternative: (Throw
  */
 sealed class Wait {
 
+    /**
+     * Mainly used for cases were we don't want to time out (i.e. debugging)
+     */
     object ForEver: Wait() {
         override fun toString() = "forever"
     }
 
+    /**
+     * Default implementation to use for [Wait]
+     */
     data class For(val time: Long, val unit: TimeUnit) : Wait() {
         override fun toString() = "$time ${unit.name.toLowerCase()}"
     }

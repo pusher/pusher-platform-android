@@ -27,9 +27,9 @@ sealed class Result<A, B> {
 
     companion object {
         @JvmStatic
-        fun <A, B> success(value: A) = Success<A, B>(value)
+        fun <A, B> success(value: A): Result<A, B> = Success(value)
         @JvmStatic
-        fun <A, B> failure(error: B) = Failure<A, B>(error)
+        fun <A, B> failure(error: B): Result<A, B> = Failure(error)
         @JvmStatic
         fun <B> failuresOf(vararg results: Result<*, B>): List<B> =
             failuresOf(results.asList())
