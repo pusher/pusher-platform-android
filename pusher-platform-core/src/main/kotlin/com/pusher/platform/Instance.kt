@@ -1,6 +1,5 @@
 package com.pusher.platform
 
-import com.google.gson.reflect.TypeToken
 import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.network.typeToken
@@ -76,7 +75,7 @@ data class Instance constructor(
     fun subscribeNonResuming(
         path: String,
         listeners: SubscriptionListeners,
-        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+        headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
@@ -92,7 +91,7 @@ data class Instance constructor(
     fun subscribeNonResuming(
         requestDestination: RequestDestination,
         listeners: SubscriptionListeners,
-        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+        headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
@@ -124,7 +123,7 @@ data class Instance constructor(
     @JvmOverloads
     inline fun <reified A> upload(
         path: String,
-        headers: elements.Headers = TreeMap(),
+        headers: Headers = emptyHeaders(),
         file: File,
         type: Class<A> = A::class.java,
         tokenProvider: TokenProvider? = null,
@@ -141,7 +140,7 @@ data class Instance constructor(
     @JvmOverloads
     inline fun <reified A> upload(
         requestDestination: RequestDestination,
-        headers: elements.Headers = TreeMap(),
+        headers: Headers = emptyHeaders(),
         file: File,
         type: Class<A> = A::class.java,
         tokenProvider: TokenProvider? = null,

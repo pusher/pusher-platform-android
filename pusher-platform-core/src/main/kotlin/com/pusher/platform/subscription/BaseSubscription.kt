@@ -19,7 +19,6 @@ import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
 import javax.net.ssl.SSLHandshakeException
-import kotlin.properties.Delegates
 
 
 internal class BaseSubscription(
