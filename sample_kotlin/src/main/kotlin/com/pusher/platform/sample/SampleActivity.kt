@@ -9,7 +9,9 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.pusher.platform.*
 import com.pusher.platform.network.Futures
+import com.pusher.platform.network.typeToken
 import com.pusher.platform.network.wait
+import com.pusher.platform.subscription.SubscriptionTypeResolver
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import com.pusher.util.asFailure
@@ -66,7 +68,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeNonResuming(
                 path = "feeds/my-feed/items",
                 listeners = listeners,
-                typeResolver = { JsonElement::class.java }
+                typeResolver = jsonElementTypeResolver
             )
         }
 
@@ -74,7 +76,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeResuming(
                 path = "feeds/my-feed/items",
                 listeners = listeners,
-                typeResolver = { JsonElement::class.java }
+                typeResolver = jsonElementTypeResolver
             )
         }
 
@@ -82,7 +84,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeNonResuming(
                 path = "firehose/items",
                 listeners = listeners,
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 tokenProvider = MyTokenProvider(client, gson),
                 tokenParams = SampleTokenParams(path = "firehose/items", authorizePath = "path/tokens")
             )
@@ -157,3 +159,5 @@ class SampleActivity : AppCompatActivity() {
 
     }
 }
+
+private val jsonElementTypeResolver : SubscriptionTypeResolver = { typeToken<JsonElement>().asSuccess() }
