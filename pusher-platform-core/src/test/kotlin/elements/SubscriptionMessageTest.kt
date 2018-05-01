@@ -3,8 +3,10 @@ package elements
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
-import com.pusher.util.ResultAssertions.assertSuccess
+import com.pusher.platform.network.typeToken
 import com.pusher.util.ResultAssertions.assertFailure
+import com.pusher.util.ResultAssertions.assertSuccess
+import com.pusher.util.asSuccess
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -14,7 +16,7 @@ class SubscriptionMessageTest : Spek({
     describe("any event fails") {
 
         it("with empty array") {
-            val result = "[]".toSubscriptionMessage<JsonElement> { JsonElement::class.java }
+            val result = "[]".toJsonSubscriptionMessage()
 
             assertFailure(result).isEqualTo(Errors.other("Unknown message type: []"))
         }
@@ -159,4 +161,4 @@ class SubscriptionMessageTest : Spek({
 })
 
 private fun String.toJsonSubscriptionMessage() =
-    toSubscriptionMessage<JsonElement> { JsonElement::class.java }
+    toSubscriptionMessage<JsonElement> { typeToken<JsonElement>().asSuccess() }
