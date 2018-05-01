@@ -88,7 +88,7 @@ data class BaseClient(
         requestDestination: RequestDestination,
         headers: ElementsHeaders,
         method: String,
-        type: Type,
+        responseType: Type,
         body: String? = null,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
@@ -100,7 +100,7 @@ data class BaseClient(
                 headers = authHeaders,
                 method = method,
                 requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) },
-                type = type
+                type = responseType
             )
         }
 
@@ -109,13 +109,13 @@ data class BaseClient(
         requestDestination: RequestDestination,
         headers: ElementsHeaders = emptyHeaders(),
         file: File,
-        type: Type,
+        responseType: Type,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = when {
         file.exists() -> {
             tokenProvider.authHeaders(headers, tokenParams).flatMapFutureResult { authHeaders ->
-                performRequest<A>(requestDestination, authHeaders, "POST", file.toRequestMultipartBody(), type)
+                performRequest<A>(requestDestination, authHeaders, "POST", file.toRequestMultipartBody(), responseType)
             }
         }
         else -> Futures.now(UploadError("File does not exist at ${file.path}").asFailure<A, Error>())

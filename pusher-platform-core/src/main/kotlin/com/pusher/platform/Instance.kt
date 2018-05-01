@@ -120,7 +120,7 @@ data class Instance constructor(
     @JvmOverloads
     inline fun <reified A> request(
         options: RequestOptions,
-        type: Type = typeToken<A>(),
+        responseType: Type = typeToken<A>(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = baseClient.request(
@@ -130,7 +130,7 @@ data class Instance constructor(
         body = options.body,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
-        type = type
+        responseType = responseType
     )
 
     @JvmOverloads
@@ -138,14 +138,14 @@ data class Instance constructor(
         path: String,
         headers: Headers = emptyHeaders(),
         file: File,
-        type: Type = typeToken<A>(),
+        responseType: Type = typeToken<A>(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = upload(
         requestDestination = Relative(path),
         headers = headers,
         file = file,
-        type = type,
+        responseType = responseType,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams
     )
@@ -155,14 +155,14 @@ data class Instance constructor(
         requestDestination: RequestDestination,
         headers: Headers = emptyHeaders(),
         file: File,
-        type: Type = typeToken<A>(),
+        responseType: Type = typeToken<A>(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = baseClient.upload(
         requestDestination = requestDestination.toScopedDestination(),
         headers = headers,
         file = file,
-        type = type,
+        responseType = responseType,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams
     )

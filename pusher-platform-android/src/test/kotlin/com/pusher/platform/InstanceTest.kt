@@ -70,7 +70,7 @@ class InstanceTest {
                 requestDestination = RequestDestination.Relative("services/bar/baz/baz/path"),
                 headers = emptyMap(),
                 method = "GET",
-                type = typeToken<JsonElement>()
+                responseType = typeToken<JsonElement>()
             ) returns Futures.now(expectedResponse.asSuccess())
         }
 
