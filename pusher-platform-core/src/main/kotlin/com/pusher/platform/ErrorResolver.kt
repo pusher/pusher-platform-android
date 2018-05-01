@@ -10,6 +10,7 @@ import elements.ErrorResponse
 import elements.NetworkError
 import elements.retryAfter
 import java.util.*
+import kotlin.math.min
 
 typealias RetryStrategyResultCallback = (RetryStrategyResult) -> Unit
 
@@ -58,12 +59,9 @@ class ErrorResolver(
         }
     }
 
-    private fun increaseCurrentBackoff(): Long {
-        if(currentRetryCount == 0) return retryOptions.initialTimeoutMillis
-        val newBackoff = currentBackoffMillis * 2
-
-        if(newBackoff > retryOptions.maxTimeoutMillis) return retryOptions.maxTimeoutMillis
-        else return newBackoff
+    private fun increaseCurrentBackoff(): Long = when (currentRetryCount) {
+        0 -> retryOptions.initialTimeoutMillis
+        else -> min(retryOptions.maxTimeoutMillis, currentBackoffMillis * 2)
     }
 
     fun cancel() {

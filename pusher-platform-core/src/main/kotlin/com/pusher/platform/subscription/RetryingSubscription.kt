@@ -1,11 +1,13 @@
 package com.pusher.platform.subscription
 
+import com.pusher.platform.ErrorResolver
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
-import com.pusher.platform.ErrorResolver
 import com.pusher.platform.retrying.DoNotRetry
 import com.pusher.platform.retrying.Retry
-import elements.*
+import elements.EOSEvent
+import elements.Headers
+import elements.Subscription
 
 fun <A> createRetryingStrategy(
     errorResolver: ErrorResolver,
@@ -143,7 +145,7 @@ private class RetryingSubscription<A>(
                             onEvent = { event ->
                                 listeners.onEvent(event)
                                 logger.verbose(
-                                        "${RetryingSubscription@this}received event ${event}"
+                                        "${RetryingSubscription@this}received event $event"
                                 )
                             },
                             onSubscribe = listeners.onSubscribe,

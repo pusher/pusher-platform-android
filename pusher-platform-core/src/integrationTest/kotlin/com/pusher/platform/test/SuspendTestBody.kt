@@ -40,12 +40,7 @@ class SuspendedTestBody(body: SuspendedTestBody.() -> Unit) : TestBody {
     /**
      * Signals the test to fail with the provided [cause]
      */
-    fun fail(cause: String) = fail(Error(cause))
-
-    /**
-     * Signals the test to fail with the provided [cause]
-     */
-    fun fail(cause: Throwable) = done { throw cause }
+    fun fail(cause: String) = done { throw Error(cause) }
 
     /**
      * Tries to run the provided [action] failing the test if it throws an exception.
@@ -54,7 +49,7 @@ class SuspendedTestBody(body: SuspendedTestBody.() -> Unit) : TestBody {
         try {
             action()
         } catch (e: Throwable) {
-            fail(e)
+            done { throw e }
         }
     }
 

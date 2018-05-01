@@ -2,7 +2,6 @@ package com.pusher.util
 
 import com.google.common.truth.Truth.assertThat
 import com.pusher.platform.network.Futures
-import com.pusher.platform.network.map
 import com.pusher.platform.network.toFuture
 import com.pusher.platform.network.wait
 import elements.Error
@@ -220,7 +219,7 @@ class ResultTest {
     fun `flatMap future failure to result`() {
         val future = Futures.now(FAILURE_RESULT)
 
-        val flatMapped = future.flatMapResult<String, Int, String> { error("no flatmap expected") }.wait()
+        val flatMapped = future.flatMapResult<String, Int, String> { error("no flatMap expected") }.wait()
 
         assertThat(flatMapped).isEqualTo(FAILURE_RESULT)
     }
@@ -238,7 +237,7 @@ class ResultTest {
     fun `flatMap future failure to future result`() {
         val future = Futures.now(FAILURE_RESULT)
 
-        val flatMapped = future.flatMapFutureResult<String, Int, String> { error("no flatmap expected") }.wait()
+        val flatMapped = future.flatMapFutureResult<String, Int, String> { error("no flatMap expected") }.wait()
 
         assertThat(flatMapped).isEqualTo(FAILURE_RESULT)
     }

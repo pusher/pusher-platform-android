@@ -3,18 +3,21 @@ package com.pusher.platform
 import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.logger.log
-import com.pusher.platform.network.*
+import com.pusher.platform.network.Futures
+import com.pusher.platform.network.parseAs
+import com.pusher.platform.network.replaceMultipleSlashesInUrl
+import com.pusher.platform.network.toFuture
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.*
 import elements.*
-import elements.Headers
 import okhttp3.*
 import java.io.File
 import java.lang.reflect.Type
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import elements.Headers as PusherHeaders
 
 data class BaseClient(
     val host: String,
@@ -41,7 +44,7 @@ data class BaseClient(
     fun <A> subscribeResuming(
         destination: RequestDestination,
         listeners: SubscriptionListeners<A>,
-        headers: Headers,
+        headers: PusherHeaders,
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
         retryOptions: RetryStrategyOptions,
@@ -65,7 +68,7 @@ data class BaseClient(
     fun <A> subscribeNonResuming(
         destination: RequestDestination,
         listeners: SubscriptionListeners<A>,
-        headers: Headers,
+        headers: PusherHeaders,
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
         retryOptions: RetryStrategyOptions,
@@ -83,7 +86,7 @@ data class BaseClient(
     @JvmOverloads
     fun <A> request(
         requestDestination: RequestDestination,
-        headers: elements.Headers,
+        headers: PusherHeaders,
         method: String,
         type: Type,
         body: String? = null,
@@ -104,7 +107,7 @@ data class BaseClient(
     @JvmOverloads
     fun <A> upload(
         requestDestination: RequestDestination,
-        headers: elements.Headers = emptyHeaders(),
+        headers: PusherHeaders = emptyHeaders(),
         file: File,
         type: Type,
         tokenProvider: TokenProvider? = null,
@@ -115,16 +118,16 @@ data class BaseClient(
                 performRequest<A>(requestDestination, authHeaders, "POST", file.toRequestMultipartBody(), type)
             }
         }
-        else -> Futures.now(UploadError("File does not exist at ${file.path}").asFailure<A, Error>())
+        else -> Futures.now(Errors.upload("File does not exist at ${file.path}").asFailure())
     }
 
     /**
      * Provides a future that will provide the same headers with auth token if possible.
      */
-    private fun TokenProvider?.authHeaders(headers: Headers, tokenParams: Any? = null): Future<Result<Headers, Error>> =
+    private fun TokenProvider?.authHeaders(headers: PusherHeaders, tokenParams: Any? = null): Future<Result<PusherHeaders, Error>> =
         this?.fetchToken(tokenParams)
             ?.mapResult { token -> headers + ("Authorization" to listOf("Bearer $token")) }
-            ?: headers.asSuccess<Headers, Error>().toFuture()
+            ?: headers.asSuccess<PusherHeaders, Error>().toFuture()
 
     private fun File.toRequestMultipartBody(): MultipartBody =
         MultipartBody.Builder()
@@ -148,7 +151,7 @@ data class BaseClient(
 
     private fun <A> performRequest(
         destination: RequestDestination,
-        headers: Headers,
+        headers: PusherHeaders,
         method: String,
         requestBody: RequestBody?,
         type: Type

@@ -4,11 +4,7 @@ import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
-import elements.EOSEvent
-import elements.Error
-import elements.ErrorResponse
-import elements.Headers
-import elements.Subscription
+import elements.*
 import java.util.concurrent.Future
 
 
@@ -40,7 +36,7 @@ internal class TokenProvidingSubscription<A>(
     val tokenParams: Any? = null,
     val nextSubscribeStrategy: SubscribeStrategy<A>
 ) : Subscription {
-    var state: TokenProvidingSubscriptionState<A>
+    private var state: TokenProvidingSubscriptionState<A>
     private var tokenRequestInProgress: Future<Result<String, Error>>? = null
 
     init {

@@ -1,7 +1,6 @@
 package elements
 
 import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import com.pusher.platform.network.parseAs
 import com.pusher.platform.subscription.SubscriptionTypeResolver

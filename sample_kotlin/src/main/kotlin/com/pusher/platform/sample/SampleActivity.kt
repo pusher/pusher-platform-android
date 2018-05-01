@@ -18,7 +18,9 @@ import elements.Error
 import elements.Subscription
 import kotlinx.android.synthetic.main.activity_sample.*
 import kotlinx.coroutines.experimental.launch
-import okhttp3.*
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.util.concurrent.Future
 
 private const val INSTANCE_LOCATOR = "YOUR_INSTANCE_LOCATOR"
@@ -91,9 +93,9 @@ class SampleActivity : AppCompatActivity() {
         }
     }
 
-    val client = OkHttpClient()
+    private val client = OkHttpClient()
 
-    val gson = GsonBuilder()
+    private val gson: Gson = GsonBuilder()
         .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
         .create()
 
@@ -107,7 +109,10 @@ class SampleActivity : AppCompatActivity() {
         val refreshToken: String
     )
 
-    class MyTokenProvider(val client: OkHttpClient, val gson: Gson) : TokenProvider {
+    class MyTokenProvider(
+        private val client: OkHttpClient,
+        private val gson: Gson
+    ) : TokenProvider {
 
         override fun fetchToken(tokenParams: Any?): Future<Result<String, Error>> {
             if (tokenParams is SampleTokenParams) {
