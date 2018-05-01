@@ -1,14 +1,17 @@
 package com.pusher.platform
 
-import com.pusher.platform.network.OkHttpResponsePromise
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.tokenProvider.TokenProvider
+import com.pusher.util.Result
 import elements.EOSEvent
+import elements.Error
 import elements.Headers
 import elements.Subscription
 import elements.SubscriptionEvent
+import okhttp3.Response
 import java.io.File
 import java.util.*
+import java.util.concurrent.Future
 
 private const val DEFAULT_HOST_BASE = "pusherplatform.io"
 
@@ -114,7 +117,7 @@ data class Instance constructor(
         options: RequestOptions,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): OkHttpResponsePromise = this.baseClient.request(
+    ): Future<Result<Response, Error>> = this.baseClient.request(
         requestDestination = scopeDestinationIfAppropriate(options.destination),
         headers = options.headers,
         method = options.method,
@@ -129,7 +132,7 @@ data class Instance constructor(
         file: File,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): OkHttpResponsePromise = upload(
+    ): Future<Result<Response, Error>> = upload(
         requestDestination = RequestDestination.Relative(path),
         headers = headers,
         file = file,
@@ -143,7 +146,7 @@ data class Instance constructor(
         file: File,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): OkHttpResponsePromise {
+    ): Future<Result<Response, Error>> {
         val destination = scopeDestinationIfAppropriate(requestDestination)
 
         return this.baseClient.upload(destination, headers, file, tokenProvider, tokenParams)

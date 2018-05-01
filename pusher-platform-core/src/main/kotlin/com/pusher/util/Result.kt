@@ -1,10 +1,11 @@
 package com.pusher.util
 
-import com.pusher.annotations.UsesCoroutines
-import com.pusher.platform.network.Promise
-import com.pusher.platform.network.asPromise
+import com.pusher.platform.network.flatMap
+import com.pusher.platform.network.map
+import com.pusher.platform.network.toFuture
 import com.pusher.util.Result.Companion.failure
 import com.pusher.util.Result.Companion.success
+import java.util.concurrent.Future
 
 fun <A, B> A.asSuccess(): Result<A, B> = success(this)
 fun <A, B> B.asFailure(): Result<A, B> = failure(this)
@@ -26,9 +27,9 @@ sealed class Result<A, B> {
 
     companion object {
         @JvmStatic
-        fun <A, B> success(value: A) = Success<A, B>(value)
+        fun <A, B> success(value: A): Result<A, B> = Success(value)
         @JvmStatic
-        fun <A, B> failure(error: B) = Failure<A, B>(error)
+        fun <A, B> failure(error: B): Result<A, B> = Failure(error)
         @JvmStatic
         fun <B> failuresOf(vararg results: Result<*, B>): List<B> =
             failuresOf(results.asList())
@@ -109,59 +110,46 @@ fun <A, B> Result<Result<A, B>, B>.flatten(): Result<A, B> = fold(
 )
 
 /**
- * Short for `map { it.map(block) }`
+ * [Result.map] when result is inside a [Future].
  */
-fun <A, B, C> Promise<Result<A, B>>.mapResult(block: (A) -> C): Promise<Result<C, B>> =
+fun <A, B, C> Future<Result<A, B>>.mapResult(block: (A) -> C): Future<Result<C, B>> =
     map { it.map(block) }
 
 /**
- * Short for `flatMap { it.map(block).recover { it.asFailure<C, B>().asPromise() } }`
+ * [Result.recover] when result is inside a [Future].
  */
-fun <A, B, C> Promise<Result<A, B>>.flatMapResult(block: (A) -> Promise<Result<C, B>>): Promise<Result<C, B>> =
-    flatMap { it.map(block).recover { it.asFailure<C, B>().asPromise() } }
-
-/**
- * Short for `map { it.fold(onFailure, onSuccess) }`
- */
-fun <A, B, C> Promise<Result<A, B>>.fold(onFailure: (B) -> C, onSuccess: (A) -> C): Promise<C> =
-    map { it.fold(onFailure, onSuccess) }
-
-/**
- * Short for `map { it.swap() }`
- */
-fun <A, B> Promise<Result<A, B>>.swap() : Promise<Result<B, A>> =
-    map { it.swap() }
-
-/**
- * Short for `map { it.recover(block) }`
- */
-fun <A, B> Promise<Result<A, B>>.recover(block: (B) -> A): Promise<A> =
-    map { it.recover(block) }
-
-/**
- * Short for `map { it.recover(block) }`
- */
-fun <A, B> Promise<Result<A, B>>.flatRecover(block: (B) -> Result<A, B>): Promise<Result<A, B>> =
-    map { it.flatRecover(block) }
-
-@UsesCoroutines
-fun <A, B> Result<A, B>.async(): SuspendedResult<A, B> =
-    SuspendedResult(this)
-
-@UsesCoroutines
-data class SuspendedResult<out A, B> internal constructor(private val result: Result<A, B>) {
-
-    suspend fun <C> fold(onFailure: suspend (B) -> C, onSuccess: suspend (A) -> C): C = when (result) {
-        is Result.Success -> onSuccess(result.value)
-        is Result.Failure -> onFailure(result.error)
+fun <A, B> Future<Result<A, B>>.recoverResult(block: (B) -> Result<A, B>): Future<Result<A, B>> =
+    map {
+        it.fold(
+            onFailure = { block(it) },
+            onSuccess = { it.asSuccess() }
+        )
     }
 
-    suspend fun <C> map(block: suspend (A) -> C): SuspendedResult<C, B> =
-        result.map { block(it) }.async()
+/**
+ * Same as [recoverResult] but recovering with a future.
+ */
+fun <A, B> Future<Result<A, B>>.recoverFutureResult(block: (B) -> Future<Result<A, B>>): Future<Result<A, B>> =
+    flatMap {
+        it.fold(
+            onFailure = { block(it) },
+            onSuccess = { it.asSuccess<A, B>().toFuture() }
+        )
+    }
 
-    suspend fun <C> flatMap(block: suspend (A) -> Result<C, B>): SuspendedResult<C, B> =
-        result.flatMap { block(it) }.async()
+/**
+ * [Result.flatMap] when result is inside a [Future].
+ */
+fun <A, B, C> Future<Result<A, B>>.flatMapResult(block: (A) -> Result<C, B>): Future<Result<C, B>> =
+    map { it.flatMap(block) }
 
-    private fun <A, B> (suspend (A) -> B).desuspend(): (A) -> suspend () -> B = { suspend { this(it) } }
-
-}
+/**
+ * Same as [flatMapResult] but returning a future when mapping.
+ */
+fun <A, B, C> Future<Result<A, B>>.flatMapFutureResult(block: (A) -> Future<Result<C, B>>) : Future<Result<C, B>> =
+    flatMap {
+        it.fold(
+            onFailure = { it.asFailure<C, B>().toFuture() },
+            onSuccess = { block(it) }
+        )
+    }
