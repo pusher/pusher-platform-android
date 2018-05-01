@@ -30,7 +30,7 @@ class InstanceTest {
     @Test
     fun `composition of multiple listeners`() {
         var tracker = ""
-        val subscription = SubscriptionListeners.compose(
+        val subscription = SubscriptionListeners.compose<String>(
             SubscriptionListeners(
                 onEnd = { tracker += "a" },
                 onOpen = { tracker += "b" },

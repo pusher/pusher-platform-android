@@ -33,7 +33,7 @@ class ResumingSubscription<A>(
     val logger: Logger,
     val errorResolver: ErrorResolver,
     val nextSubscribeStrategy: SubscribeStrategy<A>,
-    val initialEventId: String?
+    val initialEventId: String? = null
 ) : Subscription {
     var state: SubscriptionState
 
