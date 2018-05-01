@@ -21,9 +21,7 @@ before_script:
 
 script:
 #  - ./library/gradle/main.sh
- - ./gradlew :pusher-platform-core:assemble :pusher-platform-core:test
- - ./gradlew :pusher-platform-android:assembleDebug :pusher-platform-android:junitPlatformTestDebug :pusher-platform-android:lintDebug :pusher-platform-android:jacocoTestReportDebug
- - ./gradlew codeCoverageReport
+ - ./gradlew ciBuild
  - if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
     ./gradle/firebase/auth.sh;
     ./gradle/firebase/runLibraryAndroidTests.sh;
