@@ -2,10 +2,13 @@ package com.pusher.platform
 
 import com.google.common.truth.Truth.assertThat
 import com.google.gson.JsonElement
+import com.pusher.platform.network.typeToken
 import com.pusher.platform.retrying.RetryStrategyOptions
+import com.pusher.platform.subscription.SubscriptionTypeResolver
 import com.pusher.platform.test.describeWhenReachable
 import com.pusher.platform.test.listenersWithCounter
 import com.pusher.platform.test.will
+import com.pusher.util.asSuccess
 import elements.ErrorResponse
 import elements.Subscription
 import elements.retryAfter
@@ -33,7 +36,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_10_AND_EOS,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEvent = { events++ },
                     onEnd = { done { assertThat(events).isEqualTo(10) } },
@@ -46,7 +49,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_10_AND_EOS,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEnd = {
                         end++
@@ -61,7 +64,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_3_AND_OPEN,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEvent = {
                         events++
@@ -79,7 +82,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             sub = instance.subscribeNonResuming(
                 path = PATH_3_AND_OPEN,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEvent = {
                         events++
@@ -99,7 +102,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_0_EOS,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("No events should have been received") },
                     onEnd = { done() },
@@ -112,7 +115,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = "subscribe_retry_after",
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("No events should have been receive") },
                     onEnd = { fail("We should get an error") },
@@ -137,7 +140,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_NOT_EXISTING,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("Expecting onError") },
                     onEnd = { fail("Expecting onError") },
@@ -152,7 +155,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_FORBIDDEN,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("Expecting onError") },
                     onEnd = { fail("Expecting onError") },
@@ -167,7 +170,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = "subscribe_internal_server_error",
                 retryOptions = RetryStrategyOptions(limit = 0),
-                typeResolver = { JsonElement::class.java },
+                typeResolver = jsonElementTypeResolver,
                 listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("Expecting onError") },
                     onEnd = { fail("Expecting onError") },
@@ -183,4 +186,4 @@ class InstanceSubscribeIntegrationSpek : Spek({
 })
 
 
-
+val jsonElementTypeResolver: SubscriptionTypeResolver = { typeToken<JsonElement>().asSuccess() }
