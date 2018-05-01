@@ -19,8 +19,6 @@ import java.util.concurrent.Future
 
 class InstanceRequestIntegrationSpek : Spek({
 
-    afterGroup { System.exit(0) } // TODO: we need to close the connections
-
     describeWhenReachable("https://$HOST", "Instance Requests") {
         val instance = Instance(
             locator = "v1:api-ceres:test",
