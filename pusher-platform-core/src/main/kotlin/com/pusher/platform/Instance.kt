@@ -4,7 +4,7 @@ import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.network.typeToken
 import com.pusher.platform.retrying.RetryStrategyOptions
-import com.pusher.platform.subscription.SubscriptionTypeResolver
+import com.pusher.platform.subscription.SubscriptionBodyParser
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import elements.*
@@ -41,7 +41,7 @@ data class Instance constructor(
     fun <A> subscribeResuming(
         path: String,
         listeners: SubscriptionListeners<A>,
-        typeResolver: SubscriptionTypeResolver,
+        bodyParser: SubscriptionBodyParser<A>,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -55,14 +55,14 @@ data class Instance constructor(
         tokenParams = tokenParams,
         retryOptions = retryOptions,
         initialEventId = initialEventId,
-        typeResolver = typeResolver
+        bodyParser = bodyParser
     )
 
     @JvmOverloads
     fun <A> subscribeResuming(
         requestDestination: RequestDestination,
         listeners: SubscriptionListeners<A>,
-        typeResolver: SubscriptionTypeResolver,
+        bodyParser: SubscriptionBodyParser<A>,
         headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -76,14 +76,14 @@ data class Instance constructor(
         tokenParams = tokenParams,
         retryOptions = retryOptions,
         initialEventId = initialEventId,
-        typeResolver = typeResolver
+        bodyParser = bodyParser
     )
 
     @JvmOverloads
     fun <A> subscribeNonResuming(
         path: String,
         listeners: SubscriptionListeners<A>,
-        typeResolver: SubscriptionTypeResolver,
+        bodyParser: SubscriptionBodyParser<A>,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -91,7 +91,7 @@ data class Instance constructor(
     ): Subscription = subscribeNonResuming(
         requestDestination = Relative(path),
         listeners = listeners,
-        typeResolver = typeResolver,
+        bodyParser = bodyParser,
         headers = headers,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
@@ -103,14 +103,14 @@ data class Instance constructor(
         requestDestination: RequestDestination,
         listeners: SubscriptionListeners<A>,
         headers: Headers = emptyHeaders(),
-        typeResolver: SubscriptionTypeResolver,
+        bodyParser: SubscriptionBodyParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription = baseClient.subscribeNonResuming(
         destination = requestDestination.toScopedDestination(),
         listeners = listeners,
-        typeResolver = typeResolver,
+        bodyParser = bodyParser,
         headers = headers,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,

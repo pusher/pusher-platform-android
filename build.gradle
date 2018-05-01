@@ -34,3 +34,14 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+
+static def tasksFor(project, tasks) {
+    tasks.collect { ":$project:$it".toString() }
+}
+
+task ciBuild(type: GradleBuild) {
+    tasks = tasksFor('pusher-platform-core', ['assemble', 'test']) +
+        tasksFor('pusher-platform-android', ['assembleDebug', 'junitPlatformTestDebug', 'lintDebug', 'jacocoTestReportDebug']) +
+        'codeCoverageReport'
+}

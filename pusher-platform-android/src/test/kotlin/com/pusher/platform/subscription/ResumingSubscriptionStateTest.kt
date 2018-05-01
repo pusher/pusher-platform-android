@@ -15,6 +15,7 @@ class ResumingSubscriptionStateTest {
 
     var errorResolver: ErrorResolver = mock {
         on { resolveError(any(), any()) } doAnswer {
+            @Suppress("UNCHECKED_CAST")
             (it.arguments[1] as RetryStrategyResultCallback).invoke(DoNotRetry())
         }
     }
@@ -41,8 +42,6 @@ class ResumingSubscriptionStateTest {
 
         verify(onTransition).invoke(isA<ResumingSubscription<JsonElement>.FailedSubscriptionState>())
     }
-
-
 
 }
 

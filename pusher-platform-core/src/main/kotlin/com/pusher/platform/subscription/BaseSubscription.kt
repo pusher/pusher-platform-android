@@ -18,10 +18,9 @@ import okhttp3.ResponseBody
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
-import java.lang.reflect.Type
 import javax.net.ssl.SSLHandshakeException
 
-typealias SubscriptionTypeResolver = (String) -> Result<Type, Error>
+typealias SubscriptionBodyParser<A> = (String) -> Result<A, Error>
 
 internal class BaseSubscription<A>(
     path: String,
@@ -32,7 +31,7 @@ internal class BaseSubscription<A>(
     onEvent: (SubscriptionEvent<A>) -> Unit,
     onEnd: (EOSEvent?) -> Unit,
     val logger: Logger,
-    private val typeResolver: SubscriptionTypeResolver,
+    private val bodyParser: SubscriptionBodyParser<A>,
     private val mainThread: MainThreadScheduler,
     backgroundThread: Scheduler,
     val baseClient: BaseClient
@@ -129,7 +128,7 @@ internal class BaseSubscription<A>(
 
     private val ResponseBody.messages
         get() = charStream().buffered().lineSequence()
-            .map {line -> line.toSubscriptionMessage<A>(typeResolver) }
+            .map {line -> line.toSubscriptionMessage<A>(bodyParser) }
 
     override fun unsubscribe() {
         call.takeUnless { it.isCanceled }?.cancel()
