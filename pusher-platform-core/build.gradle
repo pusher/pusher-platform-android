@@ -9,8 +9,6 @@ apply from: "$projectDir/../gradle/jacoco.gradle"
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
     implementation 'com.squareup.okhttp3:okhttp:3.10.0'
     api 'com.google.code.gson:gson:2.8.2'
 
@@ -61,12 +59,6 @@ junitPlatform {
         engines {
             include 'junit-jupiter', 'spek'
         }
-    }
-}
-
-kotlin {
-    experimental {
-        coroutines 'enable'
     }
 }
 
