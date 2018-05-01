@@ -16,6 +16,8 @@ data class OtherError(override val reason: String, val exception: Throwable? = n
 
 data class CompositeError(override val reason: String, val errors: List<Error>) : Error
 
+data class EosError(val type: String, override val reason: String): Error
+
 interface Error {
     val reason: String
 }

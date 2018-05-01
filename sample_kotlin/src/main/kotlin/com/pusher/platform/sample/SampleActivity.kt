@@ -6,18 +6,20 @@ import android.util.Log
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonElement
 import com.pusher.platform.*
-import com.pusher.platform.network.Promise
+import com.pusher.platform.network.Futures
+import com.pusher.platform.network.wait
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import com.pusher.util.asFailure
 import com.pusher.util.asSuccess
 import elements.Error
-import elements.NetworkError
 import elements.Subscription
 import kotlinx.android.synthetic.main.activity_sample.*
+import kotlinx.coroutines.experimental.launch
 import okhttp3.*
-import java.io.IOException
+import java.util.concurrent.Future
 
 private const val INSTANCE_LOCATOR = "YOUR_INSTANCE_LOCATOR"
 
@@ -36,7 +38,7 @@ class SampleActivity : AppCompatActivity() {
             dependencies = AndroidDependencies(applicationContext)
         )
 
-        val listeners = SubscriptionListeners(
+        val listeners = SubscriptionListeners<JsonElement>(
             onOpen = { headers -> Log.d("PP", "OnOpen $headers") },
             onSubscribe = { Log.d("PP", "onSubscribe") },
             onRetrying = { Log.d("PP", "onRetrying") },
@@ -46,11 +48,11 @@ class SampleActivity : AppCompatActivity() {
         )
 
         this.get_request_btn.setOnClickListener {
-
-            pusherPlatform.request(
-                options = RequestOptions(path = "feeds/my-feed/items")
-            ).onReady {
-                Log.d("PP", "result $it")
+            launch {
+                val result = pusherPlatform.request<JsonElement>(
+                    options = RequestOptions(path = "feeds/my-feed/items")
+                ).wait()
+                Log.d("PP", "result $result")
             }
         }
 
@@ -59,19 +61,26 @@ class SampleActivity : AppCompatActivity() {
         }
 
         this.subscribe_non_resuming_btn.setOnClickListener {
-            subscription = pusherPlatform.subscribeNonResuming(path = "feeds/my-feed/items", listeners = listeners)
-
+            subscription = pusherPlatform.subscribeNonResuming(
+                path = "feeds/my-feed/items",
+                listeners = listeners,
+                typeResolver = { JsonElement::class.java }
+            )
         }
 
         this.subscribe_resuming_btn.setOnClickListener {
-            subscription = pusherPlatform.subscribeResuming(path = "feeds/my-feed/items", listeners = listeners)
-
+            subscription = pusherPlatform.subscribeResuming(
+                path = "feeds/my-feed/items",
+                listeners = listeners,
+                typeResolver = { JsonElement::class.java }
+            )
         }
 
         this.subscribe_authorized_btn.setOnClickListener {
             subscription = pusherPlatform.subscribeNonResuming(
                 path = "firehose/items",
                 listeners = listeners,
+                typeResolver = { JsonElement::class.java },
                 tokenProvider = MyTokenProvider(client, gson),
                 tokenParams = SampleTokenParams(path = "firehose/items", authorizePath = "path/tokens")
             )
@@ -98,10 +107,9 @@ class SampleActivity : AppCompatActivity() {
         val refreshToken: String
     )
 
-
     class MyTokenProvider(val client: OkHttpClient, val gson: Gson) : TokenProvider {
 
-        override fun fetchToken(tokenParams: Any?): Promise<Result<String, Error>> {
+        override fun fetchToken(tokenParams: Any?): Future<Result<String, Error>> {
             if (tokenParams is SampleTokenParams) {
 
                 val requestBody = FormBody.Builder()
@@ -118,32 +126,19 @@ class SampleActivity : AppCompatActivity() {
 
                 val call = client.newCall(request)
 
-                return Promise.promise {
-                    onCancel {
-                        call.cancel()
+                return Futures.schedule {
+
+                    call.execute().let { response ->
+                        when {
+                            response != null && response.code() == 200 ->
+                                gson.fromJson(response.body()!!.charStream(), FeedsTokenResponse::class.java).accessToken.asSuccess()
+                            else -> elements.ErrorResponse(
+                                statusCode = response!!.code(),
+                                headers = response.headers().toMultimap(),
+                                error = response.body().toString()
+                            ).asFailure<String, Error>()
+                        }
                     }
-
-                    call.enqueue(object : Callback {
-
-                        override fun onResponse(call: Call?, response: Response?) {
-
-                            if (response != null && response.code() == 200) {
-                                val body = gson.fromJson<FeedsTokenResponse>(response.body()!!.charStream(), FeedsTokenResponse::class.java)
-                                report(body.accessToken.asSuccess())
-                            } else {
-                                report(elements.ErrorResponse(
-                                    statusCode = response!!.code(),
-                                    headers = response.headers().toMultimap(),
-                                    error = response.body().toString()
-                                ).asFailure())
-                            }
-                        }
-
-                        override fun onFailure(call: Call?, e: IOException?) {
-                            report(NetworkError("Failed! $e").asFailure())
-                        }
-
-                    })
 
                 }
             } else {

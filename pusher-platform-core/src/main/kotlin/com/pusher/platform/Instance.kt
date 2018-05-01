@@ -4,6 +4,7 @@ import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.network.typeToken
 import com.pusher.platform.retrying.RetryStrategyOptions
+import com.pusher.platform.subscription.SubscriptionTypeResolver
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import elements.*
@@ -15,10 +16,10 @@ import java.util.concurrent.Future
 private const val DEFAULT_HOST_BASE = "pusherplatform.io"
 
 data class Instance constructor(
-    val id: String,
+    private val id: String,
     val baseClient: BaseClient,
-    val serviceName: String,
-    val serviceVersion: String
+    private val serviceName: String,
+    private val serviceVersion: String
 ) {
 
     @JvmOverloads
@@ -36,9 +37,11 @@ data class Instance constructor(
         serviceVersion
     )
 
-    fun subscribeResuming(
+    @JvmOverloads
+    fun <A> subscribeResuming(
         path: String,
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
+        typeResolver: (String) -> Class<A>,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -51,12 +54,15 @@ data class Instance constructor(
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
         retryOptions = retryOptions,
-        initialEventId = initialEventId
+        initialEventId = initialEventId,
+        typeResolver = typeResolver
     )
 
-    fun subscribeResuming(
+    @JvmOverloads
+    fun <A> subscribeResuming(
         requestDestination: RequestDestination,
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
+        typeResolver: (String) -> Class<A>,
         headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -69,12 +75,15 @@ data class Instance constructor(
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
         retryOptions = retryOptions,
-        initialEventId = initialEventId
+        initialEventId = initialEventId,
+        typeResolver = typeResolver
     )
 
-    fun subscribeNonResuming(
+    @JvmOverloads
+    fun <A> subscribeNonResuming(
         path: String,
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
+        typeResolver: (String) -> Class<A>,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -82,22 +91,26 @@ data class Instance constructor(
     ): Subscription = subscribeNonResuming(
         requestDestination = Relative(path),
         listeners = listeners,
+        typeResolver = typeResolver,
         headers = headers,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
         retryOptions = retryOptions
     )
 
-    fun subscribeNonResuming(
+    @JvmOverloads
+    fun <A> subscribeNonResuming(
         requestDestination: RequestDestination,
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
         headers: Headers = emptyHeaders(),
+        typeResolver: SubscriptionTypeResolver,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription = baseClient.subscribeNonResuming(
         destination = requestDestination.toScopedDestination(),
         listeners = listeners,
+        typeResolver = typeResolver,
         headers = headers,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
@@ -125,7 +138,7 @@ data class Instance constructor(
         path: String,
         headers: Headers = emptyHeaders(),
         file: File,
-        type: Class<A> = A::class.java,
+        type: Type = typeToken<A>(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = upload(
@@ -142,7 +155,7 @@ data class Instance constructor(
         requestDestination: RequestDestination,
         headers: Headers = emptyHeaders(),
         file: File,
-        type: Class<A> = A::class.java,
+        type: Type = typeToken<A>(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = baseClient.upload(
@@ -179,10 +192,10 @@ private data class Locator(val version: String, val cluster: String, val id: Str
     }
 }
 
-class SubscriptionListeners(
+class SubscriptionListeners<A>(
     val onEnd: (error: EOSEvent?) -> Unit = {},
     val onError: (error: elements.Error) -> Unit = {},
-    val onEvent: (event: SubscriptionEvent) -> Unit = {},
+    val onEvent: (event: SubscriptionEvent<A>) -> Unit = {},
     val onOpen: (headers: Headers) -> Unit = {},
     val onRetrying: () -> Unit = {},
     val onSubscribe: () -> Unit = {}
@@ -191,7 +204,7 @@ class SubscriptionListeners(
     companion object {
 
         @JvmStatic
-        fun compose(vararg l: SubscriptionListeners) = SubscriptionListeners(
+        fun <A> compose(vararg l: SubscriptionListeners<A>) = SubscriptionListeners<A>(
             onEnd = { error -> l.forEach { it.onEnd(error) } },
             onError = { error -> l.forEach { it.onError(error) } },
             onEvent = { event -> l.forEach { it.onEvent(event) } },

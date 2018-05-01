@@ -40,9 +40,11 @@ internal fun <A> String?.parseAs(type: Type, onMissing : () -> Error): Result<A,
 internal inline fun <reified A> String?.parseAs(noinline onMissing : () -> Error): Result<A, Error> =
     parseAs(typeToken<A>(), onMissing)
 
-internal inline fun <reified A> JsonElement.parseAs(): Result<A, Error> = safeParse {
-    GSON.fromJson<A>(this, typeToken<A>())
-}
+internal inline fun <reified A> JsonElement.parseAs(): Result<A, Error> =
+    parseAs(typeToken<A>())
+
+internal fun <A> JsonElement.parseAs(type: Type): Result<A, Error> =
+    safeParse { GSON.fromJson<A>(this, type) }
 
 internal inline fun <reified A> Reader?.parseOr(f: () -> A): Result<A, Error> =
     this?.parseAs() ?: f().asSuccess()

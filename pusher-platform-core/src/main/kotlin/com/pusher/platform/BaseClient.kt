@@ -20,7 +20,7 @@ data class BaseClient(
     val host: String,
     val dependencies: PlatformDependencies,
     val client: OkHttpClient = OkHttpClient(),
-    val encrypted: Boolean = true
+    private val encrypted: Boolean = true
 ) {
 
     private val schema = if (encrypted) "https" else "http"
@@ -37,51 +37,48 @@ data class BaseClient(
         readTimeout(0, TimeUnit.MINUTES)
     }.build()
 
-    fun subscribeResuming(
+    @JvmOverloads
+    fun <A> subscribeResuming(
         destination: RequestDestination,
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
         headers: Headers,
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
         retryOptions: RetryStrategyOptions,
+        typeResolver: (String) -> Class<A>,
         initialEventId: String? = null
-    ): Subscription {
-        val subscribeStrategy: SubscribeStrategy = createResumingStrategy(
-            initialEventId = initialEventId,
+    ): Subscription = createResumingStrategy(
+        initialEventId = initialEventId,
+        logger = logger,
+        nextSubscribeStrategy = createTokenProvidingStrategy(
+            tokenProvider = tokenProvider,
+            tokenParams = tokenParams,
             logger = logger,
-            nextSubscribeStrategy = createTokenProvidingStrategy(
-                tokenProvider = tokenProvider,
-                tokenParams = tokenParams,
-                logger = logger,
-                nextSubscribeStrategy = createBaseSubscription(
-                    path = destination.toRequestPath()
-                )
-            ),
-            errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
-        )
+            nextSubscribeStrategy = createBaseSubscription<A>(
+                path = destination.toRequestPath(),
+                typeResolver = typeResolver
+            )
+        ),
+        errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
+    )(listeners, headers)
 
-        return subscribeStrategy(listeners, headers)
-    }
-
-    fun subscribeNonResuming(
+    fun <A> subscribeNonResuming(
         destination: RequestDestination,
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
         headers: Headers,
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
-        retryOptions: RetryStrategyOptions): Subscription {
-
-        val subscribeStrategy: SubscribeStrategy = createRetryingStrategy(
+        retryOptions: RetryStrategyOptions,
+        typeResolver: SubscriptionTypeResolver
+    ): Subscription = createRetryingStrategy(
+        logger = logger,
+        nextSubscribeStrategy = createTokenProvidingStrategy(
+            tokenProvider = tokenProvider,
+            tokenParams = tokenParams,
             logger = logger,
-            nextSubscribeStrategy = createTokenProvidingStrategy(
-                tokenProvider = tokenProvider,
-                tokenParams = tokenParams,
-                logger = logger,
-                nextSubscribeStrategy = createBaseSubscription(path = destination.toRequestPath())),
-            errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
-        )
-        return subscribeStrategy(listeners, headers)
-    }
+            nextSubscribeStrategy = createBaseSubscription<A>(path = destination.toRequestPath(), typeResolver = typeResolver)),
+        errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
+    )(listeners, headers)
 
     @JvmOverloads
     fun <A> request(
@@ -193,22 +190,24 @@ data class BaseClient(
         }
     }
 
-    fun createBaseSubscription(path: String): SubscribeStrategy {
-        return { listeners, headers ->
-            BaseSubscription(
-                path = path,
-                headers = headers,
-                onOpen = listeners.onOpen,
-                onError = listeners.onError,
-                onEvent = listeners.onEvent,
-                onEnd = listeners.onEnd,
-                httpClient = httpClient,
-                logger = logger,
-                mainThread = mainScheduler,
-                backgroundThread = scheduler,
-                baseClient = this
-            )
-        }
+    private fun <A> createBaseSubscription(
+        path: String,
+        typeResolver: SubscriptionTypeResolver
+    ): SubscribeStrategy<A> = { listeners, headers ->
+        BaseSubscription(
+            path = path,
+            headers = headers,
+            onOpen = listeners.onOpen,
+            onError = listeners.onError,
+            onEvent = listeners.onEvent,
+            onEnd = listeners.onEnd,
+            httpClient = httpClient,
+            logger = logger,
+            mainThread = mainScheduler,
+            backgroundThread = scheduler,
+            baseClient = this,
+            typeResolver = typeResolver
+        )
     }
 
     internal fun createRequest(block: Request.Builder.() -> Unit): Request =

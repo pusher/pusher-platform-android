@@ -18,18 +18,21 @@ import okhttp3.ResponseBody
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
+import java.lang.reflect.Type
 import javax.net.ssl.SSLHandshakeException
 
+typealias SubscriptionTypeResolver = (String) -> Type
 
-internal class BaseSubscription(
+internal class BaseSubscription<A>(
     path: String,
     headers: Headers,
     httpClient: OkHttpClient,
     onOpen: (Headers) -> Unit,
     onError: (Error) -> Unit,
-    onEvent: (SubscriptionEvent) -> Unit,
+    onEvent: (SubscriptionEvent<A>) -> Unit,
     onEnd: (EOSEvent?) -> Unit,
     val logger: Logger,
+    private val typeResolver: SubscriptionTypeResolver,
     private val mainThread: MainThreadScheduler,
     backgroundThread: Scheduler,
     val baseClient: BaseClient
@@ -38,7 +41,7 @@ internal class BaseSubscription(
     private val call: Call
     private val onOpen: (Headers) -> Unit = { headers -> mainThread.schedule { onOpen(headers) }}
     private val onError: (Error) -> Unit = { error -> mainThread.schedule { onError(error) }}
-    private val onEvent: (SubscriptionEvent) -> Unit = { event -> mainThread.schedule { onEvent(event) }}
+    private val onEvent: (SubscriptionEvent<A>) -> Unit = { event -> mainThread.schedule { onEvent(event) }}
     private val onEnd: (EOSEvent?) -> Unit = { event -> mainThread.schedule { onEnd(event) }}
 
     private val job: ScheduledJob
@@ -65,9 +68,7 @@ internal class BaseSubscription(
                 when (response.code()) {
                     in 200..299 -> handleConnectionOpened(response)
                     in 400..599 -> handleConnectionFailed(response)
-                    else -> {
-                        onError(NetworkError("Connection failed"))
-                    }
+                    else -> onError(NetworkError("Connection failed"))
                 }
                 response.close()
             } catch (e: IOException) {
@@ -114,7 +115,7 @@ internal class BaseSubscription(
         }
     }
 
-    private fun Result<SubscriptionMessage, Error>.report() : SubscriptionMessage? {
+    private fun Result<SubscriptionMessage<A>, Error>.report() : SubscriptionMessage<A>? {
         when (this) {
             is Result.Failure -> onError(error)
             is Result.Success -> when (value) {
@@ -128,7 +129,7 @@ internal class BaseSubscription(
 
     private val ResponseBody.messages
         get() = charStream().buffered().lineSequence()
-            .map {line -> SubscriptionMessage.fromRaw(line) }
+            .map {line -> line.toSubscriptionMessage<A>(typeResolver) }
 
     override fun unsubscribe() {
         call.takeUnless { it.isCanceled }?.cancel()
