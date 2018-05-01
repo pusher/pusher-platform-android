@@ -17,7 +17,7 @@ data class SubscriptionInteractions(
     var subscribe: Int = 0
 )
 
-private val printerListeners = SubscriptionListeners(
+private fun <A> printerListeners() = SubscriptionListeners<A>(
     onOpen = { println("onOpen($it)") },
     onEnd = { println("onEnd($it)") },
     onEvent = { println("onEvent($it)") },
@@ -26,18 +26,18 @@ private val printerListeners = SubscriptionListeners(
     onSubscribe = { println("onSubscribe()") }
 )
 
-fun listenersWithCounter(
+fun <A> listenersWithCounter(
     onOpen: SubscriptionInteractions.(headers: Headers) -> Unit = {},
     onEnd: SubscriptionInteractions.(error: EOSEvent?) -> Unit = {},
     onError: SubscriptionInteractions.(error: elements.Error) -> Unit = {},
-    onEvent: SubscriptionInteractions.(event: SubscriptionEvent) -> Unit = {},
+    onEvent: SubscriptionInteractions.(event: SubscriptionEvent<A>) -> Unit = {},
     onRetrying: SubscriptionInteractions.() -> Unit = {},
     onSubscribe: SubscriptionInteractions.() -> Unit = {}
-): SubscriptionListeners {
+): SubscriptionListeners<A> {
     return SubscriptionListeners.compose(
-        printerListeners,
+        printerListeners(),
         with(SubscriptionInteractions()) {
-            SubscriptionListeners(
+            SubscriptionListeners<A>(
                 onOpen = { onOpen(it) },
                 onEnd = { onEnd(it) },
                 onEvent = { onEvent(it) },

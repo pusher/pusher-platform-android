@@ -41,7 +41,7 @@ data class Instance constructor(
     fun <A> subscribeResuming(
         path: String,
         listeners: SubscriptionListeners<A>,
-        typeResolver: (String) -> Class<A>,
+        typeResolver: SubscriptionTypeResolver,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -62,7 +62,7 @@ data class Instance constructor(
     fun <A> subscribeResuming(
         requestDestination: RequestDestination,
         listeners: SubscriptionListeners<A>,
-        typeResolver: (String) -> Class<A>,
+        typeResolver: SubscriptionTypeResolver,
         headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -83,7 +83,7 @@ data class Instance constructor(
     fun <A> subscribeNonResuming(
         path: String,
         listeners: SubscriptionListeners<A>,
-        typeResolver: (String) -> Class<A>,
+        typeResolver: SubscriptionTypeResolver,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,

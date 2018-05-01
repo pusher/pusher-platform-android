@@ -46,6 +46,9 @@ internal inline fun <reified A> JsonElement.parseAs(): Result<A, Error> =
 internal fun <A> JsonElement.parseAs(type: Type): Result<A, Error> =
     safeParse { GSON.fromJson<A>(this, type) }
 
+internal fun <A> Result<JsonElement, Error>.parseAs(type: Type): Result<A, Error> =
+    flatMap { json -> safeParse { GSON.fromJson<A>(json, type) } }
+
 internal inline fun <reified A> Reader?.parseOr(f: () -> A): Result<A, Error> =
     this?.parseAs() ?: f().asSuccess()
 

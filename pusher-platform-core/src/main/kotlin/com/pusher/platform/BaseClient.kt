@@ -45,7 +45,7 @@ data class BaseClient(
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
         retryOptions: RetryStrategyOptions,
-        typeResolver: (String) -> Class<A>,
+        typeResolver: SubscriptionTypeResolver,
         initialEventId: String? = null
     ): Subscription = createResumingStrategy(
         initialEventId = initialEventId,
