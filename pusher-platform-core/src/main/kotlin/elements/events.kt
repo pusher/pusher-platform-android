@@ -1,7 +1,6 @@
 package elements
 
 import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import com.pusher.platform.network.parseAs
 import com.pusher.platform.subscription.SubscriptionTypeResolver
@@ -75,7 +74,8 @@ private fun <A> Array<JsonElement>.messageBody(
     typeResolver: SubscriptionTypeResolver
 ): Result<A, Error> = eventId
     .flatRecover { fieldNotFoundError("body").asFailure() }
-    .flatMap { id -> jsonBody.parseAs<A>(typeResolver(id)) }
+    .flatMap { id -> typeResolver(id) }
+    .flatMap { type -> jsonBody.parseAs<A>(type) }
 
 private val Array<JsonElement>.jsonBody
     get() = valueAt<JsonElement>(3, "body")

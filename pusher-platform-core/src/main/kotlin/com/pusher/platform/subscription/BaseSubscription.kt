@@ -21,7 +21,7 @@ import java.io.IOException
 import java.lang.reflect.Type
 import javax.net.ssl.SSLHandshakeException
 
-typealias SubscriptionTypeResolver = (String) -> Type
+typealias SubscriptionTypeResolver = (String) -> Result<Type, Error>
 
 internal class BaseSubscription<A>(
     path: String,
