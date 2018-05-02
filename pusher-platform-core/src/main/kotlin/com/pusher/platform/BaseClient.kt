@@ -3,10 +3,7 @@ package com.pusher.platform
 import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.logger.log
-import com.pusher.platform.network.Futures
-import com.pusher.platform.network.parseAs
-import com.pusher.platform.network.replaceMultipleSlashesInUrl
-import com.pusher.platform.network.toFuture
+import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
@@ -48,7 +45,7 @@ data class BaseClient(
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
         retryOptions: RetryStrategyOptions,
-        bodyParser: SubscriptionBodyParser<A>,
+        bodyParser: DataParser<A>,
         initialEventId: String? = null
     ): Subscription = createResumingStrategy(
         initialEventId = initialEventId,
@@ -57,7 +54,7 @@ data class BaseClient(
             tokenProvider = tokenProvider,
             tokenParams = tokenParams,
             logger = logger,
-            nextSubscribeStrategy = createBaseSubscription<A>(
+            nextSubscribeStrategy = createBaseSubscription(
                 path = destination.toRequestPath(),
                 bodyParser = bodyParser
             )
@@ -72,14 +69,14 @@ data class BaseClient(
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
         retryOptions: RetryStrategyOptions,
-        bodyParser: SubscriptionBodyParser<A>
+        bodyParser: DataParser<A>
     ): Subscription = createRetryingStrategy(
         logger = logger,
         nextSubscribeStrategy = createTokenProvidingStrategy(
             tokenProvider = tokenProvider,
             tokenParams = tokenParams,
             logger = logger,
-            nextSubscribeStrategy = createBaseSubscription<A>(path = destination.toRequestPath(), bodyParser = bodyParser)),
+            nextSubscribeStrategy = createBaseSubscription(path = destination.toRequestPath(), bodyParser = bodyParser)),
         errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
     )(listeners, headers)
 
@@ -195,7 +192,7 @@ data class BaseClient(
 
     private fun <A> createBaseSubscription(
         path: String,
-        bodyParser: SubscriptionBodyParser<A>
+        bodyParser: DataParser<A>
     ): SubscribeStrategy<A> = { listeners, headers ->
         BaseSubscription(
             path = path,
@@ -209,7 +206,7 @@ data class BaseClient(
             mainThread = mainScheduler,
             backgroundThread = scheduler,
             baseClient = this,
-            bodyParser = bodyParser
+            messageParser = bodyParser
         )
     }
 

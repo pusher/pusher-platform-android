@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.google.gson.JsonElement
 import com.pusher.platform.network.parseAs
 import com.pusher.platform.retrying.RetryStrategyOptions
-import com.pusher.platform.subscription.SubscriptionBodyParser
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.test.describeWhenReachable
 import com.pusher.platform.test.listenersWithCounter
 import com.pusher.platform.test.will
@@ -185,4 +185,4 @@ class InstanceSubscribeIntegrationSpek : Spek({
 })
 
 
-val JSON_ELEMENT_BODY_PARSER: SubscriptionBodyParser<JsonElement> = { it.parseAs<JsonElement>() }
+val JSON_ELEMENT_BODY_PARSER: DataParser<JsonElement> = { it.parseAs<JsonElement>() }

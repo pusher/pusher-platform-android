@@ -5,6 +5,7 @@ import com.pusher.platform.MainThreadScheduler
 import com.pusher.platform.ScheduledJob
 import com.pusher.platform.Scheduler
 import com.pusher.platform.logger.Logger
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.network.nameCurrentThread
 import com.pusher.platform.network.parseOr
 import com.pusher.platform.network.replaceMultipleSlashesInUrl
@@ -20,8 +21,6 @@ import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
 import javax.net.ssl.SSLHandshakeException
 
-typealias SubscriptionBodyParser<A> = (String) -> Result<A, Error>
-
 internal class BaseSubscription<A>(
     path: String,
     headers: Headers,
@@ -31,7 +30,7 @@ internal class BaseSubscription<A>(
     onEvent: (SubscriptionEvent<A>) -> Unit,
     onEnd: (EOSEvent?) -> Unit,
     val logger: Logger,
-    private val bodyParser: SubscriptionBodyParser<A>,
+    private val messageParser: DataParser<A>,
     private val mainThread: MainThreadScheduler,
     backgroundThread: Scheduler,
     val baseClient: BaseClient
@@ -128,7 +127,7 @@ internal class BaseSubscription<A>(
 
     private val ResponseBody.messages
         get() = charStream().buffered().lineSequence()
-            .map {line -> line.toSubscriptionMessage<A>(bodyParser) }
+            .map {line -> line.toSubscriptionMessage<A>(messageParser) }
 
     override fun unsubscribe() {
         call.takeUnless { it.isCanceled }?.cancel()

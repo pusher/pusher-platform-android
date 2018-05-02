@@ -3,7 +3,7 @@ package elements
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import com.pusher.platform.network.parseAs
-import com.pusher.platform.subscription.SubscriptionBodyParser
+import com.pusher.platform.network.DataParser
 import com.pusher.util.Result
 import com.pusher.util.Result.Companion.failuresOf
 import com.pusher.util.asFailure
@@ -11,7 +11,7 @@ import com.pusher.util.asSuccess
 import com.pusher.util.orElse
 
 internal fun <A> String.toSubscriptionMessage(
-    bodyParser: SubscriptionBodyParser<A>
+    bodyParser: DataParser<A>
 ): Result<SubscriptionMessage<A>, Error> =
     parseAs<Array<JsonElement>>().flatMap {
         when (it.messageType) {
@@ -42,7 +42,7 @@ private fun <A> Array<JsonElement>.createEosEvent(): Result<SubscriptionMessage<
     }
 
 private fun <A> Array<JsonElement>.createSubscriptionEvent(
-    bodyParser: SubscriptionBodyParser<A>
+    bodyParser: DataParser<A>
 ): Result<SubscriptionMessage<A>, Error> =
     validate(eventId, messageBody(bodyParser)) { eventId, body: A ->
         SubscriptionEvent(eventId, headers, body)
@@ -71,7 +71,7 @@ private val Array<JsonElement>.messageType
     get() = valueAt(0, "messageType") { asJsonPrimitive.takeIf { it.isNumber }?.asInt }.recover { -1 }
 
 private fun <A> Array<JsonElement>.messageBody(
-    bodyParser: SubscriptionBodyParser<A>
+    bodyParser: DataParser<A>
 ): Result<A, Error> = jsonBody.flatMap { bodyParser(it.toString()) }
 
 private val Array<JsonElement>.jsonBody

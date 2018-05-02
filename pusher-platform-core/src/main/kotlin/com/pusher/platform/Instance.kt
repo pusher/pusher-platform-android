@@ -4,7 +4,7 @@ import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.network.typeToken
 import com.pusher.platform.retrying.RetryStrategyOptions
-import com.pusher.platform.subscription.SubscriptionBodyParser
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import elements.*
@@ -41,7 +41,7 @@ data class Instance constructor(
     fun <A> subscribeResuming(
         path: String,
         listeners: SubscriptionListeners<A>,
-        bodyParser: SubscriptionBodyParser<A>,
+        bodyParser: DataParser<A>,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -62,7 +62,7 @@ data class Instance constructor(
     fun <A> subscribeResuming(
         requestDestination: RequestDestination,
         listeners: SubscriptionListeners<A>,
-        bodyParser: SubscriptionBodyParser<A>,
+        bodyParser: DataParser<A>,
         headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -83,7 +83,7 @@ data class Instance constructor(
     fun <A> subscribeNonResuming(
         path: String,
         listeners: SubscriptionListeners<A>,
-        bodyParser: SubscriptionBodyParser<A>,
+        bodyParser: DataParser<A>,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -103,7 +103,7 @@ data class Instance constructor(
         requestDestination: RequestDestination,
         listeners: SubscriptionListeners<A>,
         headers: Headers = emptyHeaders(),
-        bodyParser: SubscriptionBodyParser<A>,
+        bodyParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()

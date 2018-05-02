@@ -10,7 +10,7 @@ import com.google.gson.JsonElement
 import com.pusher.platform.*
 import com.pusher.platform.network.Futures
 import com.pusher.platform.network.wait
-import com.pusher.platform.subscription.SubscriptionBodyParser
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import com.pusher.util.asFailure
@@ -18,7 +18,6 @@ import com.pusher.util.asSuccess
 import elements.Error
 import elements.Errors
 import elements.Subscription
-import kotlinx.android.synthetic.main.activity_sample.*
 import kotlinx.coroutines.experimental.launch
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -158,7 +157,7 @@ private val gson = GsonBuilder()
     .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
     .create()
 
-private val JSON_ELEMENT_BODY_PARSER : SubscriptionBodyParser<JsonElement> = {
+private val JSON_ELEMENT_BODY_PARSER : DataParser<JsonElement> = {
     try {
         gson.fromJson(it, JsonElement::class.java).asSuccess()
     } catch (e: Throwable) {
