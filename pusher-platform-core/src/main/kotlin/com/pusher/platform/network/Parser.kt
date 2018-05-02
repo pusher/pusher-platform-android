@@ -18,7 +18,7 @@ private val GSON = GsonBuilder()
     .setLenient()
     .create()
 
-inline fun <reified A> typeToken(): Type =
+internal inline fun <reified A> typeToken(): Type =
     object : TypeToken<A>() {}.type
 
 internal inline fun <reified A> Reader.parseAs(type: Type = typeToken<A>()): Result<A, Error> =
