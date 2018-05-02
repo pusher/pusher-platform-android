@@ -10,7 +10,7 @@ apply from: "$projectDir/../gradle/jacoco.gradle"
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.squareup.okhttp3:okhttp:3.10.0'
-    api 'com.google.code.gson:gson:2.8.2'
+    implementation 'com.google.code.gson:gson:2.8.2'
 
     testImplementation "org.mockito:mockito-inline:$mockito_version"
     testImplementation "com.google.truth:truth:0.40"

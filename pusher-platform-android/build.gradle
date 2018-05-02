@@ -54,6 +54,7 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation "com.google.truth:truth:0.40"
+    testImplementation 'com.google.code.gson:gson:2.8.2'
     testImplementation junit5.unitTests()
     testCompileOnly junit5.unitTestsRuntime()
     testImplementation junit5.parameterized()
