@@ -3,10 +3,7 @@ package com.pusher.platform
 import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
 import com.pusher.platform.logger.log
-import com.pusher.platform.network.Futures
-import com.pusher.platform.network.parseAs
-import com.pusher.platform.network.replaceMultipleSlashesInUrl
-import com.pusher.platform.network.toFuture
+import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
 import com.pusher.platform.tokenProvider.TokenProvider
@@ -14,10 +11,9 @@ import com.pusher.util.*
 import elements.*
 import okhttp3.*
 import java.io.File
-import java.lang.reflect.Type
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import elements.Headers as PusherHeaders
+import elements.Headers as ElementsHeaders
 
 data class BaseClient(
     val host: String,
@@ -44,11 +40,11 @@ data class BaseClient(
     fun <A> subscribeResuming(
         destination: RequestDestination,
         listeners: SubscriptionListeners<A>,
-        headers: PusherHeaders,
+        headers: ElementsHeaders,
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
         retryOptions: RetryStrategyOptions,
-        typeResolver: SubscriptionTypeResolver,
+        bodyParser: DataParser<A>,
         initialEventId: String? = null
     ): Subscription = createResumingStrategy(
         initialEventId = initialEventId,
@@ -57,9 +53,9 @@ data class BaseClient(
             tokenProvider = tokenProvider,
             tokenParams = tokenParams,
             logger = logger,
-            nextSubscribeStrategy = createBaseSubscription<A>(
+            nextSubscribeStrategy = createBaseSubscription(
                 path = destination.toRequestPath(),
-                typeResolver = typeResolver
+                bodyParser = bodyParser
             )
         ),
         errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
@@ -68,54 +64,60 @@ data class BaseClient(
     fun <A> subscribeNonResuming(
         destination: RequestDestination,
         listeners: SubscriptionListeners<A>,
-        headers: PusherHeaders,
+        headers: ElementsHeaders,
         tokenProvider: TokenProvider?,
         tokenParams: Any?,
         retryOptions: RetryStrategyOptions,
-        typeResolver: SubscriptionTypeResolver
+        bodyParser: DataParser<A>
     ): Subscription = createRetryingStrategy(
         logger = logger,
         nextSubscribeStrategy = createTokenProvidingStrategy(
             tokenProvider = tokenProvider,
             tokenParams = tokenParams,
             logger = logger,
-            nextSubscribeStrategy = createBaseSubscription<A>(path = destination.toRequestPath(), typeResolver = typeResolver)),
+            nextSubscribeStrategy = createBaseSubscription(path = destination.toRequestPath(), bodyParser = bodyParser)),
         errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
     )(listeners, headers)
 
     @JvmOverloads
     fun <A> request(
         requestDestination: RequestDestination,
-        headers: PusherHeaders,
+        headers: ElementsHeaders,
         method: String,
-        type: Type,
+        responseParser: DataParser<A>,
         body: String? = null,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = tokenProvider
         .authHeaders(headers, tokenParams)
         .flatMapFutureResult { authHeaders ->
-            performRequest<A>(
+            performRequest(
                 destination = requestDestination,
                 headers = authHeaders,
                 method = method,
                 requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) },
-                type = type
+                responseParser = responseParser
             )
         }
 
     @JvmOverloads
     fun <A> upload(
         requestDestination: RequestDestination,
-        headers: PusherHeaders = emptyHeaders(),
+        headers: ElementsHeaders = emptyHeaders(),
         file: File,
-        type: Type,
+        responseParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = when {
         file.exists() -> {
             tokenProvider.authHeaders(headers, tokenParams).flatMapFutureResult { authHeaders ->
-                performRequest<A>(requestDestination, authHeaders, "POST", file.toRequestMultipartBody(), type)
+                performRequest(
+                    destination = requestDestination,
+                    headers = authHeaders,
+                    method = "POST",
+                    requestBody = file.toRequestMultipartBody(),
+                    responseParser = responseParser
+                )
             }
         }
         else -> Futures.now(Errors.upload("File does not exist at ${file.path}").asFailure())
@@ -124,10 +126,10 @@ data class BaseClient(
     /**
      * Provides a future that will provide the same headers with auth token if possible.
      */
-    private fun TokenProvider?.authHeaders(headers: PusherHeaders, tokenParams: Any? = null): Future<Result<PusherHeaders, Error>> =
+    private fun TokenProvider?.authHeaders(headers: ElementsHeaders, tokenParams: Any? = null): Future<Result<ElementsHeaders, Error>> =
         this?.fetchToken(tokenParams)
             ?.mapResult { token -> headers + ("Authorization" to listOf("Bearer $token")) }
-            ?: headers.asSuccess<PusherHeaders, Error>().toFuture()
+            ?: headers.asSuccess<ElementsHeaders, Error>().toFuture()
 
     private fun File.toRequestMultipartBody(): MultipartBody =
         MultipartBody.Builder()
@@ -151,10 +153,10 @@ data class BaseClient(
 
     private fun <A> performRequest(
         destination: RequestDestination,
-        headers: PusherHeaders,
+        headers: ElementsHeaders,
         method: String,
         requestBody: RequestBody?,
-        type: Type
+        responseParser: DataParser<A>
     ): Future<Result<A, Error>> = Futures.schedule {
         val requestURL = destination.toRequestPath()
         logger.verbose("Request started: $method $destination with body: $requestBody")
@@ -174,7 +176,8 @@ data class BaseClient(
             in 200..299 -> logger
                 .log(response) { verbose("Request OK: $method $destination with status code: ${response.code()} ") }
                 .body()?.string()
-                .parseAs(type) { Errors.other("Missing body in $response") }
+                .orElse { Errors.other("Missing body in $response") }
+                .flatMap(responseParser)
             else -> logger
                 .log(response) { verbose("Request Failed: $method $destination with status code: ${response.code()}") }
                 .body()?.string()
@@ -195,7 +198,7 @@ data class BaseClient(
 
     private fun <A> createBaseSubscription(
         path: String,
-        typeResolver: SubscriptionTypeResolver
+        bodyParser: DataParser<A>
     ): SubscribeStrategy<A> = { listeners, headers ->
         BaseSubscription(
             path = path,
@@ -209,7 +212,7 @@ data class BaseClient(
             mainThread = mainScheduler,
             backgroundThread = scheduler,
             baseClient = this,
-            typeResolver = typeResolver
+            messageParser = bodyParser
         )
     }
 

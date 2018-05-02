@@ -9,16 +9,15 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.pusher.platform.*
 import com.pusher.platform.network.Futures
-import com.pusher.platform.network.typeToken
 import com.pusher.platform.network.wait
-import com.pusher.platform.subscription.SubscriptionTypeResolver
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import com.pusher.util.asFailure
 import com.pusher.util.asSuccess
 import elements.Error
+import elements.Errors
 import elements.Subscription
-import kotlinx.android.synthetic.main.activity_sample.*
 import kotlinx.coroutines.experimental.launch
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -68,7 +67,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeNonResuming(
                 path = "feeds/my-feed/items",
                 listeners = listeners,
-                typeResolver = jsonElementTypeResolver
+                bodyParser = JSON_ELEMENT_BODY_PARSER
             )
         }
 
@@ -76,7 +75,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeResuming(
                 path = "feeds/my-feed/items",
                 listeners = listeners,
-                typeResolver = jsonElementTypeResolver
+                messageParser = JSON_ELEMENT_BODY_PARSER
             )
         }
 
@@ -84,7 +83,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeNonResuming(
                 path = "firehose/items",
                 listeners = listeners,
-                typeResolver = jsonElementTypeResolver,
+                bodyParser = JSON_ELEMENT_BODY_PARSER,
                 tokenProvider = MyTokenProvider(client, gson),
                 tokenParams = SampleTokenParams(path = "firehose/items", authorizePath = "path/tokens")
             )
@@ -97,9 +96,6 @@ class SampleActivity : AppCompatActivity() {
 
     private val client = OkHttpClient()
 
-    private val gson: Gson = GsonBuilder()
-        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-        .create()
 
     data class SampleTokenParams(val path: String, val action: String = "READ", val authorizePath: String)
 
@@ -160,4 +156,14 @@ class SampleActivity : AppCompatActivity() {
     }
 }
 
-private val jsonElementTypeResolver : SubscriptionTypeResolver = { typeToken<JsonElement>().asSuccess() }
+private val gson = GsonBuilder()
+    .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+    .create()
+
+private val JSON_ELEMENT_BODY_PARSER : DataParser<JsonElement> = {
+    try {
+        gson.fromJson(it, JsonElement::class.java).asSuccess()
+    } catch (e: Throwable) {
+        Errors.other(e).asFailure()
+    }
+}

@@ -3,7 +3,7 @@ package elements
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import com.pusher.platform.network.parseAs
-import com.pusher.platform.subscription.SubscriptionTypeResolver
+import com.pusher.platform.network.DataParser
 import com.pusher.util.Result
 import com.pusher.util.Result.Companion.failuresOf
 import com.pusher.util.asFailure
@@ -11,12 +11,12 @@ import com.pusher.util.asSuccess
 import com.pusher.util.orElse
 
 internal fun <A> String.toSubscriptionMessage(
-    typeResolver: SubscriptionTypeResolver
+    bodyParser: DataParser<A>
 ): Result<SubscriptionMessage<A>, Error> =
     parseAs<Array<JsonElement>>().flatMap {
         when (it.messageType) {
             0 -> it.createControlEvent()
-            1 -> it.createSubscriptionEvent<A>(typeResolver)
+            1 -> it.createSubscriptionEvent(bodyParser)
             255 -> it.createEosEvent()
             else -> Errors.other("Unknown message type: $this").asFailure()
         }
@@ -42,9 +42,9 @@ private fun <A> Array<JsonElement>.createEosEvent(): Result<SubscriptionMessage<
     }
 
 private fun <A> Array<JsonElement>.createSubscriptionEvent(
-    typeResolver: SubscriptionTypeResolver
+    bodyParser: DataParser<A>
 ): Result<SubscriptionMessage<A>, Error> =
-    validate(eventId, messageBody(typeResolver)) { eventId, body: A ->
+    validate(eventId, messageBody(bodyParser)) { eventId, body: A ->
         SubscriptionEvent(eventId, headers, body)
     }
 
@@ -71,11 +71,8 @@ private val Array<JsonElement>.messageType
     get() = valueAt(0, "messageType") { asJsonPrimitive.takeIf { it.isNumber }?.asInt }.recover { -1 }
 
 private fun <A> Array<JsonElement>.messageBody(
-    typeResolver: SubscriptionTypeResolver
-): Result<A, Error> = eventId
-    .flatRecover { fieldNotFoundError("body").asFailure() }
-    .flatMap { id -> typeResolver(id) }
-    .flatMap { type -> jsonBody.parseAs<A>(type) }
+    bodyParser: DataParser<A>
+): Result<A, Error> = jsonBody.flatMap { bodyParser(it.toString()) }
 
 private val Array<JsonElement>.jsonBody
     get() = valueAt<JsonElement>(3, "body")

@@ -2,14 +2,12 @@ package com.pusher.platform
 
 import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
-import com.pusher.platform.network.typeToken
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.retrying.RetryStrategyOptions
-import com.pusher.platform.subscription.SubscriptionTypeResolver
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import elements.*
 import java.io.File
-import java.lang.reflect.Type
 import java.util.*
 import java.util.concurrent.Future
 
@@ -41,7 +39,7 @@ data class Instance constructor(
     fun <A> subscribeResuming(
         path: String,
         listeners: SubscriptionListeners<A>,
-        typeResolver: SubscriptionTypeResolver,
+        messageParser: DataParser<A>,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -55,7 +53,7 @@ data class Instance constructor(
         tokenParams = tokenParams,
         retryOptions = retryOptions,
         initialEventId = initialEventId,
-        typeResolver = typeResolver
+        messageParser = messageParser
     )
 
     @Suppress("MemberVisibilityCanBePrivate") // Public API
@@ -63,7 +61,7 @@ data class Instance constructor(
     fun <A> subscribeResuming(
         requestDestination: RequestDestination,
         listeners: SubscriptionListeners<A>,
-        typeResolver: SubscriptionTypeResolver,
+        messageParser: DataParser<A>,
         headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -77,14 +75,14 @@ data class Instance constructor(
         tokenParams = tokenParams,
         retryOptions = retryOptions,
         initialEventId = initialEventId,
-        typeResolver = typeResolver
+        bodyParser = messageParser
     )
 
     @JvmOverloads
     fun <A> subscribeNonResuming(
         path: String,
         listeners: SubscriptionListeners<A>,
-        typeResolver: SubscriptionTypeResolver,
+        messageParser: DataParser<A>,
         headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
@@ -92,7 +90,7 @@ data class Instance constructor(
     ): Subscription = subscribeNonResuming(
         requestDestination = Relative(path),
         listeners = listeners,
-        typeResolver = typeResolver,
+        messageParser = messageParser,
         headers = headers,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
@@ -105,14 +103,14 @@ data class Instance constructor(
         requestDestination: RequestDestination,
         listeners: SubscriptionListeners<A>,
         headers: Headers = emptyHeaders(),
-        typeResolver: SubscriptionTypeResolver,
+        messageParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription = baseClient.subscribeNonResuming(
         destination = requestDestination.toScopedDestination(),
         listeners = listeners,
-        typeResolver = typeResolver,
+        bodyParser = messageParser,
         headers = headers,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
@@ -120,9 +118,9 @@ data class Instance constructor(
     )
 
     @JvmOverloads
-    inline fun <reified A> request(
+    fun <A> request(
         options: RequestOptions,
-        type: Type = typeToken<A>(),
+        responseParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = baseClient.request(
@@ -132,40 +130,40 @@ data class Instance constructor(
         body = options.body,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
-        type = type
+        responseParser = responseParser
     )
 
     @Suppress("unused") // Public API
     @JvmOverloads
-    inline fun <reified A> upload(
+    fun <A> upload(
         path: String,
         headers: Headers = emptyHeaders(),
         file: File,
-        type: Type = typeToken<A>(),
+        responseParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = upload(
         requestDestination = Relative(path),
         headers = headers,
         file = file,
-        type = type,
+        responseParser = responseParser,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams
     )
 
     @JvmOverloads
-    inline fun <reified A> upload(
+    fun <A> upload(
         requestDestination: RequestDestination,
         headers: Headers = emptyHeaders(),
         file: File,
-        type: Type = typeToken<A>(),
+        responseParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = baseClient.upload(
         requestDestination = requestDestination.toScopedDestination(),
         headers = headers,
         file = file,
-        type = type,
+        responseParser = responseParser,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams
     )
