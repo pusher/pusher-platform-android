@@ -75,7 +75,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeResuming(
                 path = "feeds/my-feed/items",
                 listeners = listeners,
-                bodyParser = JSON_ELEMENT_BODY_PARSER
+                messageParser = JSON_ELEMENT_BODY_PARSER
             )
         }
 

@@ -1,9 +1,10 @@
 package com.pusher.platform
 
 import com.google.common.truth.Truth.assertThat
+import com.google.gson.Gson
 import com.google.gson.JsonElement
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.network.Futures
-import com.pusher.platform.network.typeToken
 import com.pusher.platform.test.SyncScheduler
 import com.pusher.util.Result
 import com.pusher.util.asSuccess
@@ -66,11 +67,11 @@ class InstanceTest {
         val expectedResponse = stub<JsonElement>()
 
         val fakeClient = stub<BaseClient> {
-            request<JsonElement>(
+            request(
                 requestDestination = RequestDestination.Relative("services/bar/baz/baz/path"),
                 headers = emptyMap(),
                 method = "GET",
-                responseType = typeToken<JsonElement>()
+                responseParser = jsonParser
             ) returns Futures.now(expectedResponse.asSuccess())
         }
 
@@ -82,13 +83,16 @@ class InstanceTest {
         ).copy(baseClient = fakeClient)
 
         val request: Future<Result<JsonElement, Error>> = instance.request(
-            options = RequestOptions(path = "path")
+            options = RequestOptions(path = "path"),
+            responseParser = jsonParser
         )
 
         assertThat(request.get().let { it as? Result.Success }?.value).isEqualTo(expectedResponse)
     }
 
 }
+
+private val jsonParser: DataParser<JsonElement> = { Gson().fromJson(it, JsonElement::class.java).asSuccess() }
 
 class InstanceDependencies(androidDependencies: PlatformDependencies = AndroidDependencies(stub())) : PlatformDependencies by androidDependencies {
     override val scheduler: Scheduler = SyncScheduler()

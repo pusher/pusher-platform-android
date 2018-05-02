@@ -2,6 +2,7 @@ package com.pusher.platform
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
+import com.pusher.platform.network.parseAs
 import com.pusher.platform.network.toFuture
 import com.pusher.platform.network.wait
 import com.pusher.platform.test.describeWhenReachable
@@ -30,7 +31,8 @@ class InstanceRequestIntegrationSpek : Spek({
 
         it("makes a successful GET request") {
             val result = instance.request<JsonElement>(
-                options = RequestOptions("get_ok")
+                options = RequestOptions("get_ok"),
+                responseParser = { it.parseAs() }
             ).wait()
             assertSuccess(result)
         }
@@ -40,7 +42,8 @@ class InstanceRequestIntegrationSpek : Spek({
                 options = RequestOptions(
                     method = "POST",
                     path = "post_ok"
-                )
+                ),
+                responseParser = { it.parseAs() }
             ).wait()
             assertSuccess(result)
         }
@@ -52,7 +55,8 @@ class InstanceRequestIntegrationSpek : Spek({
                     method = "POST",
                     path = "post_ok",
                     body = """{ "test": "123" }"""
-                )
+                ),
+                responseParser = { it.parseAs() }
             ).wait()
 
             assertSuccess(result).isEqualTo(expected)
@@ -63,7 +67,8 @@ class InstanceRequestIntegrationSpek : Spek({
                 options = RequestOptions(
                     method = "PUT",
                     path = "put_ok"
-                )
+                ),
+                responseParser = { it.parseAs() }
             ).wait()
             assertSuccess(result)
         }
@@ -73,7 +78,8 @@ class InstanceRequestIntegrationSpek : Spek({
                 options = RequestOptions(
                     method = "DELETE",
                     path = "delete_ok"
-                )
+                ),
+                responseParser = { it.parseAs() }
             ).wait()
             assertSuccess(result)
         }
@@ -95,7 +101,8 @@ class InstanceRequestIntegrationSpek : Spek({
             forEachErrorCode { errorCode ->
                 it("fail on $errorCode error") {
                     val result = instance.request<JsonElement>(
-                        options = RequestOptions("get_$errorCode")
+                        options = RequestOptions("get_$errorCode"),
+                        responseParser = { it.parseAs() }
                     ).wait()
 
                     assertFailure(result)
@@ -117,7 +124,8 @@ class InstanceRequestIntegrationSpek : Spek({
                 it("fails on $errorCode error") {
                     val result = instance.request<JsonElement>(
                         options = RequestOptions("get_$errorCode"),
-                        tokenProvider = dummyTokenProvider
+                        tokenProvider = dummyTokenProvider,
+                        responseParser = { it.parseAs() }
                     ).wait()
 
                     assertFailure(result)
@@ -130,7 +138,6 @@ class InstanceRequestIntegrationSpek : Spek({
     }
 
 })
-
 
 private fun forEachErrorCode(testBody: (Int) -> Unit) =
     arrayOf(400, 403, 404, 500, 503).forEach(testBody)

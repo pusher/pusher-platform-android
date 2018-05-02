@@ -11,7 +11,6 @@ import com.pusher.util.*
 import elements.*
 import okhttp3.*
 import java.io.File
-import java.lang.reflect.Type
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import elements.Headers as ElementsHeaders
@@ -85,19 +84,19 @@ data class BaseClient(
         requestDestination: RequestDestination,
         headers: ElementsHeaders,
         method: String,
-        responseType: Type,
+        responseParser: DataParser<A>,
         body: String? = null,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = tokenProvider
         .authHeaders(headers, tokenParams)
         .flatMapFutureResult { authHeaders ->
-            performRequest<A>(
+            performRequest(
                 destination = requestDestination,
                 headers = authHeaders,
                 method = method,
                 requestBody = body?.let { RequestBody.create(MediaType.parse("application/json"), it) },
-                type = responseType
+                responseParser = responseParser
             )
         }
 
@@ -106,13 +105,19 @@ data class BaseClient(
         requestDestination: RequestDestination,
         headers: ElementsHeaders = emptyHeaders(),
         file: File,
-        responseType: Type,
+        responseParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
     ): Future<Result<A, Error>> = when {
         file.exists() -> {
             tokenProvider.authHeaders(headers, tokenParams).flatMapFutureResult { authHeaders ->
-                performRequest<A>(requestDestination, authHeaders, "POST", file.toRequestMultipartBody(), responseType)
+                performRequest(
+                    destination = requestDestination,
+                    headers = authHeaders,
+                    method = "POST",
+                    requestBody = file.toRequestMultipartBody(),
+                    responseParser = responseParser
+                )
             }
         }
         else -> Futures.now(UploadError("File does not exist at ${file.path}").asFailure<A, Error>())
@@ -151,7 +156,7 @@ data class BaseClient(
         headers: ElementsHeaders,
         method: String,
         requestBody: RequestBody?,
-        type: Type
+        responseParser: DataParser<A>
     ): Future<Result<A, Error>> = Futures.schedule {
         val requestURL = destination.toRequestPath()
         logger.verbose("Request started: $method $destination with body: $requestBody")
@@ -171,7 +176,8 @@ data class BaseClient(
             in 200..299 -> logger
                 .log(response) { verbose("Request OK: $method $destination with status code: ${response.code()} ") }
                 .body()?.string()
-                .parseAs(type) { Errors.other("Missing body in $response") }
+                .orElse { Errors.other("Missing body in $response") }
+                .flatMap(responseParser)
             else -> logger
                 .log(response) { verbose("Request Failed: $method $destination with status code: ${response.code()}") }
                 .body()?.string()
