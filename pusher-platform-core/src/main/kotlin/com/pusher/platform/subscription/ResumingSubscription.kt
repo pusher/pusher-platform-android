@@ -3,8 +3,9 @@ package com.pusher.platform.subscription
 import com.pusher.platform.ErrorResolver
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
-import com.pusher.platform.retrying.DoNotRetry
-import com.pusher.platform.retrying.Retry
+import com.pusher.platform.network.Futures
+import com.pusher.platform.network.waitOr
+import com.pusher.platform.retrying.RetryStrategy
 import elements.EOSEvent
 import elements.Headers
 import elements.Subscription
@@ -135,17 +136,15 @@ class ResumingSubscription<A>(
             underlyingSubscription?.unsubscribe()
         }
 
-        private fun executeSubscriptionOnce(error: elements.Error, lastEventId: String?) {
-            errorResolver.resolveError(error, { resolution ->
-                when (resolution) {
-                    is DoNotRetry -> {
-                        onTransition(FailedSubscriptionState(listeners, error))
-                    }
-                    is Retry -> {
-                        executeNextSubscribeStrategy(lastEventId)
-                    }
-                }
-            })
+        private fun executeSubscriptionOnce(
+            error: elements.Error,
+            lastEventId: String?
+        ) = Futures.schedule {
+            val resolution = errorResolver.resolveError(error).waitOr { RetryStrategy.DoNotRetry }
+            when(resolution) {
+                is RetryStrategy.DoNotRetry -> onTransition(FailedSubscriptionState(listeners, error))
+                is RetryStrategy.Retry -> executeNextSubscribeStrategy(lastEventId)
+            }
         }
 
         private fun executeNextSubscribeStrategy(eventId: String?) {

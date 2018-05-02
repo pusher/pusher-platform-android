@@ -1,14 +1,9 @@
 package com.pusher.platform.subscription
 
 import com.pusher.platform.BaseClient
-import com.pusher.platform.MainThreadScheduler
-import com.pusher.platform.ScheduledJob
-import com.pusher.platform.Scheduler
 import com.pusher.platform.logger.Logger
-import com.pusher.platform.network.DataParser
-import com.pusher.platform.network.nameCurrentThread
-import com.pusher.platform.network.parseOr
-import com.pusher.platform.network.replaceMultipleSlashesInUrl
+import com.pusher.platform.logger.logWith
+import com.pusher.platform.network.*
 import com.pusher.util.Result
 import com.pusher.util.flatten
 import elements.*
@@ -19,31 +14,24 @@ import okhttp3.ResponseBody
 import okhttp3.internal.http2.ErrorCode
 import okhttp3.internal.http2.StreamResetException
 import java.io.IOException
+import java.util.concurrent.Future
 import javax.net.ssl.SSLHandshakeException
 
 internal class BaseSubscription<A>(
     path: String,
     headers: Headers,
     httpClient: OkHttpClient,
-    onOpen: (Headers) -> Unit,
-    onError: (Error) -> Unit,
-    onEvent: (SubscriptionEvent<A>) -> Unit,
-    onEnd: (EOSEvent?) -> Unit,
-    val logger: Logger,
+    private val onOpen: (Headers) -> Unit,
+    private val onError: (Error) -> Unit,
+    private val onEvent: (SubscriptionEvent<A>) -> Unit,
+    private val onEnd: (EOSEvent?) -> Unit,
+    private val logger: Logger,
     private val messageParser: DataParser<A>,
-    private val mainThread: MainThreadScheduler,
-    backgroundThread: Scheduler,
     val baseClient: BaseClient
 ): Subscription {
 
     private val call: Call
-    private val onOpen: (Headers) -> Unit = { headers -> mainThread.schedule { onOpen(headers) }}
-    private val onError: (Error) -> Unit = { error -> mainThread.schedule { onError(error) }}
-    private val onEvent: (SubscriptionEvent<A>) -> Unit = { event -> mainThread.schedule { onEvent(event) }}
-    private val onEnd: (EOSEvent?) -> Unit = { event -> mainThread.schedule { onEnd(event) }}
-
-    private val job: ScheduledJob
-
+    private val job: Future<Unit>
     private var activeResponseBody: ResponseBody? = null
 
     init {
@@ -57,10 +45,7 @@ internal class BaseSubscription<A>(
 
         call = httpClient.newCall(request)
 
-        job = backgroundThread.schedule {
-            val nomer = nameCurrentThread(
-                "${request.method()}: /${request.url().pathSegments().joinToString("/")}"
-            )
+        job = Futures.schedule {
             try {
                 val response = call.execute()
                 when (response.code()) {
@@ -76,16 +61,14 @@ internal class BaseSubscription<A>(
                     e is SSLHandshakeException -> onError(Errors.other(e))
                     else -> onError(NetworkError("Connection failed"))
                 }
-            } finally {
-                nomer.restore()
             }
         }
-
     }
 
     private fun handleConnectionFailed(response: Response) {
         val errorEvent = response.body()?.charStream()
             .parseOr { ErrorResponseBody("Could not parse: $response") }
+            .logWith(logger) { verbose("") }
             .map {
                 ErrorResponse(
                     statusCode = response.code(),
@@ -125,13 +108,13 @@ internal class BaseSubscription<A>(
         return (this as? Result.Success)?.value
     }
 
-    private val ResponseBody.messages
+    private val ResponseBody.messages: Sequence<Result<SubscriptionMessage<A>, Error>>
         get() = charStream().buffered().lineSequence()
-            .map {line -> line.toSubscriptionMessage<A>(messageParser) }
+            .map {line -> line.toSubscriptionMessage(messageParser) }
 
     override fun unsubscribe() {
         call.takeUnless { it.isCanceled }?.cancel()
+        job.takeUnless { it.isCancelled }?.cancel()
         activeResponseBody?.close()
-        job.cancel()
     }
 }

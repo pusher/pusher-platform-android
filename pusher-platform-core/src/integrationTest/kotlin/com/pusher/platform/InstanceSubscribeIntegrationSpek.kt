@@ -36,7 +36,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
                 path = PATH_10_AND_EOS,
                 retryOptions = RetryStrategyOptions(limit = 0),
                 messageParser = JSON_ELEMENT_BODY_PARSER,
-                listeners = listenersWithCounter<JsonElement>(
+                listeners = listenersWithCounter(
                     onEvent = { events++ },
                     onEnd = { done { assertThat(events).isEqualTo(10) } },
                     onError = { fail("We should not get an error") }

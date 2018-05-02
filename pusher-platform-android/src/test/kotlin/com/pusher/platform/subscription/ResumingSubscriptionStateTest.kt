@@ -3,9 +3,10 @@ package com.pusher.platform.subscription
 import com.google.gson.JsonElement
 import com.nhaarman.mockito_kotlin.*
 import com.pusher.platform.ErrorResolver
-import com.pusher.platform.RetryStrategyResultCallback
 import com.pusher.platform.SubscriptionListeners
-import com.pusher.platform.retrying.DoNotRetry
+import com.pusher.platform.network.toFuture
+import com.pusher.platform.retrying.RetryStrategy
+import com.pusher.platform.retrying.RetryStrategy.DoNotRetry
 import elements.emptyHeaders
 import mockitox.stub
 import org.junit.jupiter.api.Test
@@ -25,7 +26,5 @@ class ResumingSubscriptionStateTest {
 }
 
 private val neverRetry: ErrorResolver = mock {
-    on { resolveError(any(), any()) } doAnswer {
-        (it.arguments[1] as RetryStrategyResultCallback).invoke(DoNotRetry())
-    }
+    on { resolveError(any()) } doReturn DoNotRetry.toFuture<RetryStrategy>()
 }
