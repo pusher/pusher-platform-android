@@ -120,7 +120,7 @@ data class BaseClient(
                 )
             }
         }
-        else -> Futures.now(Errors.upload("File does not exist at ${file.path}").asFailure<A, Error>())
+        else -> Futures.now(Errors.upload("File does not exist at ${file.path}").asFailure())
     }
 
     /**
