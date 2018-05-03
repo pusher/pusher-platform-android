@@ -1,6 +1,5 @@
 package com.pusher.platform
 
-import android.content.Context
 import com.pusher.SdkInfo
 import com.pusher.platform.logger.AndroidLogger
 import com.pusher.platform.logger.LogLevel
@@ -9,7 +8,6 @@ import com.pusher.platform.logger.LogLevel
  * Provides default values for dependencies when using Android.
  */
 data class AndroidDependencies(
-    private val context: Context,
     override val sdkInfo: SdkInfo = SdkInfo(
         product = "pusher-platform",
         sdkVersion = "0.0.0",

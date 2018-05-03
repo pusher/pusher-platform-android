@@ -22,7 +22,7 @@ class InstanceTest {
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
-            dependencies = AndroidDependencies(stub())
+            dependencies = AndroidDependencies()
         )
         assertNotNull(instance)
     }
@@ -78,7 +78,7 @@ class InstanceTest {
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
-            dependencies = AndroidDependencies(stub())
+            dependencies = AndroidDependencies()
         ).copy(baseClient = fakeClient)
 
         val request: Future<Result<JsonElement, Error>> = instance.request(
