@@ -86,10 +86,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
                     onEvent = {
                         events++
                         attempt { assertThat(events).isLessThan(4) }
-                        if (events == 3) {
-                            val sub1 = sub
-                            sub1.unsubscribe()
-                        }
+                        if (events == 3) sub.unsubscribe()
                     },
                     onEnd = { done() },
                     onError = { done { error("onError triggered - this shouldn't be!") } }
