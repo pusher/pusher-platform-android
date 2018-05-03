@@ -35,13 +35,10 @@ class ResumingSubscription<A>(
     val nextSubscribeStrategy: SubscribeStrategy<A>,
     val initialEventId: String? = null
 ) : Subscription {
-    var state: SubscriptionState
 
-    val onTransition: StateTransition = { newState -> state = newState }
+    private val onTransition: StateTransition = { newState -> state = newState }
 
-    init {
-        state = OpeningSubscriptionState(listeners, onTransition)
-    }
+    private var state: SubscriptionState = OpeningSubscriptionState(listeners, onTransition)
 
     override fun unsubscribe() {
         this.state.unsubscribe()
@@ -61,7 +58,7 @@ class ResumingSubscription<A>(
         listeners: SubscriptionListeners<A>,
         onTransition: StateTransition
     ) : SubscriptionState {
-        lateinit var underlyingSubscription: Subscription
+        private lateinit var underlyingSubscription: Subscription
 
         init {
             var lastEventId = initialEventId
@@ -92,7 +89,7 @@ class ResumingSubscription<A>(
                         lastEventId = event.eventId
                         listeners.onEvent(event)
                         logger.verbose(
-                            "${ResumingSubscription@ this}received event ${event}"
+                            "${ResumingSubscription@ this}received event $event"
                         )
                     },
                     onRetrying = listeners.onRetrying,
@@ -127,7 +124,7 @@ class ResumingSubscription<A>(
         lastEventId: String?,
         private val onTransition: StateTransition
     ) : SubscriptionState {
-        var underlyingSubscription: Subscription? = null
+        private var underlyingSubscription: Subscription? = null
 
         init {
             logger.verbose("${ResumingSubscription@ this}: transitioning to ResumingSubscriptionState")

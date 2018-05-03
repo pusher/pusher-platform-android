@@ -1,4 +1,4 @@
-package com.pusher.platform.test;
+package com.pusher.platform.test
 
 import org.jetbrains.spek.api.dsl.Spec
 import org.jetbrains.spek.api.dsl.SpecBody

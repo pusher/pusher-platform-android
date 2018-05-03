@@ -51,7 +51,7 @@ class SampleActivity : AppCompatActivity() {
             onError = { error -> Log.d("PP", "onError $error") }
         )
 
-        this.get_request_authorized_btn.setOnClickListener {
+        this.get_request_btn.setOnClickListener {
             launch {
                 val result = pusherPlatform.request(
                     options = RequestOptions(path = "feeds/my-feed/items"),
@@ -96,7 +96,7 @@ class SampleActivity : AppCompatActivity() {
         }
     }
 
-    val client = OkHttpClient()
+    private val client = OkHttpClient()
 
 
     data class SampleTokenParams(val path: String, val action: String = "READ", val authorizePath: String)
@@ -109,7 +109,10 @@ class SampleActivity : AppCompatActivity() {
         val refreshToken: String
     )
 
-    class MyTokenProvider(val client: OkHttpClient, val gson: Gson) : TokenProvider {
+    class MyTokenProvider(
+        private val client: OkHttpClient,
+        private val gson: Gson
+    ) : TokenProvider {
 
         override fun fetchToken(tokenParams: Any?): Future<Result<String, Error>> {
             if (tokenParams is SampleTokenParams) {

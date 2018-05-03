@@ -56,6 +56,7 @@ data class Instance constructor(
         messageParser = messageParser
     )
 
+    @Suppress("MemberVisibilityCanBePrivate") // Public API
     @JvmOverloads
     fun <A> subscribeResuming(
         requestDestination: RequestDestination,
@@ -96,6 +97,7 @@ data class Instance constructor(
         retryOptions = retryOptions
     )
 
+    @Suppress("MemberVisibilityCanBePrivate") // Public API
     @JvmOverloads
     fun <A> subscribeNonResuming(
         requestDestination: RequestDestination,
@@ -131,6 +133,7 @@ data class Instance constructor(
         responseParser = responseParser
     )
 
+    @Suppress("unused") // Public API
     @JvmOverloads
     fun <A> upload(
         path: String,

@@ -25,6 +25,7 @@ fun <A, B> A?.orElse(block: () -> B): Result<A, B> = when (this) {
  */
 sealed class Result<A, B> {
 
+    @Suppress("MemberVisibilityCanBePrivate") // public APIs
     companion object {
         @JvmStatic
         fun <A, B> success(value: A): Result<A, B> = Success(value)

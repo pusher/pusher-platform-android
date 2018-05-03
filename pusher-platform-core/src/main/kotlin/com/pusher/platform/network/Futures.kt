@@ -1,7 +1,7 @@
 package com.pusher.platform.network
 
 import java.util.concurrent.*
-import java.util.concurrent.TimeUnit.*
+import java.util.concurrent.TimeUnit.SECONDS
 
 private val futuresExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
 
@@ -85,6 +85,7 @@ fun <V> Future<V>.wait(wait: Wait = Wait.For(10, SECONDS)): V = when(wait) {
 /**
  * [wait] with a recover option
  */
+@Suppress("unused") // Public API
 fun <V> Future<V>.waitOr(wait: Wait = Wait.For(10, SECONDS), alternative: (Throwable) -> V): V = try {
     wait(wait)
 } catch (e: Throwable) {

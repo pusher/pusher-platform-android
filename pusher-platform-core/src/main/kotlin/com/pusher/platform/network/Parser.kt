@@ -52,9 +52,6 @@ internal fun <A> Result<JsonElement, Error>.parseAs(type: Type): Result<A, Error
 internal inline fun <reified A> Reader?.parseOr(f: () -> A): Result<A, Error> =
     this?.parseAs() ?: f().asSuccess()
 
-internal inline fun <reified A> JsonElement?.parseOr(f: () -> A): Result<A, Error> =
-    this?.parseAs() ?: f().asSuccess()
-
 private fun <A> safeParse(block: () -> A): Result<A, Error> = try {
     block().asSuccess()
 } catch (e: Throwable) {
