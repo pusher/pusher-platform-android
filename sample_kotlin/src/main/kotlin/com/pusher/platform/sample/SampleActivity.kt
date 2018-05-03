@@ -39,7 +39,7 @@ class SampleActivity : AppCompatActivity() {
             locator = INSTANCE_LOCATOR,
             serviceName = "feeds",
             serviceVersion = "v1",
-            dependencies = AndroidDependencies()
+            dependencies = AndroidDependencies(applicationContext)
         )
 
         val listeners = SubscriptionListeners<JsonElement>(

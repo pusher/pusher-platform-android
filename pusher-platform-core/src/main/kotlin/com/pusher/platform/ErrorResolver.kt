@@ -1,7 +1,6 @@
 package com.pusher.platform
 
-import com.pusher.platform.network.Futures
-import com.pusher.platform.network.cancel
+import com.pusher.platform.network.ConnectivityHelper
 import com.pusher.platform.retrying.RetryStrategy
 import com.pusher.platform.retrying.RetryStrategy.DoNotRetry
 import com.pusher.platform.retrying.RetryStrategy.Retry
@@ -10,9 +9,7 @@ import elements.Error
 import elements.ErrorResponse
 import elements.NetworkError
 import elements.retryAfter
-import java.lang.Thread.sleep
 import java.util.*
-import java.util.concurrent.Future
 import kotlin.math.min
 
 typealias RetryStrategyResultCallback = (RetryStrategy) -> Unit
@@ -28,29 +25,21 @@ fun ErrorResponse.isRetryable(): Boolean =
 
 
 class ErrorResolver(
+    private val connectivityHelper: ConnectivityHelper,
     private val retryOptions: RetryStrategyOptions,
+    private val scheduler: Scheduler,
     private val retryUnsafeRequests: Boolean = false
 ) {
 
     private var currentRetryCount = 0
     private var currentBackoffMillis = 0L
 
-    private val runningJobs = LinkedList<Future<*>>()
+    private val runningJobs = LinkedList<ScheduledJob>()
 
     fun resolveError(error: Error, callback: RetryStrategyResultCallback){
         when(error){
             is NetworkError -> {
-                if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit){
-                    currentBackoffMillis = increaseCurrentBackoff()
-                    currentRetryCount += 1
-
-                    runningJobs += Futures.schedule {
-                        sleep(currentBackoffMillis)
-                        callback(Retry)
-                    }
-                } else {
-                    callback(DoNotRetry)
-                }
+                connectivityHelper.onConnected { callback(Retry)}
             }
             is ErrorResponse -> {
                 if(error.isRetryable() || retryUnsafeRequests){
@@ -58,11 +47,8 @@ class ErrorResolver(
                         currentBackoffMillis = error.headers.retryAfter.takeIf { it > 0 } ?: increaseCurrentBackoff()
                         currentRetryCount += 1
 
-                        runningJobs += Futures.schedule {
-                            sleep(currentBackoffMillis)
-                            callback(Retry)
-                        }
-                    } else {
+                        runningJobs += scheduler.schedule(currentBackoffMillis) { callback(Retry)}
+                    } else{
                         callback(DoNotRetry)
                     }
                 } else {
