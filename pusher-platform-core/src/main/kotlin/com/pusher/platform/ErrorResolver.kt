@@ -40,12 +40,16 @@ class ErrorResolver(
     fun resolveError(error: Error, callback: RetryStrategyResultCallback){
         when(error){
             is NetworkError -> {
-                currentBackoffMillis = increaseCurrentBackoff()
-                currentRetryCount += 1
+                if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit){
+                    currentBackoffMillis = increaseCurrentBackoff()
+                    currentRetryCount += 1
 
-                runningJobs += Futures.schedule {
-                    sleep(currentBackoffMillis)
-                    callback(Retry)
+                    runningJobs += Futures.schedule {
+                        sleep(currentBackoffMillis)
+                        callback(Retry)
+                    }
+                } else {
+                    callback(DoNotRetry)
                 }
             }
             is ErrorResponse -> {
