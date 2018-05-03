@@ -8,7 +8,7 @@ import elements.*
 import java.util.concurrent.Future
 
 
-fun <A> createTokenProvidingStrategy(
+internal fun <A> createTokenProvidingStrategy(
     nextSubscribeStrategy: SubscribeStrategy<A>,
     logger: Logger,
     tokenProvider: TokenProvider? = null,
@@ -36,12 +36,11 @@ internal class TokenProvidingSubscription<A>(
     val tokenParams: Any? = null,
     val nextSubscribeStrategy: SubscribeStrategy<A>
 ) : Subscription {
-    private var state: TokenProvidingSubscriptionState<A>
+    private var state: TokenProvidingSubscriptionState<A> = ActiveState(logger, headers, nextSubscribeStrategy)
     private var tokenRequestInProgress: Future<Result<String, Error>>? = null
 
     init {
-        state = ActiveState(logger, headers, nextSubscribeStrategy)
-        this.subscribe()
+        tokenRequestInProgress = subscribe()
     }
 
     override fun unsubscribe() {
@@ -50,8 +49,7 @@ internal class TokenProvidingSubscription<A>(
         state = InactiveState(logger)
     }
 
-    private fun subscribe() {
-        tokenRequestInProgress = tokenProvider.fetchToken(tokenParams).apply {
+    private fun subscribe(): Future<Result<String, Error>> = tokenProvider.fetchToken(tokenParams).apply {
             get()
                 .fold({ error ->
                 logger.debug(
@@ -68,7 +66,7 @@ internal class TokenProvidingSubscription<A>(
                     onError = { error ->
                         if (error.tokenExpired()) {
                             tokenProvider.clearToken(token)
-                            subscribe()
+                            tokenRequestInProgress = subscribe()
                         } else {
                             state = InactiveState(logger)
                             listeners.onError(error)
@@ -79,15 +77,15 @@ internal class TokenProvidingSubscription<A>(
                 ))
             })
         }
-    }
+
 }
 
-interface TokenProvidingSubscriptionState<A> {
+internal interface TokenProvidingSubscriptionState<A> {
     fun subscribe(token: String, listeners: SubscriptionListeners<A>)
     fun unsubscribe()
 }
 
-class ActiveState<A>(
+internal class ActiveState<A>(
     val logger: Logger,
     val headers: Headers,
     private val nextSubscribeStrategy: SubscribeStrategy<A>
@@ -124,7 +122,7 @@ class ActiveState<A>(
     }
 }
 
-class InactiveState<A>(val logger: Logger) : TokenProvidingSubscriptionState<A> {
+internal class InactiveState<A>(val logger: Logger) : TokenProvidingSubscriptionState<A> {
     init {
         logger.verbose("TokenProvidingSubscription: transitioning to InactiveState")
     }

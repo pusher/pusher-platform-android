@@ -2,24 +2,19 @@ package elements
 
 import kotlin.Error as SystemError
 
-data class ErrorResponse(val statusCode: Int, val headers: Headers, val error: String, val errorDescription: String? = null, val URI: String? = null) : Error {
+data class ErrorResponse(val statusCode: Int, val headers: Headers, val error: String, val errorDescription: String? = null, val URI: String? = null) : Error() {
     override val reason: String = errorDescription ?: "ErrorResponse: $this"
 }
 
 data class ErrorResponseBody(val error: String, val errorDescription: String? = null, val URI: String? = null)
+data class NetworkError(override val reason: String) : Error()
+data class UploadError(override val reason: String) : Error()
+data class OtherError(override val reason: String, val exception: Throwable? = null) : Error()
+data class CompositeError(override val reason: String, val errors: List<Error>) : Error()
+data class EosError(val type: String, override val reason: String): Error()
 
-data class NetworkError(override val reason: String) : Error
-
-data class UploadError(override val reason: String) : Error
-
-data class OtherError(override val reason: String, val exception: Throwable? = null) : Error
-
-data class CompositeError(override val reason: String, val errors: List<Error>) : Error
-
-data class EosError(val type: String, override val reason: String): Error
-
-interface Error {
-    val reason: String
+sealed class Error {
+    abstract val reason: String
 }
 
 fun Error.asSystemError(): ErrorAdapter = ErrorAdapter(this)

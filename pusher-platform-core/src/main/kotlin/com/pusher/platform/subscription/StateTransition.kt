@@ -1,3 +1,3 @@
 package com.pusher.platform.subscription
 
-typealias StateTransition = (SubscriptionState) -> Unit
+internal typealias StateTransition = (SubscriptionState) -> Unit
