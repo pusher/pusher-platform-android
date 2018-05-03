@@ -8,9 +8,9 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.pusher.platform.*
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.network.Futures
 import com.pusher.platform.network.wait
-import com.pusher.platform.network.DataParser
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
 import com.pusher.util.asFailure
@@ -18,6 +18,7 @@ import com.pusher.util.asSuccess
 import elements.Error
 import elements.Errors
 import elements.Subscription
+import kotlinx.android.synthetic.main.activity_sample.*
 import kotlinx.coroutines.experimental.launch
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -50,10 +51,11 @@ class SampleActivity : AppCompatActivity() {
             onError = { error -> Log.d("PP", "onError $error") }
         )
 
-        this.get_request_btn.setOnClickListener {
+        this.get_request_authorized_btn.setOnClickListener {
             launch {
-                val result = pusherPlatform.request<JsonElement>(
-                    options = RequestOptions(path = "feeds/my-feed/items")
+                val result = pusherPlatform.request(
+                    options = RequestOptions(path = "feeds/my-feed/items"),
+                    responseParser = JSON_ELEMENT_BODY_PARSER
                 ).wait()
                 Log.d("PP", "result $result")
             }
@@ -67,7 +69,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeNonResuming(
                 path = "feeds/my-feed/items",
                 listeners = listeners,
-                bodyParser = JSON_ELEMENT_BODY_PARSER
+                messageParser = JSON_ELEMENT_BODY_PARSER
             )
         }
 
@@ -83,7 +85,7 @@ class SampleActivity : AppCompatActivity() {
             subscription = pusherPlatform.subscribeNonResuming(
                 path = "firehose/items",
                 listeners = listeners,
-                bodyParser = JSON_ELEMENT_BODY_PARSER,
+                messageParser = JSON_ELEMENT_BODY_PARSER,
                 tokenProvider = MyTokenProvider(client, gson),
                 tokenParams = SampleTokenParams(path = "firehose/items", authorizePath = "path/tokens")
             )
