@@ -2,9 +2,6 @@ package com.pusher.platform
 
 import com.pusher.SdkInfo
 import com.pusher.platform.logger.Logger
-import com.pusher.platform.network.ConnectivityHelper
-import com.pusher.platform.test.AlwaysOnlineConnectivityHelper
-import com.pusher.platform.test.AsyncScheduler
 import com.pusher.platform.test.describeWhenReachable
 import com.pusher.platform.test.insecureOkHttpClient
 import mockitox.stub
@@ -40,12 +37,10 @@ class TestDependencies : PlatformDependencies {
             println("$type: $message ${error?.let { "\n" + it } ?: ""}")
     }
     override val mediaTypeResolver: MediaTypeResolver = stub()
-    override val connectivityHelper: ConnectivityHelper = AlwaysOnlineConnectivityHelper
     override val sdkInfo: SdkInfo = SdkInfo(
         product = "Instance Integration Tests",
         language = "Spek",
         platform = "JUnit",
         sdkVersion = "test"
     )
-    override val scheduler: Scheduler = AsyncScheduler()
 }

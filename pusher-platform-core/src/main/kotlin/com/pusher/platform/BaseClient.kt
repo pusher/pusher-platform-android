@@ -26,9 +26,7 @@ data class BaseClient(
     private val baseUrl = "$schema://$host"
 
     internal val logger = dependencies.logger
-    private val scheduler = dependencies.scheduler
     private val mediaTypeResolver = dependencies.mediaTypeResolver
-    private val connectivityHelper = dependencies.connectivityHelper
     private val sdkInfo = dependencies.sdkInfo
 
     private val httpClient = client.newBuilder().apply {
@@ -57,7 +55,7 @@ data class BaseClient(
                 bodyParser = bodyParser
             )
         ),
-        errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
+        errorResolver = ErrorResolver(retryOptions)
     )(listeners, headers)
 
     fun <A> subscribeNonResuming(
@@ -75,7 +73,7 @@ data class BaseClient(
             tokenParams = tokenParams,
             logger = logger,
             nextSubscribeStrategy = createBaseSubscription(path = destination.toRequestPath(), bodyParser = bodyParser)),
-        errorResolver = ErrorResolver(connectivityHelper, retryOptions, scheduler)
+        errorResolver = ErrorResolver(retryOptions)
     )(listeners, headers)
 
     @JvmOverloads
