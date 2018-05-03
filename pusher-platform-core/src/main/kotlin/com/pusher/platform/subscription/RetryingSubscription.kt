@@ -36,6 +36,7 @@ private class RetryingSubscription<A>(
 
     override fun unsubscribe() {
         state.unsubscribe()
+        errorResolver.cancel()
     }
 
     inner class EndingSubscriptionState : SubscriptionState {
@@ -110,7 +111,7 @@ private class RetryingSubscription<A>(
             underlyingSubscription?.unsubscribe()
         }
 
-        private fun executeSubscriptionOnce(error: elements.Error){
+        private fun executeSubscriptionOnce(error: elements.Error) {
             errorResolver.resolveError(error, { resolution ->
                 when(resolution){
                     is DoNotRetry -> onTransition(FailedSubscriptionState(listeners, error))

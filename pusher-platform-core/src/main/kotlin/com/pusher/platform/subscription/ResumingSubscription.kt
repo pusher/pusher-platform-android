@@ -40,6 +40,7 @@ private class ResumingSubscription<A>(
 
     override fun unsubscribe() {
         this.state.unsubscribe()
+        errorResolver.cancel()
     }
 
     inner class EndingSubscriptionState : SubscriptionState {

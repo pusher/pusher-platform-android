@@ -9,73 +9,38 @@ import com.pusher.platform.retrying.RetryStrategyOptions
 import elements.Error
 import elements.ErrorResponse
 import elements.NetworkError
-import elements.retryAfter
-import java.lang.Thread.sleep
 import java.util.*
 import java.util.concurrent.Future
 import kotlin.math.min
-
-typealias RetryStrategyResultCallback = (RetryStrategy) -> Unit
-
-fun String.isSafeRequest(): Boolean = when(this.toUpperCase()){
-    "GET", "SUBSCRIBE", "HEAD", "PUT" -> true
-    else -> false
-}
-
-fun ErrorResponse.isRetryable(): Boolean =
-    this.statusCode in 500..599 &&
-            this.headers["Request-Method"]?.firstOrNull()?.isSafeRequest() ?: false
-
+import kotlin.math.pow
 
 class ErrorResolver(
     private val retryOptions: RetryStrategyOptions,
     private val retryUnsafeRequests: Boolean = false
 ) {
 
-    private var currentRetryCount = 0
-    private var currentBackoffMillis = 0L
-
     private val runningJobs = LinkedList<Future<*>>()
+    private var currentRetryCount = 0
+    private val initialBackOff = retryOptions.initialTimeoutMillis.toDouble()
+    private val currentBackoffMillis: Long
+        get() = min(
+            initialBackOff.pow(currentRetryCount).toLong(),
+            retryOptions.maxTimeoutMillis
+        )
 
-    fun resolveError(error: Error, callback: RetryStrategyResultCallback){
-        when(error){
-            is NetworkError -> {
-                if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit){
-                    currentBackoffMillis = increaseCurrentBackoff()
-                    currentRetryCount += 1
+    private val noRetriesRemaining: Boolean
+        get() = min(0, retryOptions.limit - currentRetryCount) == 0
 
-                    runningJobs += Futures.schedule {
-                        sleep(currentBackoffMillis)
-                        callback(Retry)
-                    }
-                } else {
-                    callback(DoNotRetry)
-                }
-            }
-            is ErrorResponse -> {
-                if(error.isRetryable() || retryUnsafeRequests){
-                    if(retryOptions.limit < 0 || currentRetryCount <= retryOptions.limit){
-                        currentBackoffMillis = error.headers.retryAfter.takeIf { it > 0 } ?: increaseCurrentBackoff()
-                        currentRetryCount += 1
-
-                        runningJobs += Futures.schedule {
-                            sleep(currentBackoffMillis)
-                            callback(Retry)
-                        }
-                    } else {
-                        callback(DoNotRetry)
-                    }
-                } else {
-                    callback(DoNotRetry)
-                }
-            }
-            else -> callback(DoNotRetry)
-        }
+    fun resolveError(error: Error, block: (RetryStrategy) -> Unit) = when (strategyFor(error)) {
+        is DoNotRetry -> block(DoNotRetry)
+        is Retry -> runningJobs += defer(error.retryAfter, block)
     }
 
-    private fun increaseCurrentBackoff(): Long = when (currentRetryCount) {
-        0 -> retryOptions.initialTimeoutMillis
-        else -> min(retryOptions.maxTimeoutMillis, currentBackoffMillis * 2)
+    private fun defer(retryAfter: Long, block: (RetryStrategy) -> Unit): Future<Unit> = Futures.schedule {
+        currentRetryCount++
+        val delay = retryAfter.takeIf { it > 0 } ?: currentBackoffMillis
+        Thread.sleep(delay)
+        block(Retry)
     }
 
     fun cancel() {
@@ -84,4 +49,37 @@ class ErrorResolver(
         }
     }
 
+    private fun strategyFor(error: Error): RetryStrategy = when {
+        retryUnsafeRequests -> Retry
+        noRetriesRemaining -> DoNotRetry
+        error is NetworkError -> Retry
+        error is ErrorResponse -> error.errorResponseStrategy()
+        else -> DoNotRetry
+    }
+
 }
+
+/**
+ * Header `Retry-After` or 0 is missing
+ */
+private val Error.retryAfter: Long
+    get() = let { it as? ErrorResponse }?.retryAfter ?: 0
+
+/**
+ * True if the request is safe to retry
+ */
+private fun String.isSafeRequest(): Boolean = when (this.toUpperCase()) {
+    "GET", "SUBSCRIBE", "HEAD", "PUT" -> true
+    else -> false
+}
+
+/**
+ * Only retry if the error is over 500 and it is safe to retry
+ */
+private fun ErrorResponse.errorResponseStrategy() = when {
+    statusCode in 500..599 && requestMethod.isSafeRequest() -> Retry
+    else -> DoNotRetry
+}
+
+private val ErrorResponse.requestMethod
+    get() = headers["Request-Method"]?.firstOrNull() ?: ""
