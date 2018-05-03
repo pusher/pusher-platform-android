@@ -170,7 +170,7 @@ data class Instance constructor(
         tokenParams = tokenParams
     )
 
-    fun RequestDestination.toScopedDestination(): RequestDestination = when (this) {
+    private fun RequestDestination.toScopedDestination(): RequestDestination = when (this) {
         is Absolute -> this
         is Relative -> Relative(scopePathToService(path))
     }

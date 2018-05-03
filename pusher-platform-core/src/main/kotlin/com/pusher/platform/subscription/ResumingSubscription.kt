@@ -9,25 +9,23 @@ import elements.EOSEvent
 import elements.Headers
 import elements.Subscription
 
-fun <A> createResumingStrategy(
-    initialEventId: String? = null,
+internal fun <A> createResumingStrategy(
     errorResolver: ErrorResolver,
     nextSubscribeStrategy: SubscribeStrategy<A>,
-    logger: Logger
-): SubscribeStrategy<A> {
-    return { listeners, headers ->
-        ResumingSubscription(
-            listeners,
-            headers,
-            logger,
-            errorResolver,
-            nextSubscribeStrategy,
-            initialEventId
-        )
-    }
+    logger: Logger,
+    initialEventId: String? = null
+): SubscribeStrategy<A> = { listeners, headers ->
+    ResumingSubscription(
+        listeners,
+        headers,
+        logger,
+        errorResolver,
+        nextSubscribeStrategy,
+        initialEventId
+    )
 }
 
-class ResumingSubscription<A>(
+private class ResumingSubscription<A>(
     listeners: SubscriptionListeners<A>,
     val headers: Headers,
     val logger: Logger,

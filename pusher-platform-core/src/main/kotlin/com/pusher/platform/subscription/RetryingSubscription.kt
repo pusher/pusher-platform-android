@@ -9,7 +9,7 @@ import elements.EOSEvent
 import elements.Headers
 import elements.Subscription
 
-fun <A> createRetryingStrategy(
+internal fun <A> createRetryingStrategy(
     errorResolver: ErrorResolver,
     nextSubscribeStrategy: SubscribeStrategy<A>,
     logger: Logger
@@ -30,16 +30,12 @@ private class RetryingSubscription<A>(
         val errorResolver: ErrorResolver,
         val nextSubscribeStrategy: SubscribeStrategy<A>
 ): Subscription {
-    var state: SubscriptionState
 
-    val onTransition: StateTransition = { newState -> state = newState }
-
-    init {
-        state = OpeningSubscriptionState(listeners, onTransition)
-    }
+    private val onTransition: StateTransition = { newState -> state = newState }
+    private var state: SubscriptionState = OpeningSubscriptionState(listeners, onTransition)
 
     override fun unsubscribe() {
-        this.state.unsubscribe()
+        state.unsubscribe()
     }
 
     inner class EndingSubscriptionState : SubscriptionState {
