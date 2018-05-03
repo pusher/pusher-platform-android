@@ -17,7 +17,9 @@ data class Instance constructor(
     private val id: String,
     val baseClient: BaseClient,
     private val serviceName: String,
-    private val serviceVersion: String
+    private val serviceVersion: String,
+    private val instanceTokenProvider: TokenProvider? = null,
+    private val instanceTokenParams: Any? = null
 ) {
 
     @JvmOverloads
@@ -41,8 +43,8 @@ data class Instance constructor(
         listeners: SubscriptionListeners<A>,
         messageParser: DataParser<A>,
         headers: Headers = emptyHeaders(),
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
+        tokenProvider: TokenProvider? = instanceTokenProvider,
+        tokenParams: Any? = instanceTokenParams,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
         initialEventId: String? = null
     ): Subscription = subscribeResuming(
@@ -63,8 +65,8 @@ data class Instance constructor(
         listeners: SubscriptionListeners<A>,
         messageParser: DataParser<A>,
         headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
+        tokenProvider: TokenProvider? = instanceTokenProvider,
+        tokenParams: Any? = instanceTokenParams,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
         initialEventId: String? = null
     ): Subscription = baseClient.subscribeResuming(
@@ -84,8 +86,8 @@ data class Instance constructor(
         listeners: SubscriptionListeners<A>,
         messageParser: DataParser<A>,
         headers: Headers = emptyHeaders(),
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
+        tokenProvider: TokenProvider? = instanceTokenProvider,
+        tokenParams: Any? = instanceTokenParams,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription = subscribeNonResuming(
         requestDestination = Relative(path),
@@ -104,8 +106,8 @@ data class Instance constructor(
         listeners: SubscriptionListeners<A>,
         headers: Headers = emptyHeaders(),
         messageParser: DataParser<A>,
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
+        tokenProvider: TokenProvider? = instanceTokenProvider,
+        tokenParams: Any? = instanceTokenParams,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions()
     ): Subscription = baseClient.subscribeNonResuming(
         destination = requestDestination.toScopedDestination(),
@@ -121,8 +123,8 @@ data class Instance constructor(
     fun <A> request(
         options: RequestOptions,
         responseParser: DataParser<A>,
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null
+        tokenProvider: TokenProvider? = instanceTokenProvider,
+        tokenParams: Any? = instanceTokenParams
     ): Future<Result<A, Error>> = baseClient.request(
         requestDestination = options.destination.toScopedDestination(),
         headers = options.headers,
@@ -140,8 +142,8 @@ data class Instance constructor(
         headers: Headers = emptyHeaders(),
         file: File,
         responseParser: DataParser<A>,
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null
+        tokenProvider: TokenProvider? = instanceTokenProvider,
+        tokenParams: Any? = instanceTokenParams
     ): Future<Result<A, Error>> = upload(
         requestDestination = Relative(path),
         headers = headers,
@@ -157,8 +159,8 @@ data class Instance constructor(
         headers: Headers = emptyHeaders(),
         file: File,
         responseParser: DataParser<A>,
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null
+        tokenProvider: TokenProvider? = instanceTokenProvider,
+        tokenParams: Any? = instanceTokenParams
     ): Future<Result<A, Error>> = baseClient.upload(
         requestDestination = requestDestination.toScopedDestination(),
         headers = headers,
@@ -168,7 +170,7 @@ data class Instance constructor(
         tokenParams = tokenParams
     )
 
-    fun RequestDestination.toScopedDestination(): RequestDestination = when (this) {
+    private fun RequestDestination.toScopedDestination(): RequestDestination = when (this) {
         is Absolute -> this
         is Relative -> Relative(scopePathToService(path))
     }

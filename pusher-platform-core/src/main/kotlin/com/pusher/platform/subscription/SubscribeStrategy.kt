@@ -1,7 +1,7 @@
 package com.pusher.platform.subscription
 
-import elements.Subscription
 import com.pusher.platform.SubscriptionListeners
 import elements.Headers
+import elements.Subscription
 
-typealias SubscribeStrategy<A> = (listeners: SubscriptionListeners<A>, headers: Headers) -> Subscription
+internal typealias SubscribeStrategy<A> = (listeners: SubscriptionListeners<A>, headers: Headers) -> Subscription
