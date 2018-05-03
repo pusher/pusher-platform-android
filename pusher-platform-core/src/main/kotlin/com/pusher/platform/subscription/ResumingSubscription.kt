@@ -73,7 +73,7 @@ class ResumingSubscription<A>(
             }
 
             underlyingSubscription = nextSubscribeStrategy(
-                SubscriptionListeners(
+                SubscriptionListeners<A>(
                     onOpen = { headers ->
                         onTransition(
                             OpenSubscriptionState(
@@ -161,7 +161,7 @@ class ResumingSubscription<A>(
             }
 
             underlyingSubscription = nextSubscribeStrategy(
-                SubscriptionListeners(
+                SubscriptionListeners<A>(
                     onOpen = { headers ->
                         onTransition(
                             OpenSubscriptionState(
