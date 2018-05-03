@@ -43,8 +43,6 @@ android {
 }
 
 dependencies {
-    implementation "com.android.support:appcompat-v7:$android_support_version"
-
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     api project(":pusher-platform-core")
 
