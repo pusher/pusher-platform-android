@@ -1,6 +1,9 @@
 package com.pusher.platform
 
 import com.google.common.truth.Truth.assertThat
+import com.google.gson.JsonElement
+import com.pusher.platform.network.DataParser
+import com.pusher.platform.network.parseAs
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.test.describeWhenReachable
 import com.pusher.platform.test.listenersWithCounter
@@ -32,7 +35,8 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_10_AND_EOS,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                listeners = listenersWithCounter(
+                messageParser = JSON_ELEMENT_BODY_PARSER,
+                listeners = listenersWithCounter<JsonElement>(
                     onEvent = { events++ },
                     onEnd = { done { assertThat(events).isEqualTo(10) } },
                     onError = { fail("We should not get an error") }
@@ -44,6 +48,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_10_AND_EOS,
                 retryOptions = RetryStrategyOptions(limit = 0),
+                messageParser = JSON_ELEMENT_BODY_PARSER,
                 listeners = listenersWithCounter(
                     onEnd = {
                         end++
@@ -58,6 +63,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_3_AND_OPEN,
                 retryOptions = RetryStrategyOptions(limit = 0),
+                messageParser = JSON_ELEMENT_BODY_PARSER,
                 listeners = listenersWithCounter(
                     onEvent = {
                         events++
@@ -75,6 +81,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             sub = instance.subscribeNonResuming(
                 path = PATH_3_AND_OPEN,
                 retryOptions = RetryStrategyOptions(limit = 0),
+                messageParser = JSON_ELEMENT_BODY_PARSER,
                 listeners = listenersWithCounter(
                     onEvent = {
                         events++
@@ -94,6 +101,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_0_EOS,
                 retryOptions = RetryStrategyOptions(limit = 0),
+                messageParser = JSON_ELEMENT_BODY_PARSER,
                 listeners = listenersWithCounter(
                     onEvent = { fail("No events should have been received") },
                     onEnd = { done() },
@@ -106,7 +114,8 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = "subscribe_retry_after",
                 retryOptions = RetryStrategyOptions(limit = 0),
-                listeners = listenersWithCounter(
+                messageParser = JSON_ELEMENT_BODY_PARSER,
+                listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("No events should have been receive") },
                     onEnd = { fail("We should get an error") },
                     onError = { error ->
@@ -117,7 +126,7 @@ class InstanceSubscribeIntegrationSpek : Spek({
         }
     }
 
-    describeWhenReachable("https://${HOST}", "Instance Subscribe errors nicely") {
+    describeWhenReachable("https://$HOST", "Instance Subscribe errors nicely") {
         val instance = Instance(
             locator = "v1:api-ceres:test",
             serviceName = "platform_sdk_tester",
@@ -130,7 +139,8 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_NOT_EXISTING,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                listeners = listenersWithCounter(
+                messageParser = JSON_ELEMENT_BODY_PARSER,
+                listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("Expecting onError") },
                     onEnd = { fail("Expecting onError") },
                     onError = { error ->
@@ -144,7 +154,8 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = PATH_FORBIDDEN,
                 retryOptions = RetryStrategyOptions(limit = 0),
-                listeners = listenersWithCounter(
+                messageParser = JSON_ELEMENT_BODY_PARSER,
+                listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("Expecting onError") },
                     onEnd = { fail("Expecting onError") },
                     onError = { error ->
@@ -158,7 +169,8 @@ class InstanceSubscribeIntegrationSpek : Spek({
             instance.subscribeNonResuming(
                 path = "subscribe_internal_server_error",
                 retryOptions = RetryStrategyOptions(limit = 0),
-                listeners = listenersWithCounter(
+                messageParser = JSON_ELEMENT_BODY_PARSER,
+                listeners = listenersWithCounter<JsonElement>(
                     onEvent = { fail("Expecting onError") },
                     onEnd = { fail("Expecting onError") },
                     onError = { error ->
@@ -173,4 +185,4 @@ class InstanceSubscribeIntegrationSpek : Spek({
 })
 
 
-
+val JSON_ELEMENT_BODY_PARSER: DataParser<JsonElement> = { it.parseAs<JsonElement>() }

@@ -21,7 +21,7 @@ internal class TokenProvidingSubscriptionTest {
 
         val subscription = TokenProvidingSubscription(
             logger = mock(Logger::class.java),
-            listeners = SubscriptionListeners(),
+            listeners = SubscriptionListeners<String>(),
             headers = emptyMap(),
             tokenProvider = mock(TokenProvider::class.java).apply {
                 given(this.fetchToken(any())).willReturn(future)

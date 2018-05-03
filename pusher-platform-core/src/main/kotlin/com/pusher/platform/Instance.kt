@@ -1,14 +1,12 @@
 package com.pusher.platform
 
+import com.pusher.platform.RequestDestination.Absolute
+import com.pusher.platform.RequestDestination.Relative
+import com.pusher.platform.network.DataParser
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.tokenProvider.TokenProvider
 import com.pusher.util.Result
-import elements.EOSEvent
-import elements.Error
-import elements.Headers
-import elements.Subscription
-import elements.SubscriptionEvent
-import okhttp3.Response
+import elements.*
 import java.io.File
 import java.util.*
 import java.util.concurrent.Future
@@ -16,10 +14,10 @@ import java.util.concurrent.Future
 private const val DEFAULT_HOST_BASE = "pusherplatform.io"
 
 data class Instance constructor(
-    val id: String,
+    private val id: String,
     val baseClient: BaseClient,
-    val serviceName: String,
-    val serviceVersion: String
+    private val serviceName: String,
+    private val serviceVersion: String
 ) {
 
     @JvmOverloads
@@ -37,130 +35,139 @@ data class Instance constructor(
         serviceVersion
     )
 
-    fun subscribeResuming(
+    @JvmOverloads
+    fun <A> subscribeResuming(
         path: String,
-        listeners: SubscriptionListeners,
-        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+        listeners: SubscriptionListeners<A>,
+        messageParser: DataParser<A>,
+        headers: Headers = emptyHeaders(),
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null,
         retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
         initialEventId: String? = null
-    ): Subscription {
-        return subscribeResuming(
-            requestDestination = RequestDestination.Relative(path),
-            listeners = listeners,
-            headers = headers,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            retryOptions = retryOptions,
-            initialEventId = initialEventId
-        )
-    }
-
-    fun subscribeResuming(
-        requestDestination: RequestDestination,
-        listeners: SubscriptionListeners,
-        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
-        retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
-        initialEventId: String? = null
-    ): Subscription {
-        val destination = scopeDestinationIfAppropriate(requestDestination)
-
-        return this.baseClient.subscribeResuming(
-            requestDestination = destination,
-            listeners = listeners,
-            headers = headers,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            retryOptions = retryOptions,
-            initialEventId = initialEventId
-        )
-    }
-
-    fun subscribeNonResuming(
-        path: String,
-        listeners: SubscriptionListeners,
-        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
-        retryOptions: RetryStrategyOptions = RetryStrategyOptions()
-    ): Subscription {
-        return subscribeNonResuming(
-            requestDestination = RequestDestination.Relative(path),
-            listeners = listeners,
-            headers = headers,
-            tokenProvider = tokenProvider,
-            tokenParams = tokenParams,
-            retryOptions = retryOptions
-        )
-    }
-
-    fun subscribeNonResuming(
-        requestDestination: RequestDestination,
-        listeners: SubscriptionListeners,
-        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
-        tokenProvider: TokenProvider? = null,
-        tokenParams: Any? = null,
-        retryOptions: RetryStrategyOptions = RetryStrategyOptions()
-    ): Subscription = this.baseClient.subscribeNonResuming(
-        requestDestination = scopeDestinationIfAppropriate(requestDestination),
+    ): Subscription = subscribeResuming(
+        requestDestination = Relative(path),
         listeners = listeners,
+        headers = headers,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams,
+        retryOptions = retryOptions,
+        initialEventId = initialEventId,
+        messageParser = messageParser
+    )
+
+    @JvmOverloads
+    fun <A> subscribeResuming(
+        requestDestination: RequestDestination,
+        listeners: SubscriptionListeners<A>,
+        messageParser: DataParser<A>,
+        headers: Headers = TreeMap(String.CASE_INSENSITIVE_ORDER),
+        tokenProvider: TokenProvider? = null,
+        tokenParams: Any? = null,
+        retryOptions: RetryStrategyOptions = RetryStrategyOptions(),
+        initialEventId: String? = null
+    ): Subscription = baseClient.subscribeResuming(
+        destination = requestDestination.toScopedDestination(),
+        listeners = listeners,
+        headers = headers,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams,
+        retryOptions = retryOptions,
+        initialEventId = initialEventId,
+        bodyParser = messageParser
+    )
+
+    @JvmOverloads
+    fun <A> subscribeNonResuming(
+        path: String,
+        listeners: SubscriptionListeners<A>,
+        messageParser: DataParser<A>,
+        headers: Headers = emptyHeaders(),
+        tokenProvider: TokenProvider? = null,
+        tokenParams: Any? = null,
+        retryOptions: RetryStrategyOptions = RetryStrategyOptions()
+    ): Subscription = subscribeNonResuming(
+        requestDestination = Relative(path),
+        listeners = listeners,
+        messageParser = messageParser,
         headers = headers,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams,
         retryOptions = retryOptions
     )
 
-    fun request(
+    @JvmOverloads
+    fun <A> subscribeNonResuming(
+        requestDestination: RequestDestination,
+        listeners: SubscriptionListeners<A>,
+        headers: Headers = emptyHeaders(),
+        messageParser: DataParser<A>,
+        tokenProvider: TokenProvider? = null,
+        tokenParams: Any? = null,
+        retryOptions: RetryStrategyOptions = RetryStrategyOptions()
+    ): Subscription = baseClient.subscribeNonResuming(
+        destination = requestDestination.toScopedDestination(),
+        listeners = listeners,
+        bodyParser = messageParser,
+        headers = headers,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams,
+        retryOptions = retryOptions
+    )
+
+    @JvmOverloads
+    fun <A> request(
         options: RequestOptions,
+        responseParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): Future<Result<Response, Error>> = this.baseClient.request(
-        requestDestination = scopeDestinationIfAppropriate(options.destination),
+    ): Future<Result<A, Error>> = baseClient.request(
+        requestDestination = options.destination.toScopedDestination(),
         headers = options.headers,
         method = options.method,
         body = options.body,
         tokenProvider = tokenProvider,
-        tokenParams = tokenParams
+        tokenParams = tokenParams,
+        responseParser = responseParser
     )
 
-    fun upload(
+    @JvmOverloads
+    fun <A> upload(
         path: String,
-        headers: elements.Headers = TreeMap(),
+        headers: Headers = emptyHeaders(),
         file: File,
+        responseParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): Future<Result<Response, Error>> = upload(
-        requestDestination = RequestDestination.Relative(path),
+    ): Future<Result<A, Error>> = upload(
+        requestDestination = Relative(path),
         headers = headers,
         file = file,
+        responseParser = responseParser,
         tokenProvider = tokenProvider,
         tokenParams = tokenParams
     )
 
-    fun upload(
+    @JvmOverloads
+    fun <A> upload(
         requestDestination: RequestDestination,
-        headers: elements.Headers = TreeMap(),
+        headers: Headers = emptyHeaders(),
         file: File,
+        responseParser: DataParser<A>,
         tokenProvider: TokenProvider? = null,
         tokenParams: Any? = null
-    ): Future<Result<Response, Error>> {
-        val destination = scopeDestinationIfAppropriate(requestDestination)
+    ): Future<Result<A, Error>> = baseClient.upload(
+        requestDestination = requestDestination.toScopedDestination(),
+        headers = headers,
+        file = file,
+        responseParser = responseParser,
+        tokenProvider = tokenProvider,
+        tokenParams = tokenParams
+    )
 
-        return this.baseClient.upload(destination, headers, file, tokenProvider, tokenParams)
-    }
-
-    private fun scopeDestinationIfAppropriate(destination: RequestDestination): RequestDestination {
-        return when (destination) {
-            is RequestDestination.Absolute -> {
-                destination
-            }
-            is RequestDestination.Relative -> {
-                RequestDestination.Relative(scopePathToService(destination.path))
-            }
-        }
+    fun RequestDestination.toScopedDestination(): RequestDestination = when (this) {
+        is Absolute -> this
+        is Relative -> Relative(scopePathToService(path))
     }
 
     private fun scopePathToService(relativePath: String): String {
@@ -183,10 +190,10 @@ private data class Locator(val version: String, val cluster: String, val id: Str
     }
 }
 
-class SubscriptionListeners(
+class SubscriptionListeners<A>(
     val onEnd: (error: EOSEvent?) -> Unit = {},
     val onError: (error: elements.Error) -> Unit = {},
-    val onEvent: (event: SubscriptionEvent) -> Unit = {},
+    val onEvent: (event: SubscriptionEvent<A>) -> Unit = {},
     val onOpen: (headers: Headers) -> Unit = {},
     val onRetrying: () -> Unit = {},
     val onSubscribe: () -> Unit = {}
@@ -195,7 +202,7 @@ class SubscriptionListeners(
     companion object {
 
         @JvmStatic
-        fun compose(vararg l: SubscriptionListeners) = SubscriptionListeners(
+        fun <A> compose(vararg l: SubscriptionListeners<A>) = SubscriptionListeners<A>(
             onEnd = { error -> l.forEach { it.onEnd(error) } },
             onError = { error -> l.forEach { it.onError(error) } },
             onEvent = { event -> l.forEach { it.onEvent(event) } },

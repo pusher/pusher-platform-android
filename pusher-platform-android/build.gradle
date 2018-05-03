@@ -47,8 +47,6 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     api project(":pusher-platform-core")
-    api 'com.squareup.okhttp3:okhttp:3.10.0'
-    api 'com.google.code.gson:gson:2.8.2'
 
     testImplementation 'junit:junit:4.12'
     testImplementation 'com.nhaarman:mockito-kotlin-kt1.1:1.5.0'
@@ -56,6 +54,7 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation "com.google.truth:truth:0.40"
+    testImplementation 'com.google.code.gson:gson:2.8.2'
     testImplementation junit5.unitTests()
     testCompileOnly junit5.unitTestsRuntime()
     testImplementation junit5.parameterized()

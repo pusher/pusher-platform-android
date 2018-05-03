@@ -16,6 +16,8 @@ data class OtherError(override val reason: String, val exception: Throwable? = n
 
 data class CompositeError(override val reason: String, val errors: List<Error>) : Error
 
+data class EosError(val type: String, override val reason: String): Error
+
 interface Error {
     val reason: String
 }
@@ -43,6 +45,9 @@ object Errors {
 
     @JvmStatic
     fun other(reason: String): Error = OtherError(reason)
+
+    @JvmStatic
+    fun other(reason: String, throwable: Throwable): Error = OtherError(reason, throwable)
 
     @JvmStatic
     fun other(throwable: Throwable): Error = OtherError(throwable.message ?: "no message", throwable)

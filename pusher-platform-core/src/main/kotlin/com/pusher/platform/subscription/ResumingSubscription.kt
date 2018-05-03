@@ -9,12 +9,12 @@ import elements.EOSEvent
 import elements.Headers
 import elements.Subscription
 
-fun createResumingStrategy(
+fun <A> createResumingStrategy(
     initialEventId: String? = null,
     errorResolver: ErrorResolver,
-    nextSubscribeStrategy: SubscribeStrategy,
+    nextSubscribeStrategy: SubscribeStrategy<A>,
     logger: Logger
-): SubscribeStrategy {
+): SubscribeStrategy<A> {
     return { listeners, headers ->
         ResumingSubscription(
             listeners,
@@ -27,13 +27,13 @@ fun createResumingStrategy(
     }
 }
 
-class ResumingSubscription(
-    listeners: SubscriptionListeners,
+class ResumingSubscription<A>(
+    listeners: SubscriptionListeners<A>,
     val headers: Headers,
     val logger: Logger,
     val errorResolver: ErrorResolver,
-    val nextSubscribeStrategy: SubscribeStrategy,
-    val initialEventId: String?
+    val nextSubscribeStrategy: SubscribeStrategy<A>,
+    val initialEventId: String? = null
 ) : Subscription {
     var state: SubscriptionState
 
@@ -58,7 +58,7 @@ class ResumingSubscription(
     }
 
     inner class OpeningSubscriptionState(
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
         onTransition: StateTransition
     ) : SubscriptionState {
         lateinit var underlyingSubscription: Subscription
@@ -76,7 +76,7 @@ class ResumingSubscription(
             }
 
             underlyingSubscription = nextSubscribeStrategy(
-                SubscriptionListeners(
+                SubscriptionListeners<A>(
                     onOpen = { headers ->
                         onTransition(
                             OpenSubscriptionState(
@@ -122,10 +122,10 @@ class ResumingSubscription(
     }
 
     inner class ResumingSubscriptionState(
-        val listeners: SubscriptionListeners,
+        val listeners: SubscriptionListeners<A>,
         error: elements.Error,
         lastEventId: String?,
-        val onTransition: StateTransition
+        private val onTransition: StateTransition
     ) : SubscriptionState {
         var underlyingSubscription: Subscription? = null
 
@@ -164,7 +164,7 @@ class ResumingSubscription(
             }
 
             underlyingSubscription = nextSubscribeStrategy(
-                SubscriptionListeners(
+                SubscriptionListeners<A>(
                     onOpen = { headers ->
                         onTransition(
                             OpenSubscriptionState(
@@ -197,10 +197,10 @@ class ResumingSubscription(
     }
 
     inner class OpenSubscriptionState(
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
         headers: Headers,
-        val underlyingSubscription: Subscription,
-        onTransition: StateTransition
+        private val underlyingSubscription: Subscription,
+        private val onTransition: StateTransition
     ) : SubscriptionState {
         init {
             logger.verbose("${ResumingSubscription@ this}: transitioning to OpenSubscriptionState")
@@ -214,7 +214,7 @@ class ResumingSubscription(
     }
 
     inner class EndedSubscriptionState(
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
         error: EOSEvent?
     ) : SubscriptionState {
         init {
@@ -228,7 +228,7 @@ class ResumingSubscription(
     }
 
     inner class FailedSubscriptionState(
-        listeners: SubscriptionListeners,
+        listeners: SubscriptionListeners<A>,
         error: elements.Error
     ) : SubscriptionState {
         init {
