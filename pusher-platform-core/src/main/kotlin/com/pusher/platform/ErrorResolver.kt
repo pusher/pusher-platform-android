@@ -14,7 +14,7 @@ import java.util.concurrent.Future
 import kotlin.math.min
 import kotlin.math.pow
 
-class ErrorResolver(
+internal class ErrorResolver(
     private val retryOptions: RetryStrategyOptions,
     private val retryUnsafeRequests: Boolean = false
 ) {
@@ -45,7 +45,7 @@ class ErrorResolver(
 
     fun cancel() {
         while (runningJobs.isNotEmpty()) {
-            runningJobs.pop().cancel()
+            runningJobs.pop()?.takeUnless { it.isDone || it.isCancelled }?.cancel()
         }
     }
 
