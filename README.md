@@ -68,6 +68,37 @@ class JavaExample {
 
 We use Junit 5 and/or Spek to run unit and integration tests. In `pusher-platform-core` we have two test folders. Unit tests can be located in `test` and integration tests in `integrationTest`. In order to run integration tests locally we have to do a couple of extra steps. They can be found [here](pusher-platform-core/src/integrationTest/Readme.md).
 
+## Publishing
+
+The two atifacts this project produces (`pusher-platform-core` and `pusher-platform-android`) are published in `jCenter`.
+
+Firstly, make sure you have a binTray account. To get the api key go to Profile > Edit > Api Key
+
+Then you need to set up a user name and api key.
+ 
+Either on your local ~/.gradle/gradle.properties as:
+
+```properties
+
+bintrayUser=you-bintray-user-name
+bintrayApiKey=your-bintray-api-key
+```
+
+Or as environment variables (mainly for CI):
+
+```bash
+BINTRAY_USER=you-bintray-user-name
+BINTRAY_API_KEY=your-bintray-api-key
+```
+
+Now, to do the actual release run:
+
+```bash
+gradlew bintrayUpload
+```
+
+**Note:** The publish action will both override the current release (with the same version name) and automatically publish it.
+
 ## Communication
 
 - Found a bug? Please open an [issue](https://github.com/pusher/pusher-platform-android/issues).
