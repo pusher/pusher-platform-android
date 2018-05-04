@@ -5,7 +5,6 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.pusher.platform.network.DataParser
 import com.pusher.platform.network.Futures
-import com.pusher.platform.test.SyncScheduler
 import com.pusher.util.Result
 import com.pusher.util.asSuccess
 import elements.Error
@@ -23,7 +22,7 @@ class InstanceTest {
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
-            dependencies = InstanceDependencies()
+            dependencies = AndroidDependencies()
         )
         assertNotNull(instance)
     }
@@ -79,7 +78,7 @@ class InstanceTest {
             locator = "foo:bar:baz",
             serviceName = "bar",
             serviceVersion = "baz",
-            dependencies = InstanceDependencies()
+            dependencies = AndroidDependencies()
         ).copy(baseClient = fakeClient)
 
         val request: Future<Result<JsonElement, Error>> = instance.request(
@@ -93,8 +92,3 @@ class InstanceTest {
 }
 
 private val jsonParser: DataParser<JsonElement> = { Gson().fromJson(it, JsonElement::class.java).asSuccess() }
-
-class InstanceDependencies(androidDependencies: PlatformDependencies = AndroidDependencies(stub())) : PlatformDependencies by androidDependencies {
-    override val scheduler: Scheduler = SyncScheduler()
-    override val mainScheduler: MainThreadScheduler = SyncScheduler()
-}

@@ -2,8 +2,12 @@ package com.pusher.platform.network
 
 import java.util.concurrent.*
 import java.util.concurrent.TimeUnit.SECONDS
+import java.util.concurrent.atomic.AtomicInteger
 
-private val futuresExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
+private val threadCount = AtomicInteger()
+private val futuresExecutorService: ExecutorService = Executors.newCachedThreadPool{
+    Thread(it, "Pusher-Thread-${threadCount.getAndIncrement()}")
+}
 
 object Futures {
 

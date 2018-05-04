@@ -3,8 +3,8 @@ package com.pusher.platform.subscription
 import com.pusher.platform.ErrorResolver
 import com.pusher.platform.SubscriptionListeners
 import com.pusher.platform.logger.Logger
-import com.pusher.platform.retrying.DoNotRetry
-import com.pusher.platform.retrying.Retry
+import com.pusher.platform.retrying.RetryStrategy.DoNotRetry
+import com.pusher.platform.retrying.RetryStrategy.Retry
 import elements.EOSEvent
 import elements.Headers
 import elements.Subscription
@@ -40,6 +40,7 @@ private class ResumingSubscription<A>(
 
     override fun unsubscribe() {
         this.state.unsubscribe()
+        errorResolver.cancel()
     }
 
     inner class EndingSubscriptionState : SubscriptionState {
@@ -136,12 +137,8 @@ private class ResumingSubscription<A>(
         private fun executeSubscriptionOnce(error: elements.Error, lastEventId: String?) {
             errorResolver.resolveError(error, { resolution ->
                 when (resolution) {
-                    is DoNotRetry -> {
-                        onTransition(FailedSubscriptionState(listeners, error))
-                    }
-                    is Retry -> {
-                        executeNextSubscribeStrategy(lastEventId)
-                    }
+                    is DoNotRetry -> onTransition(FailedSubscriptionState(listeners, error))
+                    is Retry -> executeNextSubscribeStrategy(lastEventId)
                 }
             })
         }
