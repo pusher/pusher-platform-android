@@ -60,7 +60,7 @@ internal class ErrorResolver(
 }
 
 /**
- * Header `Retry-After` or 0 is missing
+ * Header `Retry-After` or 0 if missing
  */
 private val Error.retryAfter: Long
     get() = let { it as? ErrorResponse }?.retryAfter ?: 0
