@@ -70,13 +70,13 @@ We use Junit 5 and/or Spek to run unit and integration tests. In `pusher-platfor
 
 ## Publishing
 
-The two atifacts this project produces (`pusher-platform-core` and `pusher-platform-android`) are published in `jCenter`.
+The two artifacts this project produces (`pusher-platform-core` and `pusher-platform-android`) are published in `jCenter`.
 
-Firstly, make sure you have a binTray account. To get the api key go to Profile > Edit > Api Key
+Firstly, make sure you have a [BinTray](https://bintray.com) account. To get the api key go to Profile > Edit > Api Key
 
 Then you need to set up a user name and api key.
  
-Either on your local ~/.gradle/gradle.properties as:
+Either on your local `~/.gradle/gradle.properties` as:
 
 ```properties
 
@@ -97,7 +97,7 @@ Now, to do the actual release run:
 gradlew bintrayUpload
 ```
 
-**Note:** The publish action will both override the current release (with the same version name) and automatically publish it.
+**Note:** The publish action will both override the current release (if it has the same version name as the current) and automatically publish the new version.
 
 ## Communication
 
