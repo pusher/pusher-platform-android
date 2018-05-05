@@ -44,7 +44,9 @@ dependencies {
 }
 ```
 
-The latest version can be found here: [![Android](https://api.bintray.com/packages/pusher/maven/pusher-platform-android/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-android/_latestVersion)
+The latest version can be found here: 
+
+[![Android](https://api.bintray.com/packages/pusher/maven/pusher-platform-android/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-android/_latestVersion)
 
 Alternatively, if you want to target JVM 1.7 and upwards you can add this line:
 
@@ -55,7 +57,9 @@ dependencies {
 }
 ```
 
-With the latest version for Core found here: [![Core](https://api.bintray.com/packages/pusher/maven/pusher-platform-core/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-core/_latestVersion)
+With the latest version for Core found here: 
+
+[![Core](https://api.bintray.com/packages/pusher/maven/pusher-platform-core/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-core/_latestVersion)
 
 ## Usage
 
