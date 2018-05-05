@@ -4,6 +4,9 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/pusher/pusher-platform-android/master/LICENSE.md)
 [![codecov](https://codecov.io/gh/pusher/pusher-platform-android/branch/master/graph/badge.svg)](https://codecov.io/gh/pusher/pusher-platform-android)
 [![Travis branch](https://img.shields.io/travis/pusher/pusher-platform-android/master.svg)](https://travis-ci.org/pusher/pusher-platform-android)
+[![Core](https://api.bintray.com/packages/pusher/maven/pusher-platform-core/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-core/_latestVersion)
+[![Android](https://api.bintray.com/packages/pusher/maven/pusher-platform-android/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-android/_latestVersion)
+
 
 ## Table of Contents
 
