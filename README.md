@@ -1,9 +1,16 @@
-# pusher-platform-android
+# Pusher Platform Kotlin/Java/Android
 
 [![Twitter](https://img.shields.io/badge/twitter-@Pusher-blue.svg?style=flat)](http://twitter.com/Pusher)
 [![GitHub license](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/pusher/pusher-platform-android/master/LICENSE.md)
 [![codecov](https://codecov.io/gh/pusher/pusher-platform-android/branch/master/graph/badge.svg)](https://codecov.io/gh/pusher/pusher-platform-android)
 [![Travis branch](https://img.shields.io/travis/pusher/pusher-platform-android/master.svg)](https://travis-ci.org/pusher/pusher-platform-android)
+
+
+
+Core:  Targets JVM/Kotlin
+
+Android:  Targets Android (includes core)
+
 
 ## Table of Contents
 
@@ -18,7 +25,17 @@
 
 ### Gradle
 
-In your `build.gradle` file, add this line:
+In the `build.gradle` for your app make sure you have `jcenter()` repository as one of your repositories:
+
+```groovy
+repositories {
+    // other repos i.e. google()
+    jcenter()
+}
+```
+
+
+Then add this dependency when targeting Android: 
 
 ```groovy
 dependencies {
@@ -26,6 +43,23 @@ dependencies {
     api 'com.pusher:pusher-platform-android:$pusher_platform_version'
 }
 ```
+
+The latest version can be found here: 
+
+[![Android](https://api.bintray.com/packages/pusher/maven/pusher-platform-android/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-android/_latestVersion)
+
+Alternatively, if you want to target JVM 1.7 and upwards you can add this line:
+
+```groovy
+dependencies {
+    // ...
+    api 'com.pusher:pusher-platform-core:$pusher_platform_version'
+}
+```
+
+With the latest version for Core found here: 
+
+[![Core](https://api.bintray.com/packages/pusher/maven/pusher-platform-core/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-core/_latestVersion)
 
 ## Usage
 
@@ -67,6 +101,37 @@ class JavaExample {
 ## Testing
 
 We use Junit 5 and/or Spek to run unit and integration tests. In `pusher-platform-core` we have two test folders. Unit tests can be located in `test` and integration tests in `integrationTest`. In order to run integration tests locally we have to do a couple of extra steps. They can be found [here](pusher-platform-core/src/integrationTest/Readme.md).
+
+## Publishing
+
+The two artifacts this project produces (`pusher-platform-core` and `pusher-platform-android`) are published in `jCenter`.
+
+Firstly, make sure you have a [BinTray](https://bintray.com) account. To get the api key go to Profile > Edit > Api Key
+
+Then you need to set up a user name and api key.
+ 
+Either on your local `~/.gradle/gradle.properties` as:
+
+```properties
+
+bintrayUser=you-bintray-user-name
+bintrayApiKey=your-bintray-api-key
+```
+
+Or as environment variables (mainly for CI):
+
+```bash
+BINTRAY_USER=you-bintray-user-name
+BINTRAY_API_KEY=your-bintray-api-key
+```
+
+Now, to do the actual release run:
+
+```bash
+gradlew bintrayUpload
+```
+
+**Note:** The publish action will both override the current release (if it has the same version name as the current) and automatically publish the new version.
 
 ## Communication
 
