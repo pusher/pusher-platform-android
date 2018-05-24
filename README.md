@@ -5,12 +5,12 @@
 [![codecov](https://codecov.io/gh/pusher/pusher-platform-android/branch/master/graph/badge.svg)](https://codecov.io/gh/pusher/pusher-platform-android)
 [![Travis branch](https://img.shields.io/travis/pusher/pusher-platform-android/master.svg)](https://travis-ci.org/pusher/pusher-platform-android)
 
+---
 
+*Core*: Targets JVM/Kotlin
+*Android*: Targets Android (includes core)
 
-Core:  Targets JVM/Kotlin
-
-Android:  Targets Android (includes core)
-
+---
 
 ## Table of Contents
 
@@ -19,7 +19,6 @@ Android:  Targets Android (includes core)
 * [Testing](#testing)
 * [Communication](#communication)
 * [License](#license)
-
 
 ## Installation
 
@@ -34,8 +33,7 @@ repositories {
 }
 ```
 
-
-Then add this dependency when targeting Android: 
+Then add this dependency when targeting Android:
 
 ```groovy
 dependencies {
@@ -44,7 +42,7 @@ dependencies {
 }
 ```
 
-The latest version can be found here: 
+The latest version can be found here:
 
 [![Android](https://api.bintray.com/packages/pusher/maven/pusher-platform-android/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-android/_latestVersion)
 
@@ -57,7 +55,7 @@ dependencies {
 }
 ```
 
-With the latest version for Core found here: 
+With the latest version for Core found here:
 
 [![Core](https://api.bintray.com/packages/pusher/maven/pusher-platform-core/images/download.svg) ](https://bintray.com/pusher/maven/pusher-platform-core/_latestVersion)
 
@@ -97,7 +95,6 @@ class JavaExample {
 
 ```
 
-
 ## Testing
 
 We use Junit 5 and/or Spek to run unit and integration tests. In `pusher-platform-core` we have two test folders. Unit tests can be located in `test` and integration tests in `integrationTest`. In order to run integration tests locally we have to do a couple of extra steps. They can be found [here](pusher-platform-core/src/integrationTest/Readme.md).
@@ -109,11 +106,10 @@ The two artifacts this project produces (`pusher-platform-core` and `pusher-plat
 Firstly, make sure you have a [BinTray](https://bintray.com) account. To get the api key go to Profile > Edit > Api Key
 
 Then you need to set up a user name and api key.
- 
+
 Either on your local `~/.gradle/gradle.properties` as:
 
 ```properties
-
 bintrayUser=you-bintray-user-name
 bintrayApiKey=your-bintray-api-key
 ```
@@ -139,7 +135,6 @@ gradlew bintrayUpload
 - Have a feature request. Please open an [issue](https://github.com/pusher/pusher-platform-android/issues).
 - If you want to contribute, please submit a [pull request](https://github.com/pusher/pusher-platform-android/pulls) (preferably with some tests 🙂 ).
 - For further questions, you can come say hi on [Slack](https://feedback-beta.pusher.com/)
-
 
 ## License
 
