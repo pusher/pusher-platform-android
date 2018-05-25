@@ -156,7 +156,7 @@ data class BaseClient(
         responseParser: DataParser<A>
     ): Future<Result<A, Error>> = Futures.schedule {
         val requestURL = destination.toRequestPath()
-        logger.verbose("Request started: $method $destination with body: $requestBody")
+        logger.verbose("Request started: $method $requestURL with body: $requestBody")
 
         val request = createRequest {
             method(method, requestBody.forMethod(method))
@@ -171,12 +171,12 @@ data class BaseClient(
         when (response?.code()) {
             null -> OtherError("Response was null").asFailure<A, Error>()
             in 200..299 -> logger
-                .log(response) { verbose("Request OK: $method $destination with status code: ${response.code()} ") }
+                .log(response) { verbose("Request OK: $method $requestURL with status code: ${response.code()} ") }
                 .body()?.string()
                 .orElse { Errors.other("Missing body in $response") }
                 .flatMap(responseParser)
             else -> logger
-                .log(response) { verbose("Request Failed: $method $destination with status code: ${response.code()}") }
+                .log(response) { verbose("Request Failed: $method $requestURL with status code: ${response.code()}") }
                 .body()?.string()
                 .parseAs<ErrorResponse> { Errors.network("could not parse error response: $response") }
                 .map { b ->
