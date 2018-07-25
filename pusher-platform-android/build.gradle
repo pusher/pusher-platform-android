@@ -6,6 +6,8 @@ plugins {
     id "com.jfrog.bintray" version '1.8.4'
 }
 
+apply plugin: 'org.jetbrains.dokka'
+
 apply from: "$projectDir/../gradle/jacoco-android.gradle"
 
 android {
@@ -45,6 +47,8 @@ android {
     }
 
 }
+
+
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
@@ -102,26 +106,21 @@ task sourcesJar(type: Jar) {
     classifier = 'sources'
 }
 
-javadoc {
-    source = sourceSets.main.allSource
-    classpath = configurations.compileClasspath
-
-    options {
-        setMemberLevel JavadocMemberLevel.PUBLIC
-        setAuthor true
-
-        links 'https://docs.oracle.com/javase/8/docs/api/'
-    }
+dokka {
+    outputFormat = 'javadoc'
+    outputDirectory = "$buildDir/javadoc"
 }
 
-task javadocJar(type: Jar, dependsOn: classes) {
-    from javadoc
+task javadocJar(type: Jar, dependsOn: dokka) {
     classifier = 'javadoc'
+    from dokka.outputDirectory
 }
 
 artifacts {
     archives sourcesJar
+    archives javadocJar
 }
+
 
 publishing {
     publications {
