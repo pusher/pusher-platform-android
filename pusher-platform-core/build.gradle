@@ -3,7 +3,7 @@ plugins {
     id 'java-library'
     id 'org.junit.platform.gradle.plugin'
     id 'maven-publish'
-    id "com.jfrog.bintray" version "1.7.3"
+    id "com.jfrog.bintray" version '1.8.4'
 }
 
 apply from: "$projectDir/../gradle/jacoco.gradle"
@@ -29,8 +29,8 @@ test {
     useJUnitPlatform()
 }
 
-sourceCompatibility = "1.7"
-targetCompatibility = "1.7"
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
 
 sourceSets.test {
     java.srcDirs = ['src/test/kotlin', 'src/integrationTest/kotlin']
@@ -88,6 +88,10 @@ bintray {
             desc = "$POM_DESCRIPTION"
             released  = new Date()
             vcsTag = "$VERSION_NAME"
+            gpg {
+                sign = true
+                passphrase = System.getenv('SONATYPE_GPG_PASSPHRASE')
+            }
         }
     }
 }
@@ -97,19 +101,60 @@ task sourcesJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allSource
 }
 
-artifacts {
-    archives sourcesJar
+javadoc {
+    source = sourceSets.main.allSource
+    classpath = configurations.compileClasspath
+
+    options {
+        setMemberLevel JavadocMemberLevel.PUBLIC
+        setAuthor true
+
+        links 'https://docs.oracle.com/javase/8/docs/api/'
+    }
 }
 
-// Create the publication with the pom configuration:
+task javadocJar(type: Jar, dependsOn: classes) {
+    from javadoc
+    classifier = 'javadoc'
+}
+
+def pomConfig = {
+    licenses {
+        license {
+            name 'MIT'
+            url 'https://raw.github.com/pusher/pusher-platform-android/master/LICENSE'
+            distribution 'repo'
+        }
+    }
+    developers {
+        developer {
+            id 'hamchapman'
+            name 'Hamilton Chapman'
+            email 'hamilton@pusher.com'
+        }
+    }
+
+    scm {
+        url 'https://github.com/pusher/pusher-platform-android'
+    }
+}
+
 publishing {
     publications {
         Release(MavenPublication) {
-            artifactId "$POM_ARTIFACT_ID"
             from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            artifactId "$POM_ARTIFACT_ID"
             groupId "$GROUP"
             version "$VERSION_NAME"
-            artifact sourcesJar
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('description', 'Pusher Platform SDK for Kotlin and Java')
+                root.appendNode('name', 'Pusher Platform SDK')
+                root.appendNode('url', 'https://github.com/pusher/pusher-platform-android')
+                root.children().last() + pomConfig
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ plugins {
     id 'kotlin-android'
     id 'de.mannodermaus.android-junit5'
     id 'maven-publish'
-    id "com.jfrog.bintray" version "1.7.3"
+    id "com.jfrog.bintray" version '1.8.4'
 }
 
 apply from: "$projectDir/../gradle/jacoco-android.gradle"
@@ -72,11 +72,63 @@ dependencies {
 
 }
 
+bintray {
+    user = bintray_user
+    key = bintry_api_key
+    publish = true
+    override = true
+    publications = ['Release']
+    pkg {
+        repo = 'maven'
+        name = "$POM_ARTIFACT_ID"
+        userOrg = "$POM_DEVELOPER_ID"
+        licenses = ["$POM_LICENCE_NAME"]
+        vcsUrl = "$POM_SCM_URL"
+        version {
+            name = "$VERSION_NAME"
+            desc = "$POM_DESCRIPTION"
+            released = new Date()
+            vcsTag = "$VERSION_NAME"
+            gpg {
+                sign = true
+                passphrase = System.getenv('SONATYPE_GPG_PASSPHRASE')
+            }
+        }
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+javadoc {
+    source = sourceSets.main.allSource
+    classpath = configurations.compileClasspath
+
+    options {
+        setMemberLevel JavadocMemberLevel.PUBLIC
+        setAuthor true
+
+        links 'https://docs.oracle.com/javase/8/docs/api/'
+    }
+}
+
+task javadocJar(type: Jar, dependsOn: classes) {
+    from javadoc
+    classifier = 'javadoc'
+}
+
+artifacts {
+    archives sourcesJar
+}
+
 publishing {
     publications {
         Release(MavenPublication) {
             artifact("$buildDir/outputs/aar/pusher-platform-android-release.aar")
             artifact sourcesJar
+            artifact javadocJar
             groupId GROUP
             artifactId POM_ARTIFACT_ID
             version VERSION_NAME
@@ -101,34 +153,4 @@ publishing {
             }
         }
     }
-}
-
-bintray {
-    user = bintray_user
-    key = bintry_api_key
-    publish = true
-    override = true
-    publications = ['Release']
-    pkg {
-        repo = 'maven'
-        name = "$POM_ARTIFACT_ID"
-        userOrg = "$POM_DEVELOPER_ID"
-        licenses = ["$POM_LICENCE_NAME"]
-        vcsUrl = "$POM_SCM_URL"
-        version {
-            name = "$VERSION_NAME"
-            desc = "$POM_DESCRIPTION"
-            released = new Date()
-            vcsTag = "$VERSION_NAME"
-        }
-    }
-}
-
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
-}
-
-artifacts {
-    archives sourcesJar
 }
