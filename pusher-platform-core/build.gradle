@@ -6,6 +6,8 @@ plugins {
     id "com.jfrog.bintray" version '1.8.4'
 }
 
+apply plugin: 'org.jetbrains.dokka'
+
 apply from: "$projectDir/../gradle/jacoco.gradle"
 
 dependencies {
@@ -101,21 +103,14 @@ task sourcesJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allSource
 }
 
-javadoc {
-    source = sourceSets.main.allSource
-    classpath = configurations.compileClasspath
-
-    options {
-        setMemberLevel JavadocMemberLevel.PUBLIC
-        setAuthor true
-
-        links 'https://docs.oracle.com/javase/8/docs/api/'
-    }
+dokka {
+    outputFormat = 'javadoc'
+    outputDirectory = "$buildDir/javadoc"
 }
 
-task javadocJar(type: Jar, dependsOn: classes) {
-    from javadoc
+task javadocJar(type: Jar, dependsOn: dokka) {
     classifier = 'javadoc'
+    from dokka.outputDirectory
 }
 
 def pomConfig = {
