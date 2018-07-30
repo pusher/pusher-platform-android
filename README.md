@@ -101,6 +101,8 @@ We use Junit 5 and/or Spek to run unit and integration tests. In `pusher-platfor
 
 ## Publishing
 
+### jCenter
+
 The two artifacts this project produces (`pusher-platform-core` and `pusher-platform-android`) are published in `jCenter`.
 
 Firstly, make sure you have a [BinTray](https://bintray.com) account. To get the api key go to Profile > Edit > Api Key
@@ -121,6 +123,8 @@ BINTRAY_USER=you-bintray-user-name
 BINTRAY_API_KEY=your-bintray-api-key
 ```
 
+You will also need to have `SONATYPE_GPG_PASSPHRASE` set as an environment variable. This is, as the name suggests, the GPG passphrase for the Pusher Maven account.
+
 Now, to do the actual release run:
 
 ```bash
@@ -128,6 +132,11 @@ gradlew bintrayUpload
 ```
 
 **Note:** The publish action will both override the current release (if it has the same version name as the current) and automatically publish the new version.
+
+
+### Maven
+
+Syncing the artifacts to Maven is also setup. It involves logging into bintray and syncing an uploaded release.
 
 ## Communication
 
