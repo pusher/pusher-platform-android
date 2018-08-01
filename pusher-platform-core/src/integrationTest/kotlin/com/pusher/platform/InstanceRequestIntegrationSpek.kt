@@ -38,7 +38,7 @@ class InstanceRequestIntegrationSpek : Spek({
         }
 
         it("makes a successful POST request") {
-            val result = instance.request<JsonPrimitive>(
+            val result = instance.request<JsonElement>(
                 options = RequestOptions(
                     method = "POST",
                     path = "post_ok"
@@ -53,7 +53,7 @@ class InstanceRequestIntegrationSpek : Spek({
             val result = instance.request<Map<String, String>>(
                 options = RequestOptions(
                     method = "POST",
-                    path = "post_ok",
+                    path = "post_ok_echo",
                     body = """{ "test": "123" }"""
                 ),
                 responseParser = { it.parseAs() }
