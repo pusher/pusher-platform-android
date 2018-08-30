@@ -113,8 +113,8 @@ internal class BaseSubscription<A>(
             .map {line -> line.toSubscriptionMessage(messageParser) }
 
     override fun unsubscribe() {
-        call.takeUnless { it.isCanceled }?.cancel()
-        job.takeUnless { it.isCancelled }?.cancel()
+        if (!call.isCanceled) call.cancel()
+        if (!job.isCancelled) job.cancel()
         activeResponseBody?.close()
     }
 }
