@@ -32,7 +32,6 @@ internal class BaseSubscription<A>(
 
     private val call: Call
     private val job: Future<Unit>
-    private var activeResponseBody: ResponseBody? = null
 
     init {
         val request = baseClient.createRequest {
@@ -86,9 +85,6 @@ internal class BaseSubscription<A>(
         onOpen(response.headers().toMultimap())
 
         val body = response.body()
-        synchronized(this) {
-            activeResponseBody = body
-        }
         when (body) {
             null -> onError(NetworkError("No response."))
             else -> body.messages
@@ -117,8 +113,5 @@ internal class BaseSubscription<A>(
     override fun unsubscribe() {
         if (!call.isCanceled) call.cancel()
         if (!job.isCancelled) job.cancel()
-        synchronized(this) {
-            activeResponseBody?.close()
-        }
     }
 }
