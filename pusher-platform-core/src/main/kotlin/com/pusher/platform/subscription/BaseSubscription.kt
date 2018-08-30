@@ -86,7 +86,9 @@ internal class BaseSubscription<A>(
         onOpen(response.headers().toMultimap())
 
         val body = response.body()
-        activeResponseBody = body
+        synchronized(this) {
+            activeResponseBody = body
+        }
         when (body) {
             null -> onError(NetworkError("No response."))
             else -> body.messages
@@ -115,6 +117,8 @@ internal class BaseSubscription<A>(
     override fun unsubscribe() {
         if (!call.isCanceled) call.cancel()
         if (!job.isCancelled) job.cancel()
-        activeResponseBody?.close()
+        synchronized(this) {
+            activeResponseBody?.close()
+        }
     }
 }
