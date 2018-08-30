@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 private val threadCount = AtomicInteger()
 private val futuresExecutorService: ExecutorService = Executors.newCachedThreadPool{
-    Thread(it, "Pusher-Thread-${threadCount.getAndIncrement()}")
+    Thread(it, "Pusher-Thread-${threadCount.getAndIncrement()}").apply { this.isDaemon = true }
 }
 
 object Futures {
