@@ -47,13 +47,13 @@ internal class BaseSubscription<A>(
 
         job = Futures.schedule {
             try {
-                val response = call.execute()
-                when (response.code()) {
-                    in 200..299 -> handleConnectionOpened(response)
-                    in 400..599 -> handleConnectionFailed(response)
-                    else -> onError(NetworkError("Connection failed"))
+                call.execute().use { response ->
+                    when (response.code()) {
+                        in 200..299 -> handleConnectionOpened(response)
+                        in 400..599 -> handleConnectionFailed(response)
+                        else -> onError(NetworkError("Connection failed"))
+                    }
                 }
-                response.close()
             } catch (e: IOException) {
                 when {
                     call.isCanceled -> onEnd(null)
