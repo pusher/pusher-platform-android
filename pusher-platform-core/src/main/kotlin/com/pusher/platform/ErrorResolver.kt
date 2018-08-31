@@ -10,43 +10,46 @@ import elements.Error
 import elements.ErrorResponse
 import elements.NetworkError
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.collections.ArrayList
 import kotlin.math.min
 import kotlin.math.pow
 
+/**
+ * This class MUST BE THREADSAFE. It is primarily driven from the subscription thread, but will be
+ * cancelled from outside.
+ */
 internal class ErrorResolver(
     private val retryOptions: RetryStrategyOptions,
     private val retryUnsafeRequests: Boolean = false
 ) {
-
-    private val runningJobs = LinkedList<Future<*>>()
-    private var currentRetryCount = 0
+    private val runningJobs = ConcurrentLinkedQueue<Future<*>>()
+    private val currentRetryCount = AtomicInteger(0)
     private val initialBackOff = retryOptions.initialTimeoutMillis.toDouble()
     private val currentBackoffMillis: Long
         get() = min(
-            initialBackOff.pow(currentRetryCount).toLong(),
+            initialBackOff.pow(currentRetryCount.get()).toLong(),
             retryOptions.maxTimeoutMillis
         )
 
     private val noRetriesRemaining: Boolean
-        get() = min(0, retryOptions.limit - currentRetryCount) == 0
+        get() = min(0, retryOptions.limit - currentRetryCount.get()) == 0
 
     fun resolveError(error: Error, block: (RetryStrategy) -> Unit) = when (strategyFor(error)) {
         is DoNotRetry -> block(DoNotRetry)
         is Retry -> runningJobs += defer(error.retryAfter, block)
     }
 
-    private fun defer(retryAfter: Long, block: (RetryStrategy) -> Unit): Future<Unit> = Futures.schedule {
-        currentRetryCount++
-        val delay = retryAfter.takeIf { it > 0 } ?: currentBackoffMillis
-        Thread.sleep(delay)
-        block(Retry)
+    fun cancel() {
+        runningJobs.forEach { it.cancel() }
     }
 
-    fun cancel() {
-        while (runningJobs.isNotEmpty()) {
-            runningJobs.pop()?.takeUnless { it.isDone || it.isCancelled }?.cancel()
-        }
+    private fun defer(retryAfter: Long, block: (RetryStrategy) -> Unit): Future<Unit> = Futures.schedule {
+        currentRetryCount.incrementAndGet()
+        Thread.sleep(if (retryAfter > 0) retryAfter else currentBackoffMillis)
+        block(Retry)
     }
 
     private fun strategyFor(error: Error): RetryStrategy = when {
