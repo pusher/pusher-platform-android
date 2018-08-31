@@ -112,12 +112,12 @@ private class RetryingSubscription<A>(
         }
 
         private fun executeSubscriptionOnce(error: elements.Error) {
-            errorResolver.resolveError(error, { resolution ->
-                when(resolution){
+            errorResolver.resolveError(error) { resolution ->
+                when (resolution) {
                     is DoNotRetry -> onTransition(FailedSubscriptionState(listeners, error))
                     is Retry -> executeNextSubscribeStrategy()
                 }
-            })
+            }
         }
 
         private fun executeNextSubscribeStrategy() {
