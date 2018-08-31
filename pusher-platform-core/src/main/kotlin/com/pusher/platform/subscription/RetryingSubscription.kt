@@ -32,6 +32,8 @@ private class RetryingSubscription<A>(
 ): Subscription {
 
     private val onTransition: StateTransition = { newState -> state = newState }
+
+    @Volatile
     private var state: SubscriptionState = OpeningSubscriptionState(listeners, onTransition)
 
     override fun unsubscribe() {
@@ -100,6 +102,7 @@ private class RetryingSubscription<A>(
             error: elements.Error,
             val onTransition: StateTransition
     ): SubscriptionState {
+        @Volatile
         var underlyingSubscription: Subscription? = null
 
         init {
