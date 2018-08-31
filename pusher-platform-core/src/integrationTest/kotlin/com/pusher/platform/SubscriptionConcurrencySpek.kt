@@ -12,7 +12,9 @@ import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 import org.junit.Assert
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 class SubscriptionConcurrencySpek : Spek({
@@ -29,17 +31,18 @@ class SubscriptionConcurrencySpek : Spek({
         )
 
         it("should cancel subscriptions accurately from lots of threads") {
-            val numSubs = 50
+            val numSubs = 10000
             val outstanding = AtomicInteger(numSubs)
             val events = AtomicInteger(0)
             val queue = LinkedBlockingDeque<Subscription>()
-            val producer = Thread() {
+            val producer = Thread {
                 for (i in 1..numSubs) {
+                    Thread.sleep(5)
                     val sub = instance.subscribeNonResuming(
                             path = pathForever,
                             retryOptions = RetryStrategyOptions(limit = 0),
                             messageParser = bodyParser,
-                            listeners = listenersWithCounter(
+                            listeners = SubscriptionListeners(
                                     onEvent = {
                                         events.incrementAndGet()
                                     },
@@ -49,29 +52,41 @@ class SubscriptionConcurrencySpek : Spek({
                                     onError = { Assert.fail("We should not get an error") }
                             )
                     )
-                    queue.add(sub)
+                    queue.offer(sub)
                 }
             }
-            producer.run()
+            producer.start()
 
-            for (i in 1..5) {
-                val consumer = Thread() {
-                    val sub = queue.take()
-                    sub.unsubscribe()
+            val numConsumers = 20
+            val latch = CountDownLatch(numConsumers)
+            for (i in 1..numConsumers) {
+                val consumer = Thread {
+                    try {
+                        while (true) {
+                            val sub = queue.poll(5, TimeUnit.SECONDS)
+                            sub ?: break
+                            Thread.sleep(Math.round(Math.random() * 200))
+                            sub.unsubscribe()
+                        }
+                    } finally {
+                        println("CONSUMER EXITED")
+                        latch.countDown()
+                    }
                 }
-                consumer.run()
+                consumer.start()
             }
 
-            while (outstanding.get() > 0) {
-                Thread.sleep(10)
-                println("TOTAL REMAIN ")
+            while (!latch.await(1, TimeUnit.SECONDS)) {
+                val remaining = outstanding.get()
+                println("TOTAL REMAINING $remaining")
             }
+
             val eventsDuringSubs = events.get()
             println("got $eventsDuringSubs events while subscribed")
 
             Thread.sleep(1000)
 
-            val eventsAtEnd =events.get()
+            val eventsAtEnd = events.get()
             println("got $eventsAtEnd events at end")
             Assert.assertEquals(eventsAtEnd, eventsDuringSubs)
         }
