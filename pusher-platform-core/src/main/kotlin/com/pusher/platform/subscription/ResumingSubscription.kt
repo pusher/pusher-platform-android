@@ -45,11 +45,11 @@ private class ResumingSubscription<A>(
 
     inner class EndingSubscriptionState : SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@ this}: transitioning to EndingSubscriptionState")
+            logger.verbose("${ResumingSubscription@this}: transitioning to EndingSubscriptionState")
         }
 
         override fun unsubscribe() {
-            throw Error("Subscription is already ending")
+            logger.verbose("${ResumingSubscription@ this}: Subscription is ending; doing nothing")
         }
     }
 
@@ -135,12 +135,12 @@ private class ResumingSubscription<A>(
         }
 
         private fun executeSubscriptionOnce(error: elements.Error, lastEventId: String?) {
-            errorResolver.resolveError(error, { resolution ->
+            errorResolver.resolveError(error) { resolution ->
                 when (resolution) {
                     is DoNotRetry -> onTransition(FailedSubscriptionState(listeners, error))
                     is Retry -> executeNextSubscribeStrategy(lastEventId)
                 }
-            })
+            }
         }
 
         private fun executeNextSubscribeStrategy(eventId: String?) {
@@ -215,7 +215,7 @@ private class ResumingSubscription<A>(
         }
 
         override fun unsubscribe() {
-            throw Error("Subscription has already ended")
+            logger.verbose("${ResumingSubscription@ this}: Subscription has already ended")
         }
     }
 
@@ -229,7 +229,7 @@ private class ResumingSubscription<A>(
         }
 
         override fun unsubscribe() {
-            throw Error("Subscription has already ended")
+            logger.verbose("${ResumingSubscription@ this}: Subscription has already ended")
         }
     }
 }
