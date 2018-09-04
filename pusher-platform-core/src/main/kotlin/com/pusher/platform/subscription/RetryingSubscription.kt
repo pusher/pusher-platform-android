@@ -12,11 +12,13 @@ import elements.Subscription
 internal fun <A> createRetryingStrategy(
     errorResolver: ErrorResolver,
     nextSubscribeStrategy: SubscribeStrategy<A>,
+    subscriptionID: String,
     logger: Logger
 ): SubscribeStrategy<A> = { listeners, headers ->
     RetryingSubscription(
         listeners,
         headers,
+        subscriptionID,
         logger,
         errorResolver,
         nextSubscribeStrategy
@@ -26,6 +28,7 @@ internal fun <A> createRetryingStrategy(
 private class RetryingSubscription<A>(
         listeners: SubscriptionListeners<A>,
         val headers: Headers,
+        val subscriptionID: String,
         val logger: Logger,
         val errorResolver: ErrorResolver,
         val nextSubscribeStrategy: SubscribeStrategy<A>
@@ -43,11 +46,11 @@ private class RetryingSubscription<A>(
 
     inner class EndingSubscriptionState : SubscriptionState {
         init {
-            logger.verbose("${RetryingSubscription@this}: transitioning to EndingSubscriptionState")
+            logger.verbose("RetryingSubscription $subscriptionID: transitioning to EndingSubscriptionState")
         }
 
         override fun unsubscribe() {
-            throw Error("Subscription is already ending")
+            logger.verbose("RetryingSubscription $subscriptionID: subscription is already ended; nothing to do for unsubscribe")
         }
     }
 
@@ -71,7 +74,7 @@ private class RetryingSubscription<A>(
             onEvent = { event ->
                 listeners.onEvent(event)
                 logger.verbose(
-                    "${RetryingSubscription@this}received event $event"
+                    "RetryingSubscription $subscriptionID: received event $event"
                 )
             },
             onRetrying = listeners.onRetrying,
@@ -88,7 +91,7 @@ private class RetryingSubscription<A>(
         private val underlyingSubscription: Subscription = nextSubscribeStrategy(underlyingListeners, headers)
 
         init {
-            logger.verbose("${RetryingSubscription@this}: transitioning to OpeningSubscriptionState")
+            logger.verbose("RetryingSubscription $subscriptionID: transitioning to OpeningSubscriptionState")
         }
 
         override fun unsubscribe() {
@@ -106,7 +109,7 @@ private class RetryingSubscription<A>(
         var underlyingSubscription: Subscription? = null
 
         init {
-            logger.verbose("${RetryingSubscription@this}: transitioning to RetryingSubscriptionState")
+            logger.verbose("RetryingSubscription $subscriptionID: transitioning to RetryingSubscriptionState")
             executeSubscriptionOnce(error)
         }
 
@@ -124,7 +127,7 @@ private class RetryingSubscription<A>(
         }
 
         private fun executeNextSubscribeStrategy() {
-            logger.verbose("${RetryingSubscription@this}: trying to re-establish the subscription")
+            logger.verbose("RetryingSubscription $subscriptionID: trying to re-establish the subscription")
 
             underlyingSubscription = nextSubscribeStrategy(
                     SubscriptionListeners(
@@ -145,7 +148,7 @@ private class RetryingSubscription<A>(
                             onEvent = { event ->
                                 listeners.onEvent(event)
                                 logger.verbose(
-                                        "${RetryingSubscription@this}received event $event"
+                                        "RetryingSubscription $subscriptionID: received event $event"
                                 )
                             },
                             onSubscribe = listeners.onSubscribe,
@@ -165,7 +168,7 @@ private class RetryingSubscription<A>(
             val onTransition: StateTransition
     ): SubscriptionState {
         init {
-            logger.verbose("${RetryingSubscription@this}: transitioning to OpenSubscriptionState")
+            logger.verbose("RetryingSubscription $subscriptionID: transitioning to OpenSubscriptionState")
             listeners.onOpen(headers)
         }
 
@@ -180,12 +183,12 @@ private class RetryingSubscription<A>(
             error: EOSEvent?
     ): SubscriptionState {
         init {
-            logger.verbose("${RetryingSubscription@this}: transitioning to EndedSubscriptionState")
+            logger.verbose("RetryingSubscription $subscriptionID: transitioning to EndedSubscriptionState")
             listeners.onEnd(error)
         }
 
         override fun unsubscribe() {
-            throw Error("Subscription has already ended")
+            logger.verbose("RetryingSubscription $subscriptionID: Subscription has already ended; nothing to do for unsubscribe")
         }
     }
 
@@ -194,12 +197,12 @@ private class RetryingSubscription<A>(
             error: elements.Error
     ): SubscriptionState {
         init {
-            logger.verbose("${RetryingSubscription@this}: transitioning to FailedSubscriptionState")
+            logger.verbose("RetryingSubscription $subscriptionID: transitioning to FailedSubscriptionState")
             listeners.onError(error)
         }
 
         override fun unsubscribe() {
-            throw Error("Subscription has already ended")
+            logger.verbose("RetryingSubscription $subscriptionID: Subscription has already ended; nothing to do for unsubscribe")
         }
     }
 }

@@ -12,6 +12,7 @@ import elements.Subscription
 internal fun <A> createResumingStrategy(
     errorResolver: ErrorResolver,
     nextSubscribeStrategy: SubscribeStrategy<A>,
+    subscriptionID: String,
     logger: Logger,
     initialEventId: String? = null
 ): SubscribeStrategy<A> = { listeners, headers ->
@@ -21,6 +22,7 @@ internal fun <A> createResumingStrategy(
         logger,
         errorResolver,
         nextSubscribeStrategy,
+        subscriptionID,
         initialEventId
     )
 }
@@ -31,6 +33,7 @@ private class ResumingSubscription<A>(
     val logger: Logger,
     val errorResolver: ErrorResolver,
     val nextSubscribeStrategy: SubscribeStrategy<A>,
+    val subscriptionID: String,
     val initialEventId: String? = null
 ) : Subscription {
 
@@ -45,11 +48,11 @@ private class ResumingSubscription<A>(
 
     inner class EndingSubscriptionState : SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@this}: transitioning to EndingSubscriptionState")
+            logger.verbose("ResumingSubscription $subscriptionID: transitioning to EndingSubscriptionState")
         }
 
         override fun unsubscribe() {
-            logger.verbose("${ResumingSubscription@ this}: Subscription is ending; doing nothing")
+            logger.verbose("ResumingSubscription $subscriptionID: Subscription is ending; nothing to do for unsubscribe")
         }
     }
 
@@ -61,11 +64,11 @@ private class ResumingSubscription<A>(
 
         init {
             var lastEventId = initialEventId
-            logger.verbose("${ResumingSubscription@ this}: transitioning to OpeningSubscriptionState")
+            logger.verbose("ResumingSubscription $subscriptionID: transitioning to OpeningSubscriptionState")
 
             val subscriptionHeaders = when {
                 lastEventId != null -> {
-                    logger.verbose("${ResumingSubscription@this}: initialEventId is $lastEventId")
+                    logger.verbose("ResumingSubscription $subscriptionID: initialEventId is $lastEventId")
                     headers + ("Last-Event-Id" to listOf(lastEventId))
                 }
                 else -> headers
@@ -88,7 +91,7 @@ private class ResumingSubscription<A>(
                         lastEventId = event.eventId
                         listeners.onEvent(event)
                         logger.verbose(
-                            "${ResumingSubscription@ this}received event $event"
+                            "ResumingSubscription $subscriptionID: received event $event"
                         )
                     },
                     onRetrying = listeners.onRetrying,
@@ -126,7 +129,7 @@ private class ResumingSubscription<A>(
         private var underlyingSubscription: Subscription? = null
 
         init {
-            logger.verbose("${ResumingSubscription@ this}: transitioning to ResumingSubscriptionState")
+            logger.verbose("ResumingSubscription $subscriptionID: transitioning to ResumingSubscriptionState")
             executeSubscriptionOnce(error, lastEventId)
         }
 
@@ -146,10 +149,10 @@ private class ResumingSubscription<A>(
         private fun executeNextSubscribeStrategy(eventId: String?) {
             var lastEventId = eventId
 
-            logger.verbose("${ResumingSubscription@ this}: trying to re-establish the subscription")
+            logger.verbose("ResumingSubscription $subscriptionID: trying to re-establish the subscription")
             val subscriptionHeaders = when {
                 lastEventId != null -> {
-                    logger.verbose("${ResumingSubscription@ this}: initialEventId is $lastEventId")
+                    logger.verbose("ResumingSubscription $subscriptionID: initialEventId is $lastEventId")
                     headers + ("Last-Event-Id" to listOf(lastEventId))
                 }
                 else -> headers
@@ -175,7 +178,7 @@ private class ResumingSubscription<A>(
                         lastEventId = event.eventId
                         listeners.onEvent(event)
                         logger.verbose(
-                            "${ResumingSubscription@ this}received event $event"
+                            "ResumingSubscription $subscriptionID: received event $event"
                         )
                     },
                     onSubscribe = listeners.onSubscribe,
@@ -195,7 +198,7 @@ private class ResumingSubscription<A>(
         private val onTransition: StateTransition
     ) : SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@ this}: transitioning to OpenSubscriptionState")
+            logger.verbose("ResumingSubscription $subscriptionID: transitioning to OpenSubscriptionState")
             listeners.onOpen(headers)
         }
 
@@ -210,12 +213,12 @@ private class ResumingSubscription<A>(
         error: EOSEvent?
     ) : SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@ this}: transitioning to EndedSubscriptionState")
+            logger.verbose("ResumingSubscription $subscriptionID: transitioning to EndedSubscriptionState")
             listeners.onEnd(error)
         }
 
         override fun unsubscribe() {
-            logger.verbose("${ResumingSubscription@ this}: Subscription has already ended")
+            logger.verbose("ResumingSubscription $subscriptionID: Subscription has already ended; nothing to do for unsubscribe")
         }
     }
 
@@ -224,12 +227,12 @@ private class ResumingSubscription<A>(
         error: elements.Error
     ) : SubscriptionState {
         init {
-            logger.verbose("${ResumingSubscription@ this}: transitioning to FailedSubscriptionState")
+            logger.verbose("ResumingSubscription $subscriptionID: transitioning to FailedSubscriptionState")
             listeners.onError(error)
         }
 
         override fun unsubscribe() {
-            logger.verbose("${ResumingSubscription@ this}: Subscription has already ended")
+            logger.verbose("ResumingSubscription $subscriptionID: Subscription has already ended; nothing to do for unsubscribe")
         }
     }
 }

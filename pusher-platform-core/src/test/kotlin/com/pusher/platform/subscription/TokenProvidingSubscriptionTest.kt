@@ -16,7 +16,6 @@ internal class TokenProvidingSubscriptionTest {
 
     @Test
     fun `allows to unsubscribe`() {
-
         val future = Futures.schedule { Thread.sleep(100); "".asSuccess<String, elements.Error>() }
 
         val subscription = TokenProvidingSubscription(
@@ -27,13 +26,12 @@ internal class TokenProvidingSubscriptionTest {
                 given(this.fetchToken(any())).willReturn(future)
             },
             tokenParams = null,
-            nextSubscribeStrategy = { _, _ -> mock(Subscription::class.java) }
+            nextSubscribeStrategy = { _, _ -> mock(Subscription::class.java) },
+            subscriptionID = "test"
         )
 
         subscription.unsubscribe()
 
         assertThat(future.isCancelled).isTrue()
-
     }
-
 }

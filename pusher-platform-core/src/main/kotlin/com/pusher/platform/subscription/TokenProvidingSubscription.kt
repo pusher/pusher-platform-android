@@ -10,6 +10,7 @@ import java.util.concurrent.Future
 
 internal fun <A> createTokenProvidingStrategy(
     nextSubscribeStrategy: SubscribeStrategy<A>,
+    subscriptionID: String,
     logger: Logger,
     tokenProvider: TokenProvider? = null,
     tokenParams: Any? = null
@@ -17,6 +18,7 @@ internal fun <A> createTokenProvidingStrategy(
     // Token provider might not be provided. If missing, go straight to underlying subscribe strategy
     tokenProvider != null -> { listeners, headers ->
         TokenProvidingSubscription(
+            subscriptionID,
             logger,
             listeners,
             headers,
@@ -29,14 +31,15 @@ internal fun <A> createTokenProvidingStrategy(
 }
 
 internal class TokenProvidingSubscription<A>(
-    val logger: Logger,
-    val listeners: SubscriptionListeners<A>,
-    val headers: Headers,
-    val tokenProvider: TokenProvider,
-    val tokenParams: Any? = null,
-    val nextSubscribeStrategy: SubscribeStrategy<A>
+    private val subscriptionID: String,
+    private val logger: Logger,
+    private val listeners: SubscriptionListeners<A>,
+    headers: Headers,
+    private val tokenProvider: TokenProvider,
+    private val tokenParams: Any? = null,
+    nextSubscribeStrategy: SubscribeStrategy<A>
 ) : Subscription {
-    private var state: TokenProvidingSubscriptionState<A> = ActiveState(logger, headers, nextSubscribeStrategy)
+    private var state: TokenProvidingSubscriptionState<A> = ActiveState(subscriptionID, logger, headers, nextSubscribeStrategy)
     private var tokenRequestInProgress: Future<Result<String, Error>>? = null
 
     init {
@@ -46,21 +49,21 @@ internal class TokenProvidingSubscription<A>(
     override fun unsubscribe() {
         tokenRequestInProgress?.cancel(true)
         state.unsubscribe()
-        state = InactiveState(logger)
+        state = InactiveState(subscriptionID, logger)
     }
 
     private fun subscribe(): Future<Result<String, Error>> = tokenProvider.fetchToken(tokenParams).apply {
             get()
                 .fold({ error ->
                 logger.debug(
-                    "TokenProvidingSubscription: error when fetching token: $error"
+                    "TokenProvidingSubscription $subscriptionID: error when fetching token: $error"
                 )
-                state = InactiveState(logger)
+                state = InactiveState(subscriptionID, logger)
                 listeners.onError(error)
             }, { token ->
                 state.subscribe(token, SubscriptionListeners(
                     onEnd = { error: EOSEvent? ->
-                        state = InactiveState(logger)
+                        state = InactiveState(subscriptionID, logger)
                         listeners.onEnd(error)
                     },
                     onError = { error ->
@@ -68,7 +71,7 @@ internal class TokenProvidingSubscription<A>(
                             tokenProvider.clearToken(token)
                             tokenRequestInProgress = subscribe()
                         } else {
-                            state = InactiveState(logger)
+                            state = InactiveState(subscriptionID, logger)
                             listeners.onError(error)
                         }
                     },
@@ -86,29 +89,29 @@ internal interface TokenProvidingSubscriptionState<A> {
 }
 
 internal class ActiveState<A>(
-    val logger: Logger,
-    val headers: Headers,
+    private val subscriptionID: String,
+    private val logger: Logger,
+    private val headers: Headers,
     private val nextSubscribeStrategy: SubscribeStrategy<A>
 ) : TokenProvidingSubscriptionState<A> {
     private var underlyingSubscription: Subscription? = null
 
     override fun subscribe(token: String, listeners: SubscriptionListeners<A>) {
-
         this.underlyingSubscription = this.nextSubscribeStrategy(
             SubscriptionListeners(
                 onEnd = { error ->
-                    this.logger.verbose("TokenProvidingSubscription: subscription ended")
+                    this.logger.verbose("TokenProvidingSubscription $subscriptionID: subscription ended")
                     listeners.onEnd(error)
                 },
                 onError = { error ->
                     this.logger.verbose(
-                        "TokenProvidingSubscription: subscription errored: $error"
+                        "TokenProvidingSubscription $subscriptionID: subscription errored: $error"
                     )
                     listeners.onError(error)
                 },
                 onEvent = listeners.onEvent,
                 onOpen = { headers ->
-                    this.logger.verbose("TokenProvidingSubscription: subscription opened")
+                    this.logger.verbose("TokenProvidingSubscription $subscriptionID: subscription opened")
                     listeners.onOpen(headers)
                 },
                 onRetrying = listeners.onRetrying
@@ -122,20 +125,23 @@ internal class ActiveState<A>(
     }
 }
 
-internal class InactiveState<A>(val logger: Logger) : TokenProvidingSubscriptionState<A> {
+internal class InactiveState<A>(
+        private val subscriptionID: String,
+        private val logger: Logger
+) : TokenProvidingSubscriptionState<A> {
     init {
-        logger.verbose("TokenProvidingSubscription: transitioning to InactiveState")
+        logger.verbose("TokenProvidingSubscription $subscriptionID: transitioning to InactiveState")
     }
 
     override fun subscribe(token: String, listeners: SubscriptionListeners<A>) {
         logger.verbose(
-            "TokenProvidingSubscription: subscribe called in Inactive state; doing nothing"
+            "TokenProvidingSubscription $subscriptionID: subscribe called in Inactive state; doing nothing"
         )
     }
 
     override fun unsubscribe() {
         logger.verbose(
-            "TokenProvidingSubscription: unsubscribe called in Inactive state; doing nothing"
+            "TokenProvidingSubscription $subscriptionID: unsubscribe called in Inactive state; doing nothing"
         )
     }
 }
