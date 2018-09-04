@@ -80,7 +80,6 @@ internal class TokenProvidingSubscription<A>(
                 ))
             })
         }
-
 }
 
 internal interface TokenProvidingSubscriptionState<A> {

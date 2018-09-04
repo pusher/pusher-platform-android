@@ -37,7 +37,10 @@ private class ResumingSubscription<A>(
     val initialEventId: String? = null
 ) : Subscription {
 
-    private val onTransition: StateTransition = { newState -> state = newState }
+    private val onTransition: StateTransition = { newState ->
+        logger.verbose("ResumingSubscription $subscriptionID: transitioning to ${newState.javaClass.simpleName} (from ${state.javaClass.simpleName})")
+        state = newState
+    }
 
     private var state: SubscriptionState = OpeningSubscriptionState(listeners, onTransition)
 
@@ -47,10 +50,6 @@ private class ResumingSubscription<A>(
     }
 
     inner class EndingSubscriptionState : SubscriptionState {
-        init {
-            logger.verbose("ResumingSubscription $subscriptionID: transitioning to EndingSubscriptionState")
-        }
-
         override fun unsubscribe() {
             logger.verbose("ResumingSubscription $subscriptionID: Subscription is ending; nothing to do for unsubscribe")
         }
@@ -64,7 +63,6 @@ private class ResumingSubscription<A>(
 
         init {
             var lastEventId = initialEventId
-            logger.verbose("ResumingSubscription $subscriptionID: transitioning to OpeningSubscriptionState")
 
             val subscriptionHeaders = when {
                 lastEventId != null -> {
@@ -129,7 +127,6 @@ private class ResumingSubscription<A>(
         private var underlyingSubscription: Subscription? = null
 
         init {
-            logger.verbose("ResumingSubscription $subscriptionID: transitioning to ResumingSubscriptionState")
             executeSubscriptionOnce(error, lastEventId)
         }
 
@@ -198,7 +195,6 @@ private class ResumingSubscription<A>(
         private val onTransition: StateTransition
     ) : SubscriptionState {
         init {
-            logger.verbose("ResumingSubscription $subscriptionID: transitioning to OpenSubscriptionState")
             listeners.onOpen(headers)
         }
 
@@ -213,7 +209,6 @@ private class ResumingSubscription<A>(
         error: EOSEvent?
     ) : SubscriptionState {
         init {
-            logger.verbose("ResumingSubscription $subscriptionID: transitioning to EndedSubscriptionState")
             listeners.onEnd(error)
         }
 
@@ -227,7 +222,6 @@ private class ResumingSubscription<A>(
         error: elements.Error
     ) : SubscriptionState {
         init {
-            logger.verbose("ResumingSubscription $subscriptionID: transitioning to FailedSubscriptionState")
             listeners.onError(error)
         }
 

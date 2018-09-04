@@ -34,7 +34,10 @@ private class RetryingSubscription<A>(
         val nextSubscribeStrategy: SubscribeStrategy<A>
 ): Subscription {
 
-    private val onTransition: StateTransition = { newState -> state = newState }
+    private val onTransition: StateTransition = { newState ->
+        logger.verbose("RetryingSubscription $subscriptionID: transitioning to ${newState.javaClass.simpleName} (from ${state.javaClass.simpleName})")
+        state = newState
+    }
 
     @Volatile
     private var state: SubscriptionState = OpeningSubscriptionState(listeners, onTransition)
@@ -45,10 +48,6 @@ private class RetryingSubscription<A>(
     }
 
     inner class EndingSubscriptionState : SubscriptionState {
-        init {
-            logger.verbose("RetryingSubscription $subscriptionID: transitioning to EndingSubscriptionState")
-        }
-
         override fun unsubscribe() {
             logger.verbose("RetryingSubscription $subscriptionID: subscription is already ended; nothing to do for unsubscribe")
         }
@@ -90,10 +89,6 @@ private class RetryingSubscription<A>(
 
         private val underlyingSubscription: Subscription = nextSubscribeStrategy(underlyingListeners, headers)
 
-        init {
-            logger.verbose("RetryingSubscription $subscriptionID: transitioning to OpeningSubscriptionState")
-        }
-
         override fun unsubscribe() {
             onTransition(EndingSubscriptionState())
             underlyingSubscription.unsubscribe()
@@ -109,7 +104,6 @@ private class RetryingSubscription<A>(
         var underlyingSubscription: Subscription? = null
 
         init {
-            logger.verbose("RetryingSubscription $subscriptionID: transitioning to RetryingSubscriptionState")
             executeSubscriptionOnce(error)
         }
 
@@ -168,7 +162,6 @@ private class RetryingSubscription<A>(
             val onTransition: StateTransition
     ): SubscriptionState {
         init {
-            logger.verbose("RetryingSubscription $subscriptionID: transitioning to OpenSubscriptionState")
             listeners.onOpen(headers)
         }
 
@@ -183,7 +176,6 @@ private class RetryingSubscription<A>(
             error: EOSEvent?
     ): SubscriptionState {
         init {
-            logger.verbose("RetryingSubscription $subscriptionID: transitioning to EndedSubscriptionState")
             listeners.onEnd(error)
         }
 
@@ -197,7 +189,6 @@ private class RetryingSubscription<A>(
             error: elements.Error
     ): SubscriptionState {
         init {
-            logger.verbose("RetryingSubscription $subscriptionID: transitioning to FailedSubscriptionState")
             listeners.onError(error)
         }
 
