@@ -35,13 +35,13 @@ sealed class Result<A, B> {
         fun <B> failuresOf(vararg results: Result<*, B>): List<B> =
             failuresOf(results.asList())
         @JvmStatic
-        fun <B> failuresOf(results: List<Result<*, B>>): List<B> =
+        fun <B> failuresOf(results: Iterable<Result<*, B>>): List<B> =
             results.mapNotNull { it as? Result.Failure }.map { it.error }
         @JvmStatic
         fun <A> successesOf(vararg results: Result<A, *>): List<A> =
             successesOf(results.asList())
         @JvmStatic
-        fun <A> successesOf(results: List<Result<A, *>>): List<A> =
+        fun <A> successesOf(results: Iterable<Result<A, *>>): List<A> =
             results.mapNotNull { it as? Result.Success }.map { it.value }
     }
 
@@ -59,6 +59,14 @@ sealed class Result<A, B> {
     inline fun <C> map(block: (A) -> C): Result<C, B> = fold(
         onFailure = { failure(it) },
         onSuccess = { success(block(it)) }
+    )
+
+    /**
+     * Creates a new result using [block] to convert when it is success.
+     */
+    inline fun <C> mapFailure(block: (B) -> C): Result<A, C> = fold(
+            onFailure = { failure(block(it)) },
+            onSuccess = { it.asSuccess() }
     )
 
     /**
@@ -153,4 +161,14 @@ fun <A, B, C> Future<Result<A, B>>.flatMapFutureResult(block: (A) -> Future<Resu
             onFailure = { it.asFailure<C, B>().toFuture() },
             onSuccess = { block(it) }
         )
+    }
+
+/**
+ * Transforms a list of results in to a result of a List.
+ */
+fun <A, B> Iterable<Result<A, B>>.collect(): Result<List<A>, List<B>> =
+    if (Result.failuresOf(this).isEmpty()) {
+        Result.successesOf(this).asSuccess()
+    } else {
+        Result.failuresOf(this).asFailure()
     }
