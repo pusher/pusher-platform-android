@@ -2,6 +2,7 @@ package com.pusher.platform
 
 import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
+import com.pusher.platform.logger.Logger
 import com.pusher.platform.network.DataParser
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.tokenProvider.TokenProvider
@@ -178,7 +179,6 @@ data class Instance constructor(
     private fun scopePathToService(relativePath: String): String {
         return "services/$serviceName/$serviceVersion/$id/$relativePath"
     }
-
 }
 
 private data class Locator(val version: String, val cluster: String, val id: String) {
@@ -203,9 +203,7 @@ class SubscriptionListeners<A>(
     val onRetrying: () -> Unit = {},
     val onSubscribe: () -> Unit = {}
 ) {
-
     companion object {
-
         @JvmStatic
         fun <A> compose(vararg l: SubscriptionListeners<A>) = SubscriptionListeners<A>(
             onEnd = { error -> l.forEach { it.onEnd(error) } },
@@ -215,8 +213,18 @@ class SubscriptionListeners<A>(
             onRetrying = { l.forEach { it.onRetrying() } },
             onSubscribe = { l.forEach { it.onSubscribe() } }
         )
-
     }
-
 }
 
+fun <A> loggingListeners(
+        description: String,
+        logger: Logger
+): SubscriptionListeners<A> =
+        SubscriptionListeners(
+                onSubscribe = { logger.debug("[Subscription $description] Subscribing") },
+                onOpen = { logger.debug("[Subscription $description] Opened") },
+                onRetrying = { logger.debug("[Subscription $description] Retrying connection") },
+                onEvent = { event -> logger.debug("[Subscription $description] Received event: ${event.body}") },
+                onError = { error -> logger.debug("[Subscription $description] Received error: $error") },
+                onEnd =  { error -> logger.debug("[Subscription $description] Ended: $error") }
+        )
