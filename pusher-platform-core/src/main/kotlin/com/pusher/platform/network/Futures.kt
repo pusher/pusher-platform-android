@@ -1,11 +1,14 @@
 package com.pusher.platform.network
 
-import java.util.concurrent.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeUnit.SECONDS
 import java.util.concurrent.atomic.AtomicInteger
 
 private val threadCount = AtomicInteger()
-private val futuresExecutorService: ExecutorService = Executors.newCachedThreadPool{
+private val futuresExecutorService: ExecutorService = Executors.newCachedThreadPool {
     Thread(it, "Pusher-Thread-${threadCount.getAndIncrement()}").apply { this.isDaemon = true }
 }
 
@@ -13,19 +16,19 @@ object Futures {
 
     @JvmStatic
     fun <V> schedule(service: ExecutorService = futuresExecutorService, block: () -> V): Future<V> =
-        service.submit(block)
+            service.submit(block)
 
     @JvmStatic
     fun <V> now(value: V): Future<V> =
-        schedule { value }
+            schedule { value }
 
     @JvmStatic
-    fun <V, R> map(original: Future<V>, block: (V) -> R) : Future<R> =
-        MapFuture(original, block)
+    fun <V, R> map(original: Future<V>, block: (V) -> R): Future<R> =
+            MapFuture(original, block)
 
     @JvmStatic
-    fun <V, R> flatMap(original: Future<V>, block: (V) -> Future<R>) : Future<R> =
-        FlatMapFuture(original, block)
+    fun <V, R> flatMap(original: Future<V>, block: (V) -> Future<R>): Future<R> =
+            FlatMapFuture(original, block)
 
 }
 
@@ -33,19 +36,19 @@ object Futures {
  * Same as [Futures.now]
  */
 fun <A> A.toFuture(): Future<A> =
-    Futures.now(this)
+        Futures.now(this)
 
 /**
  * Derives a new [Future] using the provided transformation.
  */
 fun <V, R> Future<V>.map(block: (V) -> R) =
-    Futures.map(this, block)
+        Futures.map(this, block)
 
 /**
  * Derives a new [Future] from the provided transformation.
  */
 fun <V, R> Future<V>.flatMap(block: (V) -> Future<R>) =
-    Futures.flatMap(this, block)
+        Futures.flatMap(this, block)
 
 /**
  * Short hand for `cancel(true)`
@@ -77,24 +80,22 @@ private class FlatMapFuture<V, R>(val future: Future<V>, val block: (V) -> Futur
 /**
  * Adds the option to wait blocking for a future to be ready with a default wait of 10 seconds
  */
-fun <V> Future<V>.wait(wait: Wait = Wait.For(10, SECONDS)): V = when(wait) {
-    is Wait.ForEver -> get()
-    is Wait.For -> try {
-        get(wait.time, wait.unit)
-    } catch (e: TimeoutException) {
-        error("Waited for $wait with no result")
-    }
-}
+fun <V> Future<V>.wait(wait: Wait = Wait.For(10, SECONDS)): V =
+        when (wait) {
+            is Wait.ForEver -> get()
+            is Wait.For -> get(wait.time, wait.unit)
+        }
 
 /**
  * [wait] with a recover option
  */
 @Suppress("unused") // Public API
-fun <V> Future<V>.waitOr(wait: Wait = Wait.For(10, SECONDS), alternative: (Throwable) -> V): V = try {
-    wait(wait)
-} catch (e: Throwable) {
-    alternative(e)
-}
+fun <V> Future<V>.waitOr(wait: Wait = Wait.For(10, SECONDS), alternative: (Throwable) -> V): V =
+        try {
+            wait(wait)
+        } catch (e: Throwable) {
+            alternative(e)
+        }
 
 /**
  * Describes waiting periods.
@@ -104,7 +105,7 @@ sealed class Wait {
     /**
      * Mainly used for cases were we don't want to time out (i.e. debugging)
      */
-    object ForEver: Wait() {
+    object ForEver : Wait() {
         override fun toString() = "forever"
     }
 
