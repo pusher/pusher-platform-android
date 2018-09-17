@@ -96,6 +96,13 @@ sealed class Result<A, B: Error> {
         onSuccess = { it.asSuccess() }
     )
 
+    /**
+     * Unwrap a success or raise the failure as an exception
+     */
+    fun successOrThrow(): A = fold(
+        onSuccess = { it },
+        onFailure = { throw it }
+    )
 }
 
 /**
