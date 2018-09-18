@@ -9,24 +9,24 @@ import elements.Errors
 import org.junit.jupiter.api.Test
 
 private const val SUCCESS_VALUE = "value"
-private const val FAILURE_VALUE = 123
 private const val ALTERNATIVE_VALUE = 2.0f
-private val SUCCESS_RESULT = Result.success<String, Int>(SUCCESS_VALUE)
-private val FAILURE_RESULT = Result.failure<String, Int>(FAILURE_VALUE)
-private val ALTERNATIVE_RESULT = Result.success<Float, Int>(ALTERNATIVE_VALUE)
+private val FAILURE_VALUE = Errors.other("an error")
+private val SUCCESS_RESULT = Result.success<String, Error>(SUCCESS_VALUE)
+private val FAILURE_RESULT = Result.failure<String, Error>(FAILURE_VALUE)
+private val ALTERNATIVE_RESULT = Result.success<Float, Error>(ALTERNATIVE_VALUE)
 
 class ResultTest {
 
     @Test
     fun `success instantiation`() {
-        val result = SUCCESS_VALUE.asSuccess<String, Int>()
+        val result = SUCCESS_VALUE.asSuccess<String, Error>()
 
         assertThat(result).isEqualTo(SUCCESS_RESULT)
     }
 
     @Test
     fun `failure instantiation`() {
-        val result = FAILURE_VALUE.asFailure<String, Int>()
+        val result = FAILURE_VALUE.asFailure<String, Error>()
 
         assertThat(result).isEqualTo(FAILURE_RESULT)
     }
@@ -74,20 +74,6 @@ class ResultTest {
     }
 
     @Test
-    fun `can swap success result`() {
-        val result = SUCCESS_RESULT.swap()
-
-        assertThat(result).isEqualTo(Result.Failure<Int, String>(SUCCESS_VALUE))
-    }
-
-    @Test
-    fun `can swap failure result`() {
-        val result = FAILURE_RESULT.swap()
-
-        assertThat(result).isEqualTo(Result.Success<Int, String>(FAILURE_VALUE))
-    }
-
-    @Test
     fun `recover should not change success result`() {
         val result = SUCCESS_RESULT.recover { "invalid" }
 
@@ -110,7 +96,7 @@ class ResultTest {
 
     @Test
     fun `flatten successful success`() {
-        val result = SUCCESS_RESULT.asSuccess<Result<String, Int>, Int>()
+        val result = SUCCESS_RESULT.asSuccess<Result<String, Error>, Error>()
 
         val flatten = result.flatten()
         assertThat(flatten).isEqualTo(SUCCESS_RESULT)
@@ -118,7 +104,7 @@ class ResultTest {
 
     @Test
     fun `flatten failure success`() {
-        val result = FAILURE_RESULT.asSuccess<Result<String, Int>, Int>()
+        val result = FAILURE_RESULT.asSuccess<Result<String, Error>, Error>()
 
         val flatten = result.flatten()
         assertThat(flatten).isEqualTo(FAILURE_RESULT)
@@ -126,7 +112,7 @@ class ResultTest {
 
     @Test
     fun `flatten failure`() {
-        val result = FAILURE_VALUE.asFailure<Result<String, Int>, Int>()
+        val result = FAILURE_VALUE.asFailure<Result<String, Error>, Error>()
 
         val flatten = result.flatten()
         assertThat(flatten).isEqualTo(FAILURE_RESULT)
@@ -210,16 +196,16 @@ class ResultTest {
     fun `flatMap future success to result`() {
         val future = Futures.now(SUCCESS_RESULT)
 
-        val flatMapped = future.flatMapResult { "b".asSuccess<String, Int>() }.wait()
+        val flatMapped = future.flatMapResult { "b".asSuccess<String, Error>() }.wait()
 
-        assertThat(flatMapped).isEqualTo("b".asSuccess<String, Int>())
+        assertThat(flatMapped).isEqualTo("b".asSuccess<String, Error>())
     }
 
     @Test
     fun `flatMap future failure to result`() {
         val future = Futures.now(FAILURE_RESULT)
 
-        val flatMapped = future.flatMapResult<String, Int, String> { error("no flatMap expected") }.wait()
+        val flatMapped = future.flatMapResult<String, Error, String> { error("no flatMap expected") }.wait()
 
         assertThat(flatMapped).isEqualTo(FAILURE_RESULT)
     }
@@ -228,16 +214,16 @@ class ResultTest {
     fun `flatMap future success to future result`() {
         val future = Futures.now(SUCCESS_RESULT)
 
-        val flatMapped = future.flatMapFutureResult { "b".asSuccess<String, Int>().toFuture() }.wait()
+        val flatMapped = future.flatMapFutureResult { "b".asSuccess<String, Error>().toFuture() }.wait()
 
-        assertThat(flatMapped).isEqualTo("b".asSuccess<String, Int>())
+        assertThat(flatMapped).isEqualTo("b".asSuccess<String, Error>())
     }
 
     @Test
     fun `flatMap future failure to future result`() {
         val future = Futures.now(FAILURE_RESULT)
 
-        val flatMapped = future.flatMapFutureResult<String, Int, String> { error("no flatMap expected") }.wait()
+        val flatMapped = future.flatMapFutureResult<String, Error, String> { error("no flatMap expected") }.wait()
 
         assertThat(flatMapped).isEqualTo(FAILURE_RESULT)
     }

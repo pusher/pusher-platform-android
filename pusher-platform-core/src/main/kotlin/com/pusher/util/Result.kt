@@ -5,11 +5,13 @@ import com.pusher.platform.network.map
 import com.pusher.platform.network.toFuture
 import com.pusher.util.Result.Companion.failure
 import com.pusher.util.Result.Companion.success
+import elements.Errors
+import elements.Error
 import java.util.concurrent.Future
 
-fun <A, B> A.asSuccess(): Result<A, B> = success(this)
-fun <A, B> B.asFailure(): Result<A, B> = failure(this)
-fun <A, B> A?.orElse(block: () -> B): Result<A, B> = when (this) {
+fun <A, B: Error> A.asSuccess(): Result<A, B> = success(this)
+fun <A, B: Error> B.asFailure(): Result<A, B> = failure(this)
+fun <A, B: Error> A?.orElse(block: () -> B): Result<A, B> = when (this) {
     null -> failure(block())
     else -> success(this)
 }
@@ -23,19 +25,19 @@ fun <A, B> A?.orElse(block: () -> B): Result<A, B> = when (this) {
  *  - Extension functions: `value.asSuccess()` or `error.asFailure()`
  *  - From a nullable: `candidate.orElse { error }`
  */
-sealed class Result<A, B> {
+sealed class Result<A, B: Error> {
 
     @Suppress("MemberVisibilityCanBePrivate") // public APIs
     companion object {
         @JvmStatic
-        fun <A, B> success(value: A): Result<A, B> = Success(value)
+        fun <A, B: Error> success(value: A): Result<A, B> = Success(value)
         @JvmStatic
-        fun <A, B> failure(error: B): Result<A, B> = Failure(error)
+        fun <A, B: Error> failure(error: B): Result<A, B> = Failure(error)
         @JvmStatic
-        fun <B> failuresOf(vararg results: Result<*, B>): List<B> =
+        fun <B: Error> failuresOf(vararg results: Result<*, B>): List<B> =
             failuresOf(results.asList())
         @JvmStatic
-        fun <B> failuresOf(results: Iterable<Result<*, B>>): List<B> =
+        fun <B: Error> failuresOf(results: Iterable<Result<*, B>>): List<B> =
             results.mapNotNull { it as? Result.Failure }.map { it.error }
         @JvmStatic
         fun <A> successesOf(vararg results: Result<A, *>): List<A> =
@@ -45,8 +47,8 @@ sealed class Result<A, B> {
             results.mapNotNull { it as? Result.Success }.map { it.value }
     }
 
-    data class Success<A, B> internal constructor(val value: A) : Result<A, B>()
-    data class Failure<A, B> internal constructor(val error: B) : Result<A, B>()
+    data class Success<A, B: Error> internal constructor(val value: A) : Result<A, B>()
+    data class Failure<A, B: Error> internal constructor(val error: B) : Result<A, B>()
 
     inline fun <C> fold(onFailure: (B) -> C, onSuccess: (A) -> C): C = when (this) {
         is Failure -> onFailure(error)
@@ -64,7 +66,7 @@ sealed class Result<A, B> {
     /**
      * Creates a new result using [block] to convert when it is success.
      */
-    inline fun <C> mapFailure(block: (B) -> C): Result<A, C> = fold(
+    inline fun <C: Error> mapFailure(block: (B) -> C): Result<A, C> = fold(
             onFailure = { failure(block(it)) },
             onSuccess = { it.asSuccess() }
     )
@@ -75,14 +77,6 @@ sealed class Result<A, B> {
     inline fun <C> flatMap(block: (A) -> Result<C, B>): Result<C, B> = fold(
         onFailure = { failure(it) },
         onSuccess = { block(it) }
-    )
-
-    /**
-     * Changes the result to it's inverse
-     */
-    fun swap() : Result<B, A> = fold(
-        onFailure = { it.asSuccess() },
-        onSuccess = { it.asFailure() }
     )
 
     /**
@@ -105,29 +99,31 @@ sealed class Result<A, B> {
 }
 
 /**
- * If the result is the same time on both sides it will return the one that is present.
+ * Collapses a nested result into a simple one
  */
-fun <A> Result<A, A>.flatten(): A =
-    fold({ it }, { it })
+fun <A, B: Error> Result<Result<A, B>, B>.flatten(): Result<A, B> = fold(
+    onFailure = { it.asFailure() },
+    onSuccess = { it }
+)
 
 /**
  * Collapses a nested result into a simple one
  */
-fun <A, B> Result<Result<A, B>, B>.flatten(): Result<A, B> = fold(
-    onFailure = { it.asFailure() },
+fun <B: Error> Result<B, B>.flatten(): B = fold(
+    onFailure = { it },
     onSuccess = { it }
 )
 
 /**
  * [Result.map] when result is inside a [Future].
  */
-fun <A, B, C> Future<Result<A, B>>.mapResult(block: (A) -> C): Future<Result<C, B>> =
+fun <A, B: Error, C> Future<Result<A, B>>.mapResult(block: (A) -> C): Future<Result<C, B>> =
     map { it.map(block) }
 
 /**
  * [Result.recover] when result is inside a [Future].
  */
-fun <A, B> Future<Result<A, B>>.recoverResult(block: (B) -> Result<A, B>): Future<Result<A, B>> =
+fun <A, B: Error> Future<Result<A, B>>.recoverResult(block: (B) -> Result<A, B>): Future<Result<A, B>> =
     map {
         it.fold(
             onFailure = { block(it) },
@@ -138,7 +134,7 @@ fun <A, B> Future<Result<A, B>>.recoverResult(block: (B) -> Result<A, B>): Futur
 /**
  * Same as [recoverResult] but recovering with a future.
  */
-fun <A, B> Future<Result<A, B>>.recoverFutureResult(block: (B) -> Future<Result<A, B>>): Future<Result<A, B>> =
+fun <A, B: Error> Future<Result<A, B>>.recoverFutureResult(block: (B) -> Future<Result<A, B>>): Future<Result<A, B>> =
     flatMap {
         it.fold(
             onFailure = { block(it) },
@@ -149,13 +145,13 @@ fun <A, B> Future<Result<A, B>>.recoverFutureResult(block: (B) -> Future<Result<
 /**
  * [Result.flatMap] when result is inside a [Future].
  */
-fun <A, B, C> Future<Result<A, B>>.flatMapResult(block: (A) -> Result<C, B>): Future<Result<C, B>> =
+fun <A, B: Error, C> Future<Result<A, B>>.flatMapResult(block: (A) -> Result<C, B>): Future<Result<C, B>> =
     map { it.flatMap(block) }
 
 /**
  * Same as [flatMapResult] but returning a future when mapping.
  */
-fun <A, B, C> Future<Result<A, B>>.flatMapFutureResult(block: (A) -> Future<Result<C, B>>) : Future<Result<C, B>> =
+fun <A, B: Error, C> Future<Result<A, B>>.flatMapFutureResult(block: (A) -> Future<Result<C, B>>) : Future<Result<C, B>> =
     flatMap {
         it.fold(
             onFailure = { it.asFailure<C, B>().toFuture() },
@@ -165,10 +161,11 @@ fun <A, B, C> Future<Result<A, B>>.flatMapFutureResult(block: (A) -> Future<Resu
 
 /**
  * Transforms a list of results in to a result of a List.
+ * Errors are composed using elements.Errors.compose()
  */
-fun <A, B> Iterable<Result<A, B>>.collect(): Result<List<A>, List<B>> =
+fun <A, B: Error> Iterable<Result<A, B>>.collect(): Result<List<A>, Error> =
     if (Result.failuresOf(this).isEmpty()) {
         Result.successesOf(this).asSuccess()
     } else {
-        Result.failuresOf(this).asFailure()
+        Errors.compose(Result.failuresOf(this)).asFailure()
     }
