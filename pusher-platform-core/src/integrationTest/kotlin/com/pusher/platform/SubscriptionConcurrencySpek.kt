@@ -31,7 +31,7 @@ class SubscriptionConcurrencySpek : Spek({
         )
 
         it("should cancel subscriptions accurately from lots of threads") {
-            val numSubs = 10000
+            val numSubs = 1000
             val outstanding = AtomicInteger(numSubs)
             val events = AtomicInteger(0)
             val queue = LinkedBlockingDeque<Subscription>()
