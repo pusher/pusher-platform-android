@@ -2,7 +2,6 @@ package com.pusher.platform.subscription
 
 import com.pusher.platform.BaseClient
 import com.pusher.platform.logger.Logger
-import com.pusher.platform.logger.logWith
 import com.pusher.platform.network.*
 import com.pusher.util.Result
 import com.pusher.util.flatten
@@ -67,7 +66,6 @@ internal class BaseSubscription<A>(
     private fun handleConnectionFailed(response: Response) {
         val errorEvent = response.body()?.charStream()
             .parseOr { ErrorResponseBody("Could not parse: $response") }
-            .logWith(logger) { verbose("") }
             .map {
                 ErrorResponse(
                     statusCode = response.code(),
@@ -76,8 +74,7 @@ internal class BaseSubscription<A>(
                     errorDescription = it.errorDescription,
                     URI = it.URI
                 ) as Error
-            }
-            .flatten()
+            }.flatten()
         onError(errorEvent)
     }
 

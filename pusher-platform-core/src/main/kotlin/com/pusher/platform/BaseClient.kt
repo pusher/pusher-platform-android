@@ -2,7 +2,6 @@ package com.pusher.platform
 
 import com.pusher.platform.RequestDestination.Absolute
 import com.pusher.platform.RequestDestination.Relative
-import com.pusher.platform.logger.log
 import com.pusher.platform.network.*
 import com.pusher.platform.retrying.RetryStrategyOptions
 import com.pusher.platform.subscription.*
@@ -180,13 +179,13 @@ data class BaseClient(
 
         when (response?.code()) {
             null -> OtherError("Response was null").asFailure<A, Error>()
-            in 200..299 -> logger
-                    .log(response) { verbose("Request OK: $method $requestURL with status code: ${response.code()} ") }
+            in 200..299 -> response
+                    .also { logger.verbose("Request OK: $method $requestURL with status code: ${response.code()} ") }
                     .body()?.string()
                     .orElse { Errors.other("Missing body in $response") }
                     .flatMap(responseParser)
-            else -> logger
-                    .log(response) { verbose("Request Failed: $method $requestURL with status code: ${response.code()}") }
+            else -> response
+                    .also { logger.verbose("Request Failed: $method $requestURL with status code: ${response.code()}") }
                     .body()?.string()
                     .parseAs<ErrorResponse> { Errors.network("could not parse error response: $response") }
                     .map { b ->
