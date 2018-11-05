@@ -2,7 +2,7 @@ apply plugin: "maven-publish"
 
 buildscript {
     ext {
-        kotlin_version = '1.2.41'
+        kotlin_version = '1.2.51'
         coroutines_version = '0.22.1'
         android_gradle_version = '3.1.1'
         android_support_version = '27.1.1'
