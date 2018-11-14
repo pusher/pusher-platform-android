@@ -15,7 +15,7 @@ import java.util.concurrent.Future
 private const val DEFAULT_HOST_BASE = "pusherplatform.io"
 
 data class Instance constructor(
-    private val id: String,
+    val id: String,
     val baseClient: BaseClient,
     private val serviceName: String,
     private val serviceVersion: String,
