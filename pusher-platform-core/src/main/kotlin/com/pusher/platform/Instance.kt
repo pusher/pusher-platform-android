@@ -181,7 +181,7 @@ data class Instance constructor(
     }
 }
 
-private data class Locator(val version: String, val cluster: String, val id: String) {
+data class Locator(val version: String, val cluster: String, val id: String) {
     companion object {
         operator fun invoke(raw: String) : Locator {
             val splitInstanceLocator = raw.split(":")
