@@ -171,6 +171,25 @@ data class Instance constructor(
         tokenParams = tokenParams
     )
 
+    @JvmOverloads
+    @Suppress("unused") // Public API
+    fun <A> externalUpload(
+            url: String,
+            method: String,
+            headers: Headers = emptyHeaders(),
+            mimeType: String,
+            data: ByteArray,
+            responseParser: DataParser<A>
+    ): Future<Result<A, Error>> =
+            baseClient.externalUpload(
+                    requestDestination = RequestDestination.Absolute(url),
+                    method = method,
+                    headers = headers,
+                    responseParser = responseParser,
+                    mimeType = mimeType,
+                    data = data
+            )
+
     private fun RequestDestination.toScopedDestination(): RequestDestination = when (this) {
         is Absolute -> this
         is Relative -> Relative(scopePathToService(path))

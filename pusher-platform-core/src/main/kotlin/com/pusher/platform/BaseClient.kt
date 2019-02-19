@@ -129,6 +129,23 @@ data class BaseClient(
         else -> Futures.now(Errors.upload("File does not exist at ${file.path}").asFailure())
     }
 
+    @JvmOverloads
+    fun <A> externalUpload(
+            requestDestination: RequestDestination,
+            method: String,
+            headers: ElementsHeaders = emptyHeaders(),
+            data: ByteArray,
+            mimeType: String,
+            responseParser: DataParser<A>
+    ): Future<Result<A, Error>> =
+            performRequest(
+                    destination = requestDestination,
+                    headers = headers,
+                    method = method,
+                    requestBody = RequestBody.create(MediaType.parse(mimeType), data),
+                    responseParser = responseParser
+            )
+
     /**
      * Provides a future that will provide the same headers with auth token if possible.
      */
