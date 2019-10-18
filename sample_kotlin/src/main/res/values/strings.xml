@@ -1,9 +1,0 @@
-<resources>
-    <string name="app_name">Sample Kotlin</string>
-    <string name="subscribe_resuming">Subscribe Resuming</string>
-    <string name="subscribe_non_resuming">Subscribe Non Resuming</string>
-    <string name="subscribe_private">Subscribe Private</string>
-    <string name="unsubscribe">Unsubscribe</string>
-    <string name="get_request">GET request</string>
-    <string name="get_request_private">GET request Private</string>
-</resources>
