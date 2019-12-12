@@ -58,6 +58,8 @@ internal class BaseSubscription<A>(
                     e is SSLHandshakeException -> onError(Errors.other(e))
                     else -> onError(NetworkError("Connection failed"))
                 }
+            } catch (e: Exception) {
+                onError(Errors.other(e))
             }
         }
     }
