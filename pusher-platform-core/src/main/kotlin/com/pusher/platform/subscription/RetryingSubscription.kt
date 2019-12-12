@@ -35,7 +35,12 @@ private class RetryingSubscription<A>(
 ): Subscription {
 
     private val onTransition: StateTransition = { newState ->
-        logger.verbose("RetryingSubscription $subscriptionID: transitioning to ${newState.javaClass.simpleName} (from ${state.javaClass.simpleName})")
+        // Safe calls are necessary as there's analogous edge case initialisation cycle
+        // like the one observed for ResumingSubscription (elaborated on there).
+        @Suppress("UNNECESSARY_SAFE_CALL")
+        logger.verbose("RetryingSubscription $subscriptionID: transitioning " +
+                "from ${state?.javaClass?.simpleName} " +
+                "to ${newState.javaClass.simpleName}")
         state = newState
     }
 

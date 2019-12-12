@@ -38,7 +38,15 @@ private class ResumingSubscription<A>(
 ) : Subscription {
 
     private val onTransition: StateTransition = { newState ->
-        logger.verbose("ResumingSubscription $subscriptionID: transitioning to ${newState.javaClass.simpleName} (from ${state.javaClass.simpleName})")
+        // Safe calls are necessary as there's an edge case initialisation cycle
+        // that leads to this being called back when state is being created (still is null).
+        // Breaking initialisation and performing actions will be addressed later.
+        // For now this is a safe workaround for the issue (#19417)
+        // reported by a user (token provider fetch error on init).
+        @Suppress("UNNECESSARY_SAFE_CALL")
+        logger.verbose("ResumingSubscription $subscriptionID: transitioning " +
+                "from ${state?.javaClass?.simpleName} " +
+                "to ${newState.javaClass.simpleName}")
         state = newState
     }
 
