@@ -28,8 +28,8 @@ internal class DummyBaseClientTest {
     fun `notifies error on token fetch error when subscribeResuming is called`() {
         val dummyRequestDestination = RequestDestination.Relative("dummy") // irrelevant here
         val emptyRequestHeaders = emptyHeaders() // also irrelevant for this test
-        val authExpired401Error = Errors.response(401, emptyHeaders(), "test error body")
-        val mock401TokenProvider = mockFailingTokenProvider(authExpired401Error)
+        val auth401Error = Errors.response(401, emptyHeaders(), "test error body")
+        val mockFailingTokenProvider = mockFailingTokenProvider(auth401Error)
         val mockErrorCallback = mock<(Error) -> Unit>()
         val defaultRetryStrategyOptions = RetryStrategyOptions() // effectively no retrying
         val dummyBodyParser: DataParser<String> = { "".asSuccess() } // irrelevant for this test
@@ -38,7 +38,7 @@ internal class DummyBaseClientTest {
         subject.subscribeResuming(
                 destination = dummyRequestDestination,
                 headers = emptyRequestHeaders,
-                tokenProvider = mock401TokenProvider,
+                tokenProvider = mockFailingTokenProvider,
                 tokenParams = null,
                 retryOptions = defaultRetryStrategyOptions,
                 bodyParser = dummyBodyParser,
@@ -47,7 +47,7 @@ internal class DummyBaseClientTest {
 
         argumentCaptor<Error>().apply {
             verify(mockErrorCallback).invoke(capture())
-            assertThat(allValues[0]).isEqualTo(authExpired401Error)
+            assertThat(allValues[0]).isEqualTo(auth401Error)
         }
     }
 
@@ -56,7 +56,7 @@ internal class DummyBaseClientTest {
         val dummyRequestDestination = RequestDestination.Relative("dummy") // irrelevant here
         val emptyRequestHeaders = emptyHeaders() // also irrelevant for this test
         val authExpired401Error = Errors.response(401, emptyHeaders(), "test error body")
-        val mock401TokenProvider = mockFailingTokenProvider(authExpired401Error)
+        val mockFailingTokenProvider = mockFailingTokenProvider(authExpired401Error)
         val mockErrorCallback = mock<(Error) -> Unit>()
         val defaultRetryStrategyOptions = RetryStrategyOptions() // effectively no retrying
         val dummyBodyParser: DataParser<String> = { "".asSuccess() } // irrelevant for this test
@@ -65,7 +65,7 @@ internal class DummyBaseClientTest {
         subject.subscribeNonResuming(
                 destination = dummyRequestDestination,
                 headers = emptyRequestHeaders,
-                tokenProvider = mock401TokenProvider,
+                tokenProvider = mockFailingTokenProvider,
                 tokenParams = null,
                 retryOptions = defaultRetryStrategyOptions,
                 bodyParser = dummyBodyParser,
@@ -81,7 +81,6 @@ internal class DummyBaseClientTest {
     private fun mockFailingTokenProvider(authExpired401Error: Error): TokenProvider = mock {
         on { fetchToken(anyOrNull()) } doReturn failureAs(authExpired401Error)
     }
-
 
     private fun failureAs(authExpired401Error: Error) = Futures.schedule {
         authExpired401Error.asFailure<String, Error>()
