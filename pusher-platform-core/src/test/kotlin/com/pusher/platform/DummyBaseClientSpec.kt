@@ -27,7 +27,7 @@ class DummyBaseClientSpec : Spek({
         val auth401Error = Errors.response(401, emptyHeaders(), "test error body")
         val mockFailingTokenProvider by memoized { mockFailingTokenProvider(auth401Error) }
         val mockErrorCallback by memoized { mock<(Error) -> Unit>() }
-        val defaultRetryStrategyOptions = RetryStrategyOptions() // effectively no retrying
+        val defaultRetryStrategyOptions = RetryStrategyOptions() // the same used by the client code
         val dummyBodyParser: DataParser<String> = { "".asSuccess() } // irrelevant for this test
         val errorPartialMockListener by memoized { errorPartialMockListener(mockErrorCallback) }
 
