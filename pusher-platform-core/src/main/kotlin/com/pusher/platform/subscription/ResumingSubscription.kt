@@ -41,7 +41,7 @@ private class ResumingSubscription<A>(
         // Safe calls are necessary as there's an edge case initialisation cycle
         // that leads to this being called back when state is being created (still is null).
         // Breaking initialisation and performing actions will be addressed later.
-        // For now this is a safe workaround for the issue (#19417)
+        // For now this is a safe workaround for the issue (Zendesk #19417)
         // reported by a user (token provider fetch error on init).
         @Suppress("UNNECESSARY_SAFE_CALL")
         logger.verbose("ResumingSubscription $subscriptionID: transitioning " +
