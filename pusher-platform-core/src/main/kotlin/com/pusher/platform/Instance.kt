@@ -204,7 +204,6 @@ data class Locator(val version: String, val cluster: String, val id: String) {
     companion object {
         operator fun invoke(raw: String) : Locator {
             val splitInstanceLocator = raw.split(":")
-            splitInstanceLocator.getOrNull(2)
             require(splitInstanceLocator.size == 3) {
                 "Expecting locator to be of the form 'v1:us1:1a234-123a-1234-12a3-1234123aa12' but got this instead: '$raw'. Check the dashboard to ensure you have a properly formatted locator."
             }
